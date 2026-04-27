@@ -269,23 +269,40 @@ class FloatingButtonService : Service() {
 
     /**
      * 切换媒体播放/暂停
+     * 使用 KEYCODE_MEDIA_PLAY 和 KEYCODE_MEDIA_PAUSE 分别控制，避免某些App将 PLAY_PAUSE 识别为下一首
      */
     private fun toggleMediaPlayback() {
         try {
             Log.d(TAG, "toggleMediaPlayback")
             val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+            // 检查当前是否有音乐在播放
+            val isPlaying = audioManager.isMusicActive
+
+            // 根据当前状态发送对应的按键事件
+            val keyCode = if (isPlaying) {
+                android.view.KeyEvent.KEYCODE_MEDIA_PAUSE
+            } else {
+                android.view.KeyEvent.KEYCODE_MEDIA_PLAY
+            }
+
+            // 发送 DOWN 事件
             audioManager.dispatchMediaKeyEvent(
                 android.view.KeyEvent(
                     android.view.KeyEvent.ACTION_DOWN,
-                    android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+                    keyCode
                 )
             )
+
+            // 发送 UP 事件
             audioManager.dispatchMediaKeyEvent(
                 android.view.KeyEvent(
                     android.view.KeyEvent.ACTION_UP,
-                    android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+                    keyCode
                 )
             )
+
+            Log.d(TAG, "发送按键: ${if (isPlaying) "PAUSE" else "PLAY"}")
         } catch (e: Exception) {
             Log.e(TAG, "切换播放状态失败", e)
         }
