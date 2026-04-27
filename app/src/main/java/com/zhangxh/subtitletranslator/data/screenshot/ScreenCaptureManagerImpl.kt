@@ -31,14 +31,24 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
     private var screenWidth: Int = 0
     private var screenHeight: Int = 0
     private var screenDensity: Int = 0
+    private var onProjectionStoppedListener: (() -> Unit)? = null
+
+    /**
+     * 设置 MediaProjection 停止监听回调
+     */
+    fun setOnProjectionStoppedListener(listener: () -> Unit) {
+        onProjectionStoppedListener = listener
+    }
 
     private val projectionCallback = object : MediaProjection.Callback() {
         override fun onStop() {
             super.onStop()
             Log.d(TAG, "MediaProjection Callback onStop")
-            // 🔴 系统停止录屏（用户取消 / 权限失效 / 系统回收）
+            // 🔴 系统停止录屏（用户取消 / 权限失效 / 系统回收 / 锁屏）
             // 👉 必须在这里释放资源
             release()
+            // 通知外部 MediaProjection 已停止
+            onProjectionStoppedListener?.invoke()
         }
     }
 

@@ -58,6 +58,9 @@ class FloatingButtonService : Service() {
     private var translationCoordinator: TranslationCoordinator? = null
     private var mediaProjection: MediaProjection? = null
     private var isShowingTranslation = false
+    private var resultCode: Int = -1
+    private var resultData: Intent? = null
+    private var isProjectionStopped = false
 
     private val binder = LocalBinder()
 
@@ -81,13 +84,20 @@ class FloatingButtonService : Service() {
         startForeground(NOTIFICATION_ID, createNotification())
 
         // 获取 MediaProjection
-        val resultCode = intent?.getIntExtra(EXTRA_RESULT_CODE, -1) ?: -1
+        val newResultCode = intent?.getIntExtra(EXTRA_RESULT_CODE, -1) ?: -1
         val data = intent?.getParcelableExtra<Intent>(EXTRA_DATA)
 
-        if (resultCode == RESULT_OK && data != null) {
-            initMediaProjection(resultCode, data)
+        if (newResultCode == RESULT_OK && data != null) {
+            // 保存授权信息，用于重新初始化
+            this.resultCode = newResultCode
+            this.resultData = data
+            initMediaProjection(newResultCode, data)
+        } else if (isProjectionStopped && resultCode == RESULT_OK && resultData != null) {
+            // 如果之前被停止了，尝试重新初始化
+            Log.d(TAG, "尝试重新初始化 MediaProjection")
+            initMediaProjection(resultCode, resultData!!)
         } else {
-            Log.e(TAG, "error, result code is $resultCode")
+            Log.e(TAG, "error, result code is $newResultCode")
         }
 
         // 显示悬浮按钮
@@ -104,8 +114,18 @@ class FloatingButtonService : Service() {
         mediaProjection = projectionManager.getMediaProjection(resultCode, data)
 
         mediaProjection?.let { projection ->
+            isProjectionStopped = false
             val metrics = resources.displayMetrics
             val screenCapture = ScreenCaptureManagerImpl()
+            
+            // 设置 MediaProjection 停止监听
+            screenCapture.setOnProjectionStoppedListener {
+                Log.d(TAG, "MediaProjection 已停止，标记状态")
+                isProjectionStopped = true
+                mediaProjection = null
+                translationCoordinator = null
+            }
+            
             screenCapture.initialize(projection, metrics.widthPixels, metrics.heightPixels, metrics.densityDpi)
 
             val ocrEngine = MLKitOcrEngine()
@@ -202,6 +222,23 @@ class FloatingButtonService : Service() {
      * 显示翻译
      */
     private fun showTranslation() {
+        // 检查 MediaProjection 是否已停止
+        if (isProjectionStopped) {
+            Log.e(TAG, "MediaProjection 已停止，需要重新授权")
+            // 尝试重新初始化
+            resultData?.let { data ->
+                if (resultCode == RESULT_OK) {
+                    initMediaProjection(resultCode, data)
+                }
+            }
+        }
+
+        // 再次检查是否初始化成功
+        if (translationCoordinator == null) {
+            Log.e(TAG, "翻译协调器未初始化，无法执行翻译")
+            return
+        }
+
         serviceScope.launch {
             try {
                 // 暂停视频播放
