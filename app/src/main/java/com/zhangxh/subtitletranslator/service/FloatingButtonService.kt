@@ -21,7 +21,7 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
-import android.widget.FrameLayout
+import androidx.appcompat.app.AppCompatActivity.RESULT_OK
 import androidx.core.app.NotificationCompat
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.data.ocr.MLKitOcrEngine
@@ -84,8 +84,10 @@ class FloatingButtonService : Service() {
         val resultCode = intent?.getIntExtra(EXTRA_RESULT_CODE, -1) ?: -1
         val data = intent?.getParcelableExtra<Intent>(EXTRA_DATA)
 
-        if (resultCode != -1 && data != null) {
+        if (resultCode == RESULT_OK && data != null) {
             initMediaProjection(resultCode, data)
+        } else {
+            Log.e(TAG, "error, result code is $resultCode")
         }
 
         // 显示悬浮按钮
