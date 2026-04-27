@@ -40,7 +40,7 @@ data class OcrResult(
             android.util.Log.d("OcrResult", "文字块[$index]: \"${block.text}\" | 位置: top=${block.boundingBox.top}, bottom=${block.boundingBox.bottom}, centerY=$centerY, relativeY=${String.format("%.2f", relativeY)}")
         }
 
-        // 字幕通常在屏幕底部区域，扩大范围到 55%-98%
+        // 字幕通常在屏幕底部区域，范围 55%-98%
         val subtitleBlocks = blocks.filter { block ->
             val centerY = (block.boundingBox.top + block.boundingBox.bottom) / 2
             val relativeY = centerY.toFloat() / screenHeight

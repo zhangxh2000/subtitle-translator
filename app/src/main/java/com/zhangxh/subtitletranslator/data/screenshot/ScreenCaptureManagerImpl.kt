@@ -32,6 +32,7 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
     private var screenHeight: Int = 0
     private var screenDensity: Int = 0
     private var onProjectionStoppedListener: (() -> Unit)? = null
+    private var isReleased = false
 
     /**
      * 设置 MediaProjection 停止监听回调
@@ -44,9 +45,9 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
         override fun onStop() {
             super.onStop()
             Log.d(TAG, "MediaProjection Callback onStop")
-            // 🔴 系统停止录屏（用户取消 / 权限失效 / 系统回收 / 锁屏）
-            // 👉 必须在这里释放资源
-            release()
+            // 系统停止录屏（用户取消 / 权限失效 / 系统回收 / 锁屏）
+            // 释放本地资源，但不 stop MediaProjection（它已经停了）
+            releaseInternal()
             // 通知外部 MediaProjection 已停止
             onProjectionStoppedListener?.invoke()
         }
@@ -62,6 +63,7 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
         this.screenWidth = width
         this.screenHeight = height
         this.screenDensity = density
+        this.isReleased = false
 
         // 创建 ImageReader 用于接收屏幕图像
         imageReader = ImageReader.newInstance(
@@ -110,6 +112,7 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
                     screenHeight,
                     Bitmap.Config.ARGB_8888
                 )
+                buffer.rewind()
                 bitmap.copyPixelsFromBuffer(buffer)
 
                 // 裁剪到实际屏幕大小
@@ -128,10 +131,22 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
     }
 
     override fun release() {
+        releaseInternal()
+        // 注意：这里不调用 mMediaProjection?.stop()
+        // MediaProjection 的生命周期由外部（FloatingButtonService）管理
+    }
+
+    /**
+     * 内部释放资源，不操作 MediaProjection
+     */
+    private fun releaseInternal() {
+        if (isReleased) return
+        isReleased = true
+
         try {
             virtualDisplay?.release()
             imageReader?.close()
-            mMediaProjection?.stop()
+            mMediaProjection?.unregisterCallback(projectionCallback)
         } catch (e: Exception) {
             Log.e(TAG, "释放资源失败", e)
         } finally {
@@ -142,6 +157,6 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
     }
 
     override fun isInitialized(): Boolean {
-        return mMediaProjection != null && imageReader != null
+        return !isReleased && mMediaProjection != null && imageReader != null
     }
 }

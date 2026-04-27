@@ -7,7 +7,9 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.zhangxh.subtitletranslator.R
-import com.zhangxh.subtitletranslator.domain.TranslationCoordinator
+import com.zhangxh.subtitletranslator.domain.TranslationResult
+import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficulty
+import com.zhangxh.subtitletranslator.domain.wordextractor.WordEntry
 
 /**
  * 翻译结果覆盖层视图
@@ -20,17 +22,19 @@ class TranslationOverlayView @JvmOverloads constructor(
 ) : LinearLayout(context, attrs, defStyleAttr) {
 
     private var onCloseListener: (() -> Unit)? = null
+    private var onCopyListener: ((String) -> Unit)? = null
 
     init {
         orientation = VERTICAL
         LayoutInflater.from(context).inflate(R.layout.overlay_translation, this, true)
         setupCloseButton()
+        setupCopyButtons()
     }
 
     /**
      * 设置翻译结果
      */
-    fun setTranslationResult(result: TranslationCoordinator.TranslationResult) {
+    fun setTranslationResult(result: TranslationResult) {
         // 原文
         findViewById<TextView>(R.id.tvOriginalText)?.text = result.originalText
 
@@ -64,6 +68,13 @@ class TranslationOverlayView @JvmOverloads constructor(
     }
 
     /**
+     * 设置复制监听
+     */
+    fun setOnCopyListener(listener: (String) -> Unit) {
+        onCopyListener = listener
+    }
+
+    /**
      * 设置关闭按钮
      */
     private fun setupCloseButton() {
@@ -73,9 +84,29 @@ class TranslationOverlayView @JvmOverloads constructor(
     }
 
     /**
+     * 设置复制按钮
+     */
+    private fun setupCopyButtons() {
+        findViewById<TextView>(R.id.tvOriginalText)?.setOnLongClickListener {
+            val text = (it as TextView).text.toString()
+            if (text.isNotBlank()) {
+                onCopyListener?.invoke(text)
+            }
+            true
+        }
+        findViewById<TextView>(R.id.tvTranslatedText)?.setOnLongClickListener {
+            val text = (it as TextView).text.toString()
+            if (text.isNotBlank()) {
+                onCopyListener?.invoke(text)
+            }
+            true
+        }
+    }
+
+    /**
      * 创建单词释义视图
      */
-    private fun createWordView(wordEntry: com.zhangxh.subtitletranslator.domain.wordextractor.WordEntry): View {
+    private fun createWordView(wordEntry: WordEntry): View {
         return LayoutInflater.from(context).inflate(R.layout.item_word_entry, null).apply {
             findViewById<TextView>(R.id.tvWord)?.text = wordEntry.word
             findViewById<TextView>(R.id.tvPhonetic)?.text = wordEntry.phonetic
@@ -90,11 +121,11 @@ class TranslationOverlayView @JvmOverloads constructor(
             // 难度标识
             val difficultyView = findViewById<TextView>(R.id.tvDifficulty)
             when (wordEntry.difficulty) {
-                com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficulty.HARD -> {
+                WordDifficulty.HARD -> {
                     difficultyView?.text = "难"
                     difficultyView?.setBackgroundColor(context.getColor(android.R.color.holo_red_light))
                 }
-                com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficulty.MEDIUM -> {
+                WordDifficulty.MEDIUM -> {
                     difficultyView?.text = "中"
                     difficultyView?.setBackgroundColor(context.getColor(android.R.color.holo_orange_light))
                 }
@@ -102,6 +133,12 @@ class TranslationOverlayView @JvmOverloads constructor(
                     difficultyView?.text = "易"
                     difficultyView?.setBackgroundColor(context.getColor(android.R.color.holo_green_light))
                 }
+            }
+
+            // 长按复制单词
+            setOnLongClickListener {
+                onCopyListener?.invoke(wordEntry.word)
+                true
             }
         }
     }

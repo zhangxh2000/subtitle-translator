@@ -14,6 +14,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.zhangxh.subtitletranslator.service.FloatingButtonService
+import com.zhangxh.subtitletranslator.ui.HistoryActivity
 
 /**
  * 主界面
@@ -22,7 +23,6 @@ import com.zhangxh.subtitletranslator.service.FloatingButtonService
 class MainActivity : AppCompatActivity() {
 
     companion object {
-        private const val REQUEST_MEDIA_PROJECTION = 1001
         const val EXTRA_RESTART_SERVICE = "extra_restart_service"
     }
 
@@ -30,6 +30,7 @@ class MainActivity : AppCompatActivity() {
     private var mediaProjectionResultCode: Int = 0
     private var mediaProjectionData: Intent? = null
     private var isRestarting = false
+    private var shouldStartServiceOnResume = false
 
     // 权限请求
     private val permissionLauncher = registerForActivityResult(
@@ -70,6 +71,14 @@ class MainActivity : AppCompatActivity() {
         btnStartService.setOnClickListener {
             checkPermissions()
         }
+
+        findViewById<Button>(R.id.btnHistory)?.setOnClickListener {
+            startActivity(Intent(this, HistoryActivity::class.java))
+        }
+
+        findViewById<Button>(R.id.btnSettings)?.setOnClickListener {
+            startActivity(Intent(this, com.zhangxh.subtitletranslator.ui.SettingsActivity::class.java))
+        }
     }
 
     /**
@@ -97,6 +106,7 @@ class MainActivity : AppCompatActivity() {
         if (!Settings.canDrawOverlays(this)) {
             // 引导用户去设置开启悬浮窗权限
             Toast.makeText(this, "请开启悬浮窗权限", Toast.LENGTH_LONG).show()
+            shouldStartServiceOnResume = true
             val intent = Intent(
                 Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                 Uri.parse("package:$packageName")
@@ -134,8 +144,13 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         // 用户从设置返回后，检查悬浮窗权限
-        if (Settings.canDrawOverlays(this) && mediaProjectionData != null) {
-            startFloatingService()
+        if (shouldStartServiceOnResume && Settings.canDrawOverlays(this)) {
+            shouldStartServiceOnResume = false
+            if (mediaProjectionData != null) {
+                startFloatingService()
+            } else {
+                requestMediaProjection()
+            }
         }
     }
 

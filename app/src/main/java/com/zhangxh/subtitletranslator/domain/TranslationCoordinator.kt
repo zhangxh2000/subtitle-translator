@@ -6,7 +6,6 @@ import com.zhangxh.subtitletranslator.domain.ocr.IOcrEngine
 import com.zhangxh.subtitletranslator.domain.screenshot.IScreenCaptureManager
 import com.zhangxh.subtitletranslator.domain.translator.ITranslator
 import com.zhangxh.subtitletranslator.domain.wordextractor.IWordExtractor
-import com.zhangxh.subtitletranslator.domain.wordextractor.WordEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -18,23 +17,14 @@ class TranslationCoordinator(
     private val screenCapture: IScreenCaptureManager,
     private val ocrEngine: IOcrEngine,
     private val translator: ITranslator,
-    private val wordExtractor: IWordExtractor
+    private val wordExtractor: IWordExtractor,
+    private val sourceLang: String = "en",
+    private val targetLang: String = "zh"
 ) {
 
     companion object {
         private const val TAG = "TranslationCoordinator"
     }
-
-    /**
-     * 翻译结果
-     */
-    data class TranslationResult(
-        val originalText: String = "",
-        val translatedText: String = "",
-        val difficultWords: List<WordEntry> = emptyList(),
-        val isSuccess: Boolean = false,
-        val errorMessage: String = ""
-    )
 
     /**
      * 执行完整的翻译流程
@@ -72,7 +62,7 @@ class TranslationCoordinator(
 
             // 3. 翻译
             Log.d(TAG, "开始翻译")
-            val translationResult = translator.translate(subtitleText, "en", "zh")
+            val translationResult = translator.translate(subtitleText, sourceLang, targetLang)
             val translatedText = translationResult.getOrElse {
                 return@withContext TranslationResult(
                     isSuccess = false,
@@ -105,7 +95,7 @@ class TranslationCoordinator(
      */
     suspend fun prepare() {
         Log.d(TAG, "预加载翻译环境")
-        translator.prepare("en", "zh")
+        translator.prepare(sourceLang, targetLang)
     }
 
     /**
