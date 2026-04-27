@@ -215,6 +215,7 @@ class FloatingButtonService : Service() {
 
     /**
      * 设置触摸监听，处理拖动和点击
+     * 点击判断完全在 OnTouchListener 内完成，不依赖 OnClickListener
      */
     private fun setupTouchListener(view: View, params: WindowManager.LayoutParams) {
         view.setOnTouchListener { _, event ->
@@ -223,7 +224,7 @@ class FloatingButtonService : Service() {
                     isDragging = false
                     downX = event.rawX
                     downY = event.rawY
-                    false  // 让点击事件也能收到
+                    true
                 }
                 MotionEvent.ACTION_MOVE -> {
                     val dx = event.rawX - downX
@@ -241,15 +242,13 @@ class FloatingButtonService : Service() {
                     true
                 }
                 MotionEvent.ACTION_UP -> {
-                    !isDragging  // 如果不是拖动，返回 false 让点击事件处理
+                    // 没有发生拖动，视为点击
+                    if (!isDragging) {
+                        onFloatingButtonClick()
+                    }
+                    true
                 }
                 else -> false
-            }
-        }
-
-        view.setOnClickListener {
-            if (!isDragging) {
-                onFloatingButtonClick()
             }
         }
     }
