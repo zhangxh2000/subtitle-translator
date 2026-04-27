@@ -55,11 +55,7 @@ class MLKitTranslator(private val context: Context) : ITranslator {
                 currentTargetLang = targetLang
 
                 // 下载语言包（如果尚未下载）
-                val conditions = DownloadConditions.Builder()
-                    .requireWifi()
-                    .build()
-
-                translator?.downloadModelIfNeeded(conditions)?.await()
+                downloadModelWithRetry()
 
                 Log.d(TAG, "语言包准备完成: $sourceLang -> $targetLang")
                 Result.success(Unit)
@@ -81,6 +77,27 @@ class MLKitTranslator(private val context: Context) : ITranslator {
                     ?: throw IllegalStateException("Translator 未初始化")
 
                 Result.success(result)
+            } catch (e: com.google.mlkit.common.MlKitException) {
+                // 如果是模型未找到错误，尝试重新下载
+                if (e.message?.contains("Translation model files not found") == true) {
+                    Log.w(TAG, "模型文件未找到，尝试重新下载")
+                    try {
+                        // 重新创建 translator 并下载模型
+                        release()
+                        prepare(from, to).getOrThrow()
+                        
+                        // 再次尝试翻译
+                        val result = translator?.translate(text)?.await()
+                            ?: throw IllegalStateException("Translator 未初始化")
+                        Result.success(result)
+                    } catch (retryException: Exception) {
+                        Log.e(TAG, "重试翻译失败: $text", retryException)
+                        Result.failure(retryException)
+                    }
+                } else {
+                    Log.e(TAG, "翻译失败: $text", e)
+                    Result.failure(e)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "翻译失败: $text", e)
                 Result.failure(e)
@@ -94,6 +111,37 @@ class MLKitTranslator(private val context: Context) : ITranslator {
         } catch (e: Exception) {
             Log.e(TAG, "释放资源失败", e)
         }
+    }
+
+    /**
+     * 下载翻译模型，带重试机制
+     */
+    private suspend fun downloadModelWithRetry(maxRetries: Int = 3) {
+        var lastException: Exception? = null
+        
+        for (attempt in 1..maxRetries) {
+            try {
+                Log.d(TAG, "尝试下载语言包 (第 $attempt/$maxRetries 次)")
+                
+                val conditions = DownloadConditions.Builder()
+                    .build()  // 不限制网络条件，允许使用移动数据
+
+                translator?.downloadModelIfNeeded(conditions)?.await()
+                Log.d(TAG, "语言包下载成功")
+                return  // 下载成功，直接返回
+            } catch (e: Exception) {
+                lastException = e
+                Log.e(TAG, "第 $attempt 次下载失败: ${e.message}")
+                
+                if (attempt < maxRetries) {
+                    // 等待后重试
+                    kotlinx.coroutines.delay(1000L * attempt)
+                }
+            }
+        }
+        
+        // 所有重试都失败了
+        throw lastException ?: Exception("下载语言包失败")
     }
 
     /**
