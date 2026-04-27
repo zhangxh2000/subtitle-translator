@@ -12,9 +12,7 @@ import android.util.Log
 import com.zhangxh.subtitletranslator.domain.screenshot.IScreenCaptureManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import kotlin.coroutines.resume
 
 /**
  * 屏幕截图管理器实现
@@ -27,12 +25,22 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
         private const val MAX_IMAGES = 2
     }
 
-    private var mediaProjection: MediaProjection? = null
+    private var mMediaProjection: MediaProjection? = null
     private var virtualDisplay: VirtualDisplay? = null
     private var imageReader: ImageReader? = null
     private var screenWidth: Int = 0
     private var screenHeight: Int = 0
     private var screenDensity: Int = 0
+
+    private val projectionCallback = object : MediaProjection.Callback() {
+        override fun onStop() {
+            super.onStop()
+            Log.d(TAG, "MediaProjection Callback onStop")
+            // 🔴 系统停止录屏（用户取消 / 权限失效 / 系统回收）
+            // 👉 必须在这里释放资源
+            release()
+        }
+    }
 
     override fun initialize(
         mediaProjection: MediaProjection,
@@ -40,7 +48,7 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
         height: Int,
         density: Int
     ) {
-        this.mediaProjection = mediaProjection
+        this.mMediaProjection = mediaProjection
         this.screenWidth = width
         this.screenHeight = height
         this.screenDensity = density
@@ -52,6 +60,7 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
             MAX_IMAGES
         )
 
+        mediaProjection.registerCallback(projectionCallback, Handler(Looper.getMainLooper()))
         // 创建 VirtualDisplay
         virtualDisplay = mediaProjection.createVirtualDisplay(
             "ScreenCapture",
@@ -112,17 +121,17 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
         try {
             virtualDisplay?.release()
             imageReader?.close()
-            mediaProjection?.stop()
+            mMediaProjection?.stop()
         } catch (e: Exception) {
             Log.e(TAG, "释放资源失败", e)
         } finally {
             virtualDisplay = null
             imageReader = null
-            mediaProjection = null
+            mMediaProjection = null
         }
     }
 
     override fun isInitialized(): Boolean {
-        return mediaProjection != null && imageReader != null
+        return mMediaProjection != null && imageReader != null
     }
 }
