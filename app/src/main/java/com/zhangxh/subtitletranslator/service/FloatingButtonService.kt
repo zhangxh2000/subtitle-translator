@@ -272,6 +272,7 @@ class FloatingButtonService : Service() {
      */
     private fun toggleMediaPlayback() {
         try {
+            Log.d(TAG, "toggleMediaPlayback")
             val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
             audioManager.dispatchMediaKeyEvent(
                 android.view.KeyEvent(

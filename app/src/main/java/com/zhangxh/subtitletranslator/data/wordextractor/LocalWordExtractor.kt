@@ -93,10 +93,10 @@ class LocalWordExtractor(private val context: Context) : IWordExtractor {
      */
     private fun tokenize(text: String): List<String> {
         return text
-            .replace(Regex("[^a-zA-Z\s]"), " ")  // 移除非字母字符
-            .split(Regex("\s+"))  // 按空格分割
+            .lowercase()
+            .replace(Regex("""[^a-z\s]"""), " ")
+            .split(Regex("""\s+"""))
             .filter { it.isNotBlank() }
-            .map { it.lowercase().trim() }
     }
 
     /**
