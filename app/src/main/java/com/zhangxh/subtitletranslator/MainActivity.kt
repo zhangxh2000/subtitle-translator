@@ -23,11 +23,13 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val REQUEST_MEDIA_PROJECTION = 1001
+        const val EXTRA_RESTART_SERVICE = "extra_restart_service"
     }
 
     private lateinit var btnStartService: Button
     private var mediaProjectionResultCode: Int = 0
     private var mediaProjectionData: Intent? = null
+    private var isRestarting = false
 
     // 权限请求
     private val permissionLauncher = registerForActivityResult(
@@ -57,6 +59,12 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // 检查是否是服务停止后重新启动
+        isRestarting = intent.getBooleanExtra(EXTRA_RESTART_SERVICE, false)
+        if (isRestarting) {
+            Toast.makeText(this, "录屏权限已失效，请重新授权", Toast.LENGTH_LONG).show()
+        }
 
         btnStartService = findViewById(R.id.btnStartService)
         btnStartService.setOnClickListener {
@@ -129,5 +137,16 @@ class MainActivity : AppCompatActivity() {
         if (Settings.canDrawOverlays(this) && mediaProjectionData != null) {
             startFloatingService()
         }
+    }
+
+    /**
+     * 服务停止后重新启动
+     */
+    fun restartService() {
+        isRestarting = true
+        mediaProjectionResultCode = 0
+        mediaProjectionData = null
+        // 重新申请权限
+        checkPermissions()
     }
 }

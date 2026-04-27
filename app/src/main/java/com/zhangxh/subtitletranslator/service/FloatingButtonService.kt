@@ -88,14 +88,10 @@ class FloatingButtonService : Service() {
         val data = intent?.getParcelableExtra<Intent>(EXTRA_DATA)
 
         if (newResultCode == RESULT_OK && data != null) {
-            // 保存授权信息，用于重新初始化
+            // 保存授权信息
             this.resultCode = newResultCode
             this.resultData = data
             initMediaProjection(newResultCode, data)
-        } else if (isProjectionStopped && resultCode == RESULT_OK && resultData != null) {
-            // 如果之前被停止了，尝试重新初始化
-            Log.d(TAG, "尝试重新初始化 MediaProjection")
-            initMediaProjection(resultCode, resultData!!)
         } else {
             Log.e(TAG, "error, result code is $newResultCode")
         }
@@ -224,16 +220,13 @@ class FloatingButtonService : Service() {
     private fun showTranslation() {
         // 检查 MediaProjection 是否已停止
         if (isProjectionStopped) {
-            Log.e(TAG, "MediaProjection 已停止，需要重新授权")
-            // 尝试重新初始化
-            resultData?.let { data ->
-                if (resultCode == RESULT_OK) {
-                    initMediaProjection(resultCode, data)
-                }
-            }
+            Log.e(TAG, "MediaProjection 已停止，需要重新申请权限")
+            // 启动主界面让用户重新授权
+            restartAndRequestPermission()
+            return
         }
 
-        // 再次检查是否初始化成功
+        // 检查是否初始化成功
         if (translationCoordinator == null) {
             Log.e(TAG, "翻译协调器未初始化，无法执行翻译")
             return
@@ -304,6 +297,23 @@ class FloatingButtonService : Service() {
         }
 
         windowManager?.addView(overlayView, params)
+    }
+
+    /**
+     * 重新启动应用并申请权限
+     */
+    private fun restartAndRequestPermission() {
+        try {
+            val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                putExtra("extra_restart_service", true)
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            Log.e(TAG, "启动主界面失败", e)
+        }
+        // 停止当前服务
+        stopSelf()
     }
 
     /**
