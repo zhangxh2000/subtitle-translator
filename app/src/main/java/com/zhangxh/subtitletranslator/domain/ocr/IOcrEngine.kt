@@ -32,13 +32,23 @@ data class OcrResult(
      * 获取字幕区域文字（通常在屏幕底部）
      */
     fun getSubtitleText(screenHeight: Int): String {
-        val subtitleBlocks = blocks.filter { block ->
-            // 字幕通常在屏幕底部 20-35% 区域
+        // 打印所有识别到的文字块位置，用于调试
+        android.util.Log.d("OcrResult", "屏幕高度: $screenHeight, 识别到 ${blocks.size} 个文字块")
+        blocks.forEachIndexed { index, block ->
             val centerY = (block.boundingBox.top + block.boundingBox.bottom) / 2
             val relativeY = centerY.toFloat() / screenHeight
-            relativeY >= 0.65f && relativeY <= 0.95f
+            android.util.Log.d("OcrResult", "文字块[$index]: \"${block.text}\" | 位置: top=${block.boundingBox.top}, bottom=${block.boundingBox.bottom}, centerY=$centerY, relativeY=${String.format("%.2f", relativeY)}")
         }
-        
+
+        // 字幕通常在屏幕底部区域，扩大范围到 55%-98%
+        val subtitleBlocks = blocks.filter { block ->
+            val centerY = (block.boundingBox.top + block.boundingBox.bottom) / 2
+            val relativeY = centerY.toFloat() / screenHeight
+            relativeY >= 0.55f && relativeY <= 0.98f
+        }
+
+        android.util.Log.d("OcrResult", "筛选后字幕文字块数量: ${subtitleBlocks.size}")
+
         return subtitleBlocks
             .sortedBy { it.boundingBox.top }
             .joinToString(" ") { it.text }
