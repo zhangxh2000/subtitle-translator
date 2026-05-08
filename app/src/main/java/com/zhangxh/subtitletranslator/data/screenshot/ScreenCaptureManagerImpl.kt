@@ -106,9 +106,10 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
                 val rowStride = planes[0].rowStride
                 val rowPadding = rowStride - pixelStride * screenWidth
 
-                // 创建 Bitmap
+                // 创建 Bitmap（宽度使用 rowStride / pixelStride 包含行填充）
+                val bitmapWidth = rowStride / pixelStride
                 val bitmap = Bitmap.createBitmap(
-                    screenWidth + rowPadding / pixelStride,
+                    bitmapWidth,
                     screenHeight,
                     Bitmap.Config.ARGB_8888
                 )
