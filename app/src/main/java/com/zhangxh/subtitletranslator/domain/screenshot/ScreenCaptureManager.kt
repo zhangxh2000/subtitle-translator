@@ -1,5 +1,6 @@
 package com.zhangxh.subtitletranslator.domain.screenshot
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.media.projection.MediaProjection
 
@@ -9,12 +10,14 @@ import android.media.projection.MediaProjection
 interface IScreenCaptureManager {
     /**
      * 初始化屏幕录制
+     * @param context 应用上下文
      * @param mediaProjection MediaProjection 实例
      * @param width 屏幕宽度
      * @param height 屏幕高度
      * @param density 屏幕密度
      */
     fun initialize(
+        context: Context,
         mediaProjection: MediaProjection,
         width: Int,
         height: Int,

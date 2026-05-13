@@ -155,7 +155,7 @@ class FloatingButtonService : Service() {
                 translationCoordinator = null
             }
 
-            screenCapture.initialize(projection, metrics.widthPixels, metrics.heightPixels, metrics.densityDpi)
+            screenCapture.initialize(this, projection, metrics.widthPixels, metrics.heightPixels, metrics.densityDpi)
 
             val ocrEngine = MLKitOcrEngine()
             val translator = MLKitTranslator(this)

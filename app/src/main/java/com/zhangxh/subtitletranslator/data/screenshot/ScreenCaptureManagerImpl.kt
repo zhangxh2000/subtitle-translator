@@ -1,5 +1,6 @@
 package com.zhangxh.subtitletranslator.data.screenshot
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.PixelFormat
 import android.hardware.display.DisplayManager
@@ -9,6 +10,7 @@ import android.media.projection.MediaProjection
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.WindowManager
 import com.zhangxh.subtitletranslator.domain.screenshot.IScreenCaptureManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -25,6 +27,7 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
         private const val MAX_IMAGES = 2
     }
 
+    private var context: Context? = null
     private var mMediaProjection: MediaProjection? = null
     private var virtualDisplay: VirtualDisplay? = null
     private var imageReader: ImageReader? = null
@@ -54,11 +57,13 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
     }
 
     override fun initialize(
+        context: Context,
         mediaProjection: MediaProjection,
         width: Int,
         height: Int,
         density: Int
     ) {
+        this.context = context.applicationContext
         this.mMediaProjection = mediaProjection
         this.screenWidth = width
         this.screenHeight = height
@@ -86,6 +91,64 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
         Log.d(TAG, "屏幕截图初始化完成: ${width}x${height}")
     }
 
+    /**
+     * 获取当前屏幕实际尺寸（考虑旋转后的宽高）
+     */
+    private fun getCurrentScreenSize(): Pair<Int, Int> {
+        val windowManager = context?.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
+        val metrics = android.util.DisplayMetrics()
+        windowManager?.defaultDisplay?.getRealMetrics(metrics)
+        return Pair(metrics.widthPixels, metrics.heightPixels)
+    }
+
+    /**
+     * 检查并更新屏幕方向，如果方向改变则重新创建 VirtualDisplay 和 ImageReader
+     */
+    private fun checkAndUpdateOrientation() {
+        val (currentWidth, currentHeight) = getCurrentScreenSize()
+        val isCurrentLandscape = currentWidth > currentHeight
+        val isInitLandscape = screenWidth > screenHeight
+
+        // 如果方向发生变化，重新创建
+        if (isCurrentLandscape != isInitLandscape ||
+            (isCurrentLandscape && (screenWidth != currentWidth || screenHeight != currentHeight)) ||
+            (!isCurrentLandscape && (screenWidth != currentWidth || screenHeight != currentHeight))
+        ) {
+            Log.d(TAG, "屏幕方向变化，重新创建: ${screenWidth}x${screenHeight} -> ${currentWidth}x${currentHeight}")
+
+            // 释放旧的资源
+            try {
+                virtualDisplay?.release()
+                imageReader?.close()
+            } catch (e: Exception) {
+                Log.e(TAG, "释放旧资源失败", e)
+            }
+
+            // 更新尺寸
+            screenWidth = currentWidth
+            screenHeight = currentHeight
+
+            // 创建新的 ImageReader
+            imageReader = ImageReader.newInstance(
+                screenWidth, screenHeight,
+                PixelFormat.RGBA_8888,
+                MAX_IMAGES
+            )
+
+            // 重新创建 VirtualDisplay
+            virtualDisplay = mMediaProjection?.createVirtualDisplay(
+                "ScreenCapture",
+                screenWidth, screenHeight, screenDensity,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                imageReader?.surface,
+                null,
+                Handler(Looper.getMainLooper())
+            )
+
+            Log.d(TAG, "屏幕截图已重新初始化: ${screenWidth}x${screenHeight}")
+        }
+    }
+
     override suspend fun captureScreen(): Bitmap? = withContext(Dispatchers.IO) {
         if (!isInitialized()) {
             Log.e(TAG, "未初始化")
@@ -93,6 +156,9 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
         }
 
         try {
+            // 检查屏幕方向是否变化，必要时重新创建
+            checkAndUpdateOrientation()
+
             // 等待一帧图像
             delay(100)
 
@@ -104,7 +170,6 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
                 val buffer = planes[0].buffer
                 val pixelStride = planes[0].pixelStride
                 val rowStride = planes[0].rowStride
-                val rowPadding = rowStride - pixelStride * screenWidth
 
                 // 创建 Bitmap（宽度使用 rowStride / pixelStride 包含行填充）
                 val bitmapWidth = rowStride / pixelStride
