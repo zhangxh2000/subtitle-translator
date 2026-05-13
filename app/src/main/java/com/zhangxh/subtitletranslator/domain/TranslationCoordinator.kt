@@ -140,19 +140,42 @@ class TranslationCoordinator(
     /**
      * 裁剪屏幕底部的字幕区域
      * 只保留底部 1/3 的画面（约 66%~98%）
+     *
+     * 支持横竖屏自适应：
+     * - 竖屏（高 > 宽）：裁剪底部区域
+     * - 横屏（宽 > 高）：裁剪右侧区域（字幕通常在横屏视频的右侧或底部）
      */
     private fun cropSubtitleArea(bitmap: Bitmap): Bitmap? {
         return try {
-            val top = (bitmap.height * SUBTITLE_TOP_RATIO).toInt()
-            val bottom = (bitmap.height * SUBTITLE_BOTTOM_RATIO).toInt()
-            val height = bottom - top
+            val isLandscape = bitmap.width > bitmap.height
 
-            if (height <= 0 || top >= bitmap.height) {
-                Log.w(TAG, "字幕区域裁剪参数异常: top=$top, bottom=$bottom, height=${bitmap.height}")
-                return null
+            if (isLandscape) {
+                // 横屏：裁剪右侧区域（约 66%~98% 宽度）
+                val left = (bitmap.width * SUBTITLE_TOP_RATIO).toInt()
+                val right = (bitmap.width * SUBTITLE_BOTTOM_RATIO).toInt()
+                val width = right - left
+
+                if (width <= 0 || left >= bitmap.width) {
+                    Log.w(TAG, "横屏字幕区域裁剪参数异常: left=$left, right=$right, width=${bitmap.width}")
+                    return null
+                }
+
+                Log.d(TAG, "横屏裁剪字幕区域: left=$left, right=$right, width=$width, height=${bitmap.height}")
+                Bitmap.createBitmap(bitmap, left, 0, width, bitmap.height)
+            } else {
+                // 竖屏：裁剪底部区域（约 66%~98% 高度）
+                val top = (bitmap.height * SUBTITLE_TOP_RATIO).toInt()
+                val bottom = (bitmap.height * SUBTITLE_BOTTOM_RATIO).toInt()
+                val height = bottom - top
+
+                if (height <= 0 || top >= bitmap.height) {
+                    Log.w(TAG, "竖屏字幕区域裁剪参数异常: top=$top, bottom=$bottom, height=${bitmap.height}")
+                    return null
+                }
+
+                Log.d(TAG, "竖屏裁剪字幕区域: top=$top, bottom=$bottom, width=${bitmap.width}, height=$height")
+                Bitmap.createBitmap(bitmap, 0, top, bitmap.width, height)
             }
-
-            Bitmap.createBitmap(bitmap, 0, top, bitmap.width, height)
         } catch (e: Exception) {
             Log.e(TAG, "字幕区域裁剪失败", e)
             null
