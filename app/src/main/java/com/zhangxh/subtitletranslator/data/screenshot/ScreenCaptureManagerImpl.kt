@@ -116,8 +116,9 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
                 buffer.rewind()
                 bitmap.copyPixelsFromBuffer(buffer)
 
-                // 裁剪到实际屏幕大小
-                val croppedBitmap = Bitmap.createBitmap(bitmap, 0, 0, screenWidth, screenHeight)
+                // 裁剪到实际屏幕大小（创建独立副本，避免共享像素数据被回收后失效）
+                val croppedBitmap = Bitmap.createBitmap(screenWidth, screenHeight, Bitmap.Config.ARGB_8888)
+                android.graphics.Canvas(croppedBitmap).drawBitmap(bitmap, 0f, 0f, null)
                 bitmap.recycle()
 
                 Log.d(TAG, "截图成功: ${croppedBitmap.width}x${croppedBitmap.height}")
