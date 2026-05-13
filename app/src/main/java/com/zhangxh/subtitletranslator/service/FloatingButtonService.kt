@@ -165,6 +165,7 @@ class FloatingButtonService : Service() {
             val targetLang = SettingsActivity.getTargetLang(this)
 
             translationCoordinator = TranslationCoordinator(
+                context = this,
                 screenCapture = screenCapture,
                 ocrEngine = ocrEngine,
                 translator = translator,

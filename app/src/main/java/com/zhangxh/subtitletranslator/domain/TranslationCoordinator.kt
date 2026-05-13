@@ -1,5 +1,6 @@
 package com.zhangxh.subtitletranslator.domain
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.util.Log
@@ -8,6 +9,7 @@ import com.zhangxh.subtitletranslator.domain.ocr.OcrTextCleaner
 import com.zhangxh.subtitletranslator.domain.screenshot.IScreenCaptureManager
 import com.zhangxh.subtitletranslator.domain.translator.ITranslator
 import com.zhangxh.subtitletranslator.domain.wordextractor.IWordExtractor
+import com.zhangxh.subtitletranslator.util.DebugImageSaver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -16,6 +18,7 @@ import kotlinx.coroutines.withContext
  * 整合截图、OCR、翻译、难词提取，提供完整的翻译流程
  */
 class TranslationCoordinator(
+    private val context: Context,
     private val screenCapture: IScreenCaptureManager,
     private val ocrEngine: IOcrEngine,
     private val translator: ITranslator,
@@ -53,6 +56,9 @@ class TranslationCoordinator(
                     errorMessage = "截图失败"
                 )
 
+            // 保存调试图：原始截图
+            DebugImageSaver.saveDebugImage(context, screenshot, "01_screenshot")
+
             // 2. 裁剪字幕区域（底部 1/3）
             subtitleBitmap = cropSubtitleArea(screenshot)
             if (subtitleBitmap == null) {
@@ -62,9 +68,15 @@ class TranslationCoordinator(
                 )
             }
 
+            // 保存调试图：裁剪后的字幕区域
+            DebugImageSaver.saveDebugImage(context, subtitleBitmap, "02_subtitle")
+
             // 3. 图像预处理：放大 + 灰度化 + 二值化
             processedBitmap = preprocessForOcr(subtitleBitmap)
             Log.d(TAG, "预处理后尺寸: ${processedBitmap.width}x${processedBitmap.height}")
+
+            // 保存调试图：预处理后的 OCR 图像
+            DebugImageSaver.saveDebugImage(context, processedBitmap, "03_processed")
 
             // 4. OCR 识别
             val ocrResult = ocrEngine.recognizeText(processedBitmap)
