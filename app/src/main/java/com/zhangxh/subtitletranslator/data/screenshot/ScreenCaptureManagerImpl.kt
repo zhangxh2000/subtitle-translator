@@ -92,13 +92,17 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
     }
 
     /**
-     * 获取当前屏幕实际尺寸（考虑旋转后的宽高）
+     * 获取当前屏幕旋转角度
+     * @return 旋转角度: 0, 90, 180, 270
      */
-    private fun getCurrentScreenSize(): Pair<Int, Int> {
+    private fun getDisplayRotation(): Int {
         val windowManager = context?.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
-        val metrics = android.util.DisplayMetrics()
-        windowManager?.defaultDisplay?.getRealMetrics(metrics)
-        return Pair(metrics.widthPixels, metrics.heightPixels)
+        return when (windowManager?.defaultDisplay?.rotation) {
+            android.view.Surface.ROTATION_90 -> 90
+            android.view.Surface.ROTATION_180 -> 180
+            android.view.Surface.ROTATION_270 -> 270
+            else -> 0
+        }
     }
 
     override suspend fun captureScreen(): Bitmap? = withContext(Dispatchers.IO) {
@@ -135,15 +139,12 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
                 android.graphics.Canvas(croppedBitmap).drawBitmap(bitmap, 0f, 0f, null)
                 bitmap.recycle()
 
-                // 检测当前屏幕方向，如果和截图方向不一致则旋转 Bitmap
-                val (currentWidth, currentHeight) = getCurrentScreenSize()
-                val isCurrentLandscape = currentWidth > currentHeight
-                val isBitmapLandscape = croppedBitmap.width > croppedBitmap.height
-
-                val finalBitmap = if (isCurrentLandscape != isBitmapLandscape) {
-                    // 方向不一致，需要旋转 90 度
+                // 根据当前屏幕旋转角度修正截图方向
+                // VirtualDisplay 创建时的方向是固定的，需要根据当前旋转角度旋转 Bitmap
+                val rotation = getDisplayRotation()
+                val finalBitmap = if (rotation != 0) {
                     val matrix = android.graphics.Matrix().apply {
-                        postRotate(90f)
+                        postRotate(rotation.toFloat())
                     }
                     val rotated = Bitmap.createBitmap(
                         croppedBitmap, 0, 0,
@@ -151,7 +152,7 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
                         matrix, true
                     )
                     croppedBitmap.recycle()
-                    Log.d(TAG, "截图方向修正: 旋转 90 度, ${rotated.width}x${rotated.height}")
+                    Log.d(TAG, "截图方向修正: 旋转 ${rotation} 度, ${rotated.width}x${rotated.height}")
                     rotated
                 } else {
                     croppedBitmap
