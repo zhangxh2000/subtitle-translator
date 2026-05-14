@@ -101,54 +101,6 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
         return Pair(metrics.widthPixels, metrics.heightPixels)
     }
 
-    /**
-     * 检查并更新屏幕方向，如果方向改变则重新创建 VirtualDisplay 和 ImageReader
-     */
-    private fun checkAndUpdateOrientation() {
-        val (currentWidth, currentHeight) = getCurrentScreenSize()
-        val isCurrentLandscape = currentWidth > currentHeight
-        val isInitLandscape = screenWidth > screenHeight
-
-        // 如果方向发生变化，重新创建
-        if (isCurrentLandscape != isInitLandscape ||
-            (isCurrentLandscape && (screenWidth != currentWidth || screenHeight != currentHeight)) ||
-            (!isCurrentLandscape && (screenWidth != currentWidth || screenHeight != currentHeight))
-        ) {
-            Log.d(TAG, "屏幕方向变化，重新创建: ${screenWidth}x${screenHeight} -> ${currentWidth}x${currentHeight}")
-
-            // 释放旧的资源
-            try {
-                virtualDisplay?.release()
-                imageReader?.close()
-            } catch (e: Exception) {
-                Log.e(TAG, "释放旧资源失败", e)
-            }
-
-            // 更新尺寸
-            screenWidth = currentWidth
-            screenHeight = currentHeight
-
-            // 创建新的 ImageReader
-            imageReader = ImageReader.newInstance(
-                screenWidth, screenHeight,
-                PixelFormat.RGBA_8888,
-                MAX_IMAGES
-            )
-
-            // 重新创建 VirtualDisplay
-            virtualDisplay = mMediaProjection?.createVirtualDisplay(
-                "ScreenCapture",
-                screenWidth, screenHeight, screenDensity,
-                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-                imageReader?.surface,
-                null,
-                Handler(Looper.getMainLooper())
-            )
-
-            Log.d(TAG, "屏幕截图已重新初始化: ${screenWidth}x${screenHeight}")
-        }
-    }
-
     override suspend fun captureScreen(): Bitmap? = withContext(Dispatchers.IO) {
         if (!isInitialized()) {
             Log.e(TAG, "未初始化")
@@ -156,9 +108,6 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
         }
 
         try {
-            // 检查屏幕方向是否变化，必要时重新创建
-            checkAndUpdateOrientation()
-
             // 等待一帧图像
             delay(100)
 
@@ -186,8 +135,30 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
                 android.graphics.Canvas(croppedBitmap).drawBitmap(bitmap, 0f, 0f, null)
                 bitmap.recycle()
 
-                Log.d(TAG, "截图成功: ${croppedBitmap.width}x${croppedBitmap.height}")
-                return@withContext croppedBitmap
+                // 检测当前屏幕方向，如果和截图方向不一致则旋转 Bitmap
+                val (currentWidth, currentHeight) = getCurrentScreenSize()
+                val isCurrentLandscape = currentWidth > currentHeight
+                val isBitmapLandscape = croppedBitmap.width > croppedBitmap.height
+
+                val finalBitmap = if (isCurrentLandscape != isBitmapLandscape) {
+                    // 方向不一致，需要旋转 90 度
+                    val matrix = android.graphics.Matrix().apply {
+                        postRotate(90f)
+                    }
+                    val rotated = Bitmap.createBitmap(
+                        croppedBitmap, 0, 0,
+                        croppedBitmap.width, croppedBitmap.height,
+                        matrix, true
+                    )
+                    croppedBitmap.recycle()
+                    Log.d(TAG, "截图方向修正: 旋转 90 度, ${rotated.width}x${rotated.height}")
+                    rotated
+                } else {
+                    croppedBitmap
+                }
+
+                Log.d(TAG, "截图成功: ${finalBitmap.width}x${finalBitmap.height}")
+                return@withContext finalBitmap
             } finally {
                 image.close()
             }
