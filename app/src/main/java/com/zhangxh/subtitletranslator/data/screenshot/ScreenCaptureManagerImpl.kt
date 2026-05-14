@@ -34,6 +34,7 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
     private var screenWidth: Int = 0
     private var screenHeight: Int = 0
     private var screenDensity: Int = 0
+    private var initRotation: Int = 0  // 初始化时的屏幕旋转角度
     private var onProjectionStoppedListener: (() -> Unit)? = null
     private var isReleased = false
 
@@ -68,6 +69,7 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
         this.screenWidth = width
         this.screenHeight = height
         this.screenDensity = density
+        this.initRotation = getDisplayRotation()
         this.isReleased = false
 
         // 创建 ImageReader 用于接收屏幕图像
@@ -88,7 +90,7 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
             Handler(Looper.getMainLooper())
         )
 
-        Log.d(TAG, "屏幕截图初始化完成: ${width}x${height}")
+        Log.d(TAG, "屏幕截图初始化完成: ${width}x${height}, 初始旋转角度: ${initRotation}")
     }
 
     /**
@@ -140,11 +142,15 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
                 bitmap.recycle()
 
                 // 根据当前屏幕旋转角度修正截图方向
-                // VirtualDisplay 创建时的方向是固定的，需要根据当前旋转角度旋转 Bitmap
-                val rotation = getDisplayRotation()
-                val finalBitmap = if (rotation != 0) {
+                // VirtualDisplay 创建时的方向是固定的，需要计算相对旋转角度
+                val currentRotation = getDisplayRotation()
+                var relativeRotation = currentRotation - initRotation
+                // 归一化到 0-360
+                relativeRotation = ((relativeRotation % 360) + 360) % 360
+
+                val finalBitmap = if (relativeRotation != 0) {
                     val matrix = android.graphics.Matrix().apply {
-                        postRotate(rotation.toFloat())
+                        postRotate(relativeRotation.toFloat())
                     }
                     val rotated = Bitmap.createBitmap(
                         croppedBitmap, 0, 0,
@@ -152,7 +158,7 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
                         matrix, true
                     )
                     croppedBitmap.recycle()
-                    Log.d(TAG, "截图方向修正: 旋转 ${rotation} 度, ${rotated.width}x${rotated.height}")
+                    Log.d(TAG, "截图方向修正: 当前角度=${currentRotation}, 初始角度=${initRotation}, 相对旋转=${relativeRotation} 度, ${rotated.width}x${rotated.height}")
                     rotated
                 } else {
                     croppedBitmap
