@@ -5,13 +5,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
-import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.media.AudioManager
 import android.media.projection.MediaProjection
@@ -23,8 +20,6 @@ import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
-import android.view.OrientationEventListener
-import android.view.Surface
 import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
@@ -81,8 +76,6 @@ class FloatingButtonService : Service() {
     private var resultCode: Int = -1
     private var resultData: Intent? = null
     private var isProjectionStopped = false
-    private var orientationEventListener: OrientationEventListener? = null
-    private var lastOrientation = Configuration.ORIENTATION_UNDEFINED
 
     // 悬浮窗拖动状态
     private var lastX: Int = 0
@@ -109,65 +102,6 @@ class FloatingButtonService : Service() {
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         lastX = prefs.getInt(KEY_LAST_X, 0)
         lastY = prefs.getInt(KEY_LAST_Y, 200)
-        // 初始化方向监听
-        lastOrientation = resources.configuration.orientation
-        setupOrientationListener()
-    }
-
-    /**
-     * 设置屏幕方向监听，方向变化时重新初始化 MediaProjection
-     */
-    private fun setupOrientationListener() {
-        orientationEventListener = object : OrientationEventListener(this) {
-            override fun onOrientationChanged(orientation: Int) {
-                if (orientation == ORIENTATION_UNKNOWN) return
-
-                val currentOrientation = when (orientation) {
-                    in 45..134 -> Configuration.ORIENTATION_LANDSCAPE
-                    in 225..314 -> Configuration.ORIENTATION_LANDSCAPE
-                    else -> Configuration.ORIENTATION_PORTRAIT
-                }
-
-                if (currentOrientation != lastOrientation && lastOrientation != Configuration.ORIENTATION_UNDEFINED) {
-                    Log.d(TAG, "屏幕方向变化: $lastOrientation -> $currentOrientation，重新初始化")
-                    lastOrientation = currentOrientation
-                    // 方向变化时重新初始化
-                    resultData?.let { data ->
-                        if (resultCode == RESULT_OK) {
-                            reinitMediaProjection()
-                        }
-                    }
-                } else if (lastOrientation == Configuration.ORIENTATION_UNDEFINED) {
-                    lastOrientation = currentOrientation
-                }
-            }
-        }
-        orientationEventListener?.enable()
-    }
-
-    /**
-     * 重新初始化 MediaProjection（方向变化时调用）
-     */
-    private fun reinitMediaProjection() {
-        serviceScope.launch {
-            try {
-                // 释放旧的资源
-                translationCoordinator?.release()
-                translationCoordinator = null
-                mediaProjection?.stop()
-                mediaProjection = null
-
-                // 重新初始化
-                resultData?.let { data ->
-                    if (resultCode == RESULT_OK) {
-                        initMediaProjection(resultCode, data)
-                        Log.d(TAG, "MediaProjection 重新初始化完成")
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "重新初始化 MediaProjection 失败", e)
-            }
-        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -558,10 +492,6 @@ class FloatingButtonService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         Log.d(TAG, "服务销毁")
-
-        // 停止方向监听
-        orientationEventListener?.disable()
-        orientationEventListener = null
 
         // 保存悬浮窗位置
         getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
