@@ -34,7 +34,6 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
     private var screenWidth: Int = 0
     private var screenHeight: Int = 0
     private var screenDensity: Int = 0
-    private var initRotation: Int = 0  // 初始化时的屏幕旋转角度
     private var onProjectionStoppedListener: (() -> Unit)? = null
     private var isReleased = false
 
@@ -69,7 +68,6 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
         this.screenWidth = width
         this.screenHeight = height
         this.screenDensity = density
-        this.initRotation = getDisplayRotation()
         this.isReleased = false
 
         // 创建 ImageReader 用于接收屏幕图像
@@ -90,21 +88,55 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
             Handler(Looper.getMainLooper())
         )
 
-        Log.d(TAG, "屏幕截图初始化完成: ${width}x${height}, 初始旋转角度: ${initRotation}")
+        Log.d(TAG, "屏幕截图初始化完成: ${width}x${height}")
     }
 
     /**
-     * 获取当前屏幕旋转角度
-     * @return 旋转角度: 0, 90, 180, 270
+     * 获取当前屏幕实际尺寸
      */
-    private fun getDisplayRotation(): Int {
+    private fun getCurrentScreenSize(): Pair<Int, Int> {
         val windowManager = context?.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
-        return when (windowManager?.defaultDisplay?.rotation) {
-            android.view.Surface.ROTATION_90 -> 90
-            android.view.Surface.ROTATION_180 -> 180
-            android.view.Surface.ROTATION_270 -> 270
-            else -> 0
+        val metrics = android.util.DisplayMetrics()
+        windowManager?.defaultDisplay?.getRealMetrics(metrics)
+        return Pair(metrics.widthPixels, metrics.heightPixels)
+    }
+
+    /**
+     * 检查屏幕尺寸是否变化，如果变化则更新 VirtualDisplay 和 ImageReader
+     */
+    private fun updateScreenSizeIfNeeded() {
+        val (currentWidth, currentHeight) = getCurrentScreenSize()
+
+        // 如果尺寸没有变化，不需要更新
+        if (currentWidth == screenWidth && currentHeight == screenHeight) {
+            return
         }
+
+        Log.d(TAG, "屏幕尺寸变化: ${screenWidth}x${screenHeight} -> ${currentWidth}x${currentHeight}")
+
+        // 更新尺寸
+        screenWidth = currentWidth
+        screenHeight = currentHeight
+
+        // 关闭旧的 ImageReader
+        try {
+            imageReader?.close()
+        } catch (e: Exception) {
+            Log.e(TAG, "关闭旧 ImageReader 失败", e)
+        }
+
+        // 创建新的 ImageReader
+        imageReader = ImageReader.newInstance(
+            screenWidth, screenHeight,
+            PixelFormat.RGBA_8888,
+            MAX_IMAGES
+        )
+
+        // 调整 VirtualDisplay 尺寸并设置新的 Surface
+        virtualDisplay?.resize(screenWidth, screenHeight, screenDensity)
+        virtualDisplay?.setSurface(imageReader?.surface)
+
+        Log.d(TAG, "VirtualDisplay 已更新: ${screenWidth}x${screenHeight}")
     }
 
     override suspend fun captureScreen(): Bitmap? = withContext(Dispatchers.IO) {
@@ -114,6 +146,9 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
         }
 
         try {
+            // 检查屏幕尺寸是否变化，必要时更新 VirtualDisplay
+            updateScreenSizeIfNeeded()
+
             // 等待一帧图像
             delay(100)
 
@@ -141,31 +176,8 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
                 android.graphics.Canvas(croppedBitmap).drawBitmap(bitmap, 0f, 0f, null)
                 bitmap.recycle()
 
-                // 根据当前屏幕旋转角度修正截图方向
-                // VirtualDisplay 创建时的方向是固定的，需要计算相对旋转角度
-                val currentRotation = getDisplayRotation()
-                var relativeRotation = currentRotation - initRotation
-                // 归一化到 0-360
-                relativeRotation = ((relativeRotation % 360) + 360) % 360
-
-                val finalBitmap = if (relativeRotation != 0) {
-                    val matrix = android.graphics.Matrix().apply {
-                        postRotate(relativeRotation.toFloat())
-                    }
-                    val rotated = Bitmap.createBitmap(
-                        croppedBitmap, 0, 0,
-                        croppedBitmap.width, croppedBitmap.height,
-                        matrix, true
-                    )
-                    croppedBitmap.recycle()
-                    Log.d(TAG, "截图方向修正: 当前角度=${currentRotation}, 初始角度=${initRotation}, 相对旋转=${relativeRotation} 度, ${rotated.width}x${rotated.height}")
-                    rotated
-                } else {
-                    croppedBitmap
-                }
-
-                Log.d(TAG, "截图成功: ${finalBitmap.width}x${finalBitmap.height}")
-                return@withContext finalBitmap
+                Log.d(TAG, "截图成功: ${croppedBitmap.width}x${croppedBitmap.height}")
+                return@withContext croppedBitmap
             } finally {
                 image.close()
             }
