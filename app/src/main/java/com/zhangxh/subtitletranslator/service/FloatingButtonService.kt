@@ -84,6 +84,8 @@ class FloatingButtonService : Service() {
     private var downY = 0f
     private var isDragging = false
     private val clickThreshold = 10  // 移动超过此像素视为拖动而非点击
+    private val pressScale = 0.88f
+    private val pressAnimDuration = 100L
 
     private val binder = LocalBinder()
 
@@ -225,6 +227,7 @@ class FloatingButtonService : Service() {
                     isDragging = false
                     downX = event.rawX
                     downY = event.rawY
+                    setFloatingButtonPressed(view, true)
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -232,6 +235,7 @@ class FloatingButtonService : Service() {
                     val dy = event.rawY - downY
                     if (!isDragging && (kotlin.math.abs(dx) > clickThreshold || kotlin.math.abs(dy) > clickThreshold)) {
                         isDragging = true
+                        setFloatingButtonPressed(view, false)
                     }
                     if (isDragging) {
                         params.x = (event.rawX - view.width / 2).toInt()
@@ -243,15 +247,33 @@ class FloatingButtonService : Service() {
                     true
                 }
                 MotionEvent.ACTION_UP -> {
+                    setFloatingButtonPressed(view, false)
                     // 没有发生拖动，视为点击
                     if (!isDragging) {
                         onFloatingButtonClick()
                     }
                     true
                 }
+                MotionEvent.ACTION_CANCEL -> {
+                    setFloatingButtonPressed(view, false)
+                    true
+                }
                 else -> false
             }
         }
+    }
+
+    /**
+     * 设置悬浮按钮按压状态
+     * 由于悬浮窗使用 OnTouchListener 拦截触摸事件，需要手动驱动 pressed 状态
+     */
+    private fun setFloatingButtonPressed(view: View, pressed: Boolean) {
+        view.isPressed = pressed
+        view.animate()
+            .scaleX(if (pressed) pressScale else 1f)
+            .scaleY(if (pressed) pressScale else 1f)
+            .setDuration(pressAnimDuration)
+            .start()
     }
 
     /**
