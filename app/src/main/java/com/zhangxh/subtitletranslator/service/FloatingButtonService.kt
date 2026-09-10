@@ -24,6 +24,7 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity.RESULT_OK
+import androidx.appcompat.view.ContextThemeWrapper
 import androidx.core.app.NotificationCompat
 import com.zhangxh.subtitletranslator.MainActivity
 import com.zhangxh.subtitletranslator.R
@@ -82,6 +83,8 @@ class FloatingButtonService : Service() {
     private var lastY: Int = 200
     private var downX = 0f
     private var downY = 0f
+    private var touchOffsetX = 0f
+    private var touchOffsetY = 0f
     private var isDragging = false
     private val clickThreshold = 10  // 移动超过此像素视为拖动而非点击
     private val pressScale = 0.88f
@@ -227,6 +230,8 @@ class FloatingButtonService : Service() {
                     isDragging = false
                     downX = event.rawX
                     downY = event.rawY
+                    touchOffsetX = event.rawX - params.x
+                    touchOffsetY = event.rawY - params.y
                     setFloatingButtonPressed(view, true)
                     true
                 }
@@ -238,8 +243,8 @@ class FloatingButtonService : Service() {
                         setFloatingButtonPressed(view, false)
                     }
                     if (isDragging) {
-                        params.x = (event.rawX - view.width / 2).toInt()
-                        params.y = (event.rawY - view.height / 2).toInt()
+                        params.x = (event.rawX - touchOffsetX).toInt()
+                        params.y = (event.rawY - touchOffsetY).toInt()
                         lastX = params.x
                         lastY = params.y
                         windowManager?.updateViewLayout(view, params)
@@ -358,7 +363,8 @@ class FloatingButtonService : Service() {
      * 显示翻译覆盖层
      */
     private fun showTranslationOverlay(result: TranslationResult) {
-        overlayView = TranslationOverlayView(this).apply {
+        val themedContext = ContextThemeWrapper(this, R.style.Theme_SubtitleTranslator)
+        overlayView = TranslationOverlayView(themedContext).apply {
             setTranslationResult(result)
             setOnCloseListener {
                 hideTranslation()
