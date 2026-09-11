@@ -30,9 +30,9 @@ class TranslationCoordinator(
     companion object {
         private const val TAG = "TranslationCoordinator"
 
-        // 横屏字幕区域：屏幕底部 1/3（约 66%~95%，避开底部导航栏）
-        private const val LANDSCAPE_SUBTITLE_TOP_RATIO = 0.66f
-        private const val LANDSCAPE_SUBTITLE_BOTTOM_RATIO = 0.95f
+        // 横屏字幕区域：屏幕底部区域（70%~100%）
+        private const val LANDSCAPE_SUBTITLE_TOP_RATIO = 0.7f
+        private const val LANDSCAPE_SUBTITLE_BOTTOM_RATIO = 1f
 
         // 竖屏字幕区域：基于 16:9 视频比例估算视频画面高度，截取视频下半部分
         // 视频画面高度 = width * 9 / 16，字幕通常在画面下半区

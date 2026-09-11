@@ -5,6 +5,8 @@ import android.graphics.Bitmap
 import android.media.MediaScannerConnection
 import android.os.Environment
 import android.util.Log
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -22,45 +24,49 @@ object DebugImageSaver {
 
     // 是否启用调试保存（发布版建议设为 false）
     @Volatile
-    var isEnabled: Boolean = true
+    var isEnabled: Boolean = false
 
     /**
      * 保存调试图到公共 Pictures 目录下的 SubtitleTranslatorDebug 文件夹
      * 文件名格式: prefix_YYYYMMDD_HHmmss_SSS.png
+     *
+     * 该方法会在 IO 线程执行文件写入，避免阻塞 UI 线程。
      *
      * @param context  Context
      * @param bitmap   要保存的 Bitmap
      * @param prefix   文件名前缀，如 "screenshot", "subtitle", "processed"
      * @return 保存后的文件路径，失败返回 null
      */
-    fun saveDebugImage(context: Context, bitmap: Bitmap?, prefix: String): String? {
+    suspend fun saveDebugImage(context: Context, bitmap: Bitmap?, prefix: String): String? {
         if (!isEnabled || bitmap == null || bitmap.isRecycled) {
             return null
         }
 
-        return try {
-            val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-            val debugDir = File(picturesDir, DEBUG_DIR_NAME)
-            if (!debugDir.exists()) {
-                debugDir.mkdirs()
+        return withContext(Dispatchers.IO) {
+            try {
+                val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+                val debugDir = File(picturesDir, DEBUG_DIR_NAME)
+                if (!debugDir.exists()) {
+                    debugDir.mkdirs()
+                }
+
+                val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.getDefault()).format(Date())
+                val fileName = "${prefix}_${timestamp}.png"
+                val file = File(debugDir, fileName)
+
+                FileOutputStream(file).use { out ->
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                }
+
+                // 通知系统扫描新图片，使其立即出现在相册中
+                MediaScannerConnection.scanFile(context, arrayOf(file.absolutePath), arrayOf("image/png"), null)
+
+                Log.d(TAG, "调试图片已保存: ${file.absolutePath}")
+                file.absolutePath
+            } catch (e: Exception) {
+                Log.e(TAG, "保存调试图片失败", e)
+                null
             }
-
-            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.getDefault()).format(Date())
-            val fileName = "${prefix}_${timestamp}.png"
-            val file = File(debugDir, fileName)
-
-            FileOutputStream(file).use { out ->
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
-            }
-
-            // 通知系统扫描新图片，使其立即出现在相册中
-            MediaScannerConnection.scanFile(context, arrayOf(file.absolutePath), arrayOf("image/png"), null)
-
-            Log.d(TAG, "调试图片已保存: ${file.absolutePath}")
-            file.absolutePath
-        } catch (e: Exception) {
-            Log.e(TAG, "保存调试图片失败", e)
-            null
         }
     }
 
@@ -73,7 +79,7 @@ object DebugImageSaver {
      * @param processedBitmap 预处理后的 OCR 图像
      * @return 各图片的保存路径映射
      */
-    fun saveDebugPipeline(
+    suspend fun saveDebugPipeline(
         context: Context,
         screenshot: Bitmap?,
         subtitleBitmap: Bitmap?,
