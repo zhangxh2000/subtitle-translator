@@ -30,9 +30,14 @@ class TranslationCoordinator(
     companion object {
         private const val TAG = "TranslationCoordinator"
 
-        // 字幕区域：屏幕底部 1/3（约 66%~98%）
-        private const val SUBTITLE_TOP_RATIO = 0.66f
-        private const val SUBTITLE_BOTTOM_RATIO = 0.98f
+        // 横屏字幕区域：屏幕底部 1/3（约 66%~95%，避开底部导航栏）
+        private const val LANDSCAPE_SUBTITLE_TOP_RATIO = 0.66f
+        private const val LANDSCAPE_SUBTITLE_BOTTOM_RATIO = 0.95f
+
+        // 竖屏字幕区域：基于 16:9 视频比例估算视频画面高度，截取视频下半部分
+        // 视频画面高度 = width * 9 / 16，字幕通常在画面下半区
+        private const val VIDEO_ASPECT_RATIO_WIDTH = 16f
+        private const val VIDEO_ASPECT_RATIO_HEIGHT = 9f
 
         // OCR 预处理参数
         private const val SCALE_FACTOR = 2.0f      // 放大倍数
@@ -138,38 +143,39 @@ class TranslationCoordinator(
     }
 
     /**
-     * 裁剪屏幕底部的字幕区域
-     * 只保留底部 1/3 的画面（约 66%~98%）
+     * 裁剪字幕区域
      *
      * 支持横竖屏自适应：
-     * - 竖屏（高 > 宽）：裁剪底部区域
-     * - 横屏（宽 > 高）：裁剪右侧区域（字幕通常在横屏视频的右侧或底部）
+     * - 横屏（宽 > 高）：字幕通常在视频底部，截取屏幕底部 1/3
+     * - 竖屏（高 > 宽）：按 16:9 比例估算视频画面高度，截取视频画面下半部分
      */
     private fun cropSubtitleArea(bitmap: Bitmap): Bitmap? {
         return try {
             val isLandscape = bitmap.width > bitmap.height
 
             if (isLandscape) {
-                // 横屏：裁剪右侧区域（约 66%~98% 宽度）
-                val left = (bitmap.width * SUBTITLE_TOP_RATIO).toInt()
-                val right = (bitmap.width * SUBTITLE_BOTTOM_RATIO).toInt()
-                val width = right - left
-
-                if (width <= 0 || left >= bitmap.width) {
-                    Log.w(TAG, "横屏字幕区域裁剪参数异常: left=$left, right=$right, width=${bitmap.width}")
-                    return null
-                }
-
-                Log.d(TAG, "横屏裁剪字幕区域: left=$left, right=$right, width=$width, height=${bitmap.height}")
-                Bitmap.createBitmap(bitmap, left, 0, width, bitmap.height)
-            } else {
-                // 竖屏：裁剪底部区域（约 66%~98% 高度）
-                val top = (bitmap.height * SUBTITLE_TOP_RATIO).toInt()
-                val bottom = (bitmap.height * SUBTITLE_BOTTOM_RATIO).toInt()
+                // 横屏：截取底部 1/3（约 66%~95%，避开底部导航栏）
+                val top = (bitmap.height * LANDSCAPE_SUBTITLE_TOP_RATIO).toInt()
+                val bottom = (bitmap.height * LANDSCAPE_SUBTITLE_BOTTOM_RATIO).toInt()
                 val height = bottom - top
 
                 if (height <= 0 || top >= bitmap.height) {
-                    Log.w(TAG, "竖屏字幕区域裁剪参数异常: top=$top, bottom=$bottom, height=${bitmap.height}")
+                    Log.w(TAG, "横屏字幕区域裁剪参数异常: top=$top, bottom=$bottom, height=${bitmap.height}")
+                    return null
+                }
+
+                Log.d(TAG, "横屏裁剪字幕区域: top=$top, bottom=$bottom, width=${bitmap.width}, height=$height")
+                Bitmap.createBitmap(bitmap, 0, top, bitmap.width, height)
+            } else {
+                // 竖屏：按 16:9 估算视频画面高度，截取视频下半部分
+                // 视频画面宽度填满屏幕，高度 = width * 9 / 16
+                val videoHeight = (bitmap.width * VIDEO_ASPECT_RATIO_HEIGHT / VIDEO_ASPECT_RATIO_WIDTH).toInt()
+                val top = (videoHeight / 2).coerceAtLeast(0)
+                val bottom = videoHeight.coerceAtMost(bitmap.height)
+                val height = bottom - top
+
+                if (height <= 0 || top >= bitmap.height) {
+                    Log.w(TAG, "竖屏字幕区域裁剪参数异常: top=$top, bottom=$bottom, videoHeight=$videoHeight, bitmapHeight=${bitmap.height}")
                     return null
                 }
 
