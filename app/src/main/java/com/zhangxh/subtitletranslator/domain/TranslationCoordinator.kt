@@ -40,7 +40,7 @@ class TranslationCoordinator(
         private const val VIDEO_ASPECT_RATIO_HEIGHT = 9f
 
         // OCR 预处理参数
-        private const val SCALE_FACTOR = 2.0f      // 放大倍数
+        private const val SCALE_FACTOR = 1.0f      // 放大倍数（临时设为 1.0 测试 OCR 速度）
         private const val BINARY_THRESHOLD = 128   // 二值化固定阈值
     }
 
