@@ -117,6 +117,15 @@ class FloatingButtonService : Service() {
     private var dictionaryProvider: DictionaryRepositoryProvider? = null
     private var mediaProjection: MediaProjection? = null
     private var isShowingTranslation = false
+
+    /**
+     * 是否有一次翻译正在进行
+     *
+     * 翻译要花 1~2 秒，而这期间 [isShowingTranslation] 还是 false，
+     * 连点悬浮球会重复触发翻译，并叠出多个翻译覆盖层（关掉一层还露出下一层）。
+     */
+    private var isTranslating = false
+
     private var resultCode: Int = -1
     private var resultData: Intent? = null
     private var isProjectionStopped = false
@@ -524,6 +533,13 @@ class FloatingButtonService : Service() {
             return
         }
 
+        // 连点时只让第一次生效：否则会并发截图/OCR，并叠出多个覆盖层
+        if (isTranslating) {
+            Log.d(TAG, "上一次翻译尚未完成，忽略本次点击")
+            return
+        }
+        isTranslating = true
+
         serviceScope.launch {
             try {
                 // 暂停视频播放
@@ -551,6 +567,8 @@ class FloatingButtonService : Service() {
                 Log.e(TAG, "显示翻译失败", e)
                 Toast.makeText(this@FloatingButtonService, "翻译出错: ${e.message}", Toast.LENGTH_SHORT).show()
                 toggleMediaPlayback()
+            } finally {
+                isTranslating = false
             }
         }
     }
@@ -559,14 +577,7 @@ class FloatingButtonService : Service() {
      * 隐藏翻译
      */
     private fun hideTranslation() {
-        overlayView?.let { view ->
-            try {
-                windowManager?.removeView(view)
-            } catch (e: IllegalArgumentException) {
-                Log.w(TAG, "移除 overlayView 失败: 视图可能已被移除")
-            }
-            overlayView = null
-        }
+        removeOverlayView()
         isShowingTranslation = false
 
         // 恢复视频播放
@@ -574,9 +585,31 @@ class FloatingButtonService : Service() {
     }
 
     /**
+     * 移除翻译覆盖层
+     *
+     * 覆盖层是手动 addView 到 WindowManager 的，字段被重新赋值时旧视图不会自动消失，
+     * 所以移除动作统一走这里，保证「同时最多只有一个覆盖层」。
+     */
+    private fun removeOverlayView() {
+        overlayView?.let { view ->
+            try {
+                windowManager?.removeView(view)
+            } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "移除 overlayView 失败: 视图可能已被移除")
+            }
+        }
+        overlayView = null
+    }
+
+    /**
      * 显示翻译覆盖层
      */
     private fun showTranslationOverlay(result: TranslationResult) {
+        // 防御性处理：万一还有残留的覆盖层先清掉，避免叠出多层导致关闭按钮看起来失灵
+        removeOverlayView()
+        // 快捷菜单盖在覆盖层之上会挡住关闭按钮，翻译出结果时一并收起
+        dismissQuickMenu()
+
         val themedContext = ContextThemeWrapper(this, R.style.Theme_SubtitleTranslator)
         overlayView = TranslationOverlayView(themedContext).apply {
             setTranslationResult(result)
@@ -772,15 +805,7 @@ class FloatingButtonService : Service() {
     /** 移除覆盖层窗口并释放随 MediaProjection 一起创建的处理组件 */
     private fun releaseTranslationComponents() {
         dismissQuickMenu()
-
-        try {
-            overlayView?.let {
-                windowManager?.removeView(it)
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "移除 overlayView 失败", e)
-        }
-        overlayView = null
+        removeOverlayView()
         isShowingTranslation = false
 
         translationCoordinator?.release()
