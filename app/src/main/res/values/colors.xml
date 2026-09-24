@@ -14,4 +14,6 @@
     <color name="accent">#FF03DAC5</color>
     <color name="overlay_background">#CC000000</color>
     <color name="word_item_background">#F5F5F5</color>
+    <!-- 服务运行中「停止」按钮的警示色 -->
+    <color name="stop_button">#FFD32F2F</color>
 </resources>

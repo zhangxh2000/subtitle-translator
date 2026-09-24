@@ -36,6 +36,7 @@ import com.zhangxh.subtitletranslator.data.wordextractor.LocalWordExtractor
 import com.zhangxh.subtitletranslator.domain.TranslationCoordinator
 import com.zhangxh.subtitletranslator.domain.TranslationResult
 import com.zhangxh.subtitletranslator.domain.wordextractor.NoOpWordExtractor
+import com.zhangxh.subtitletranslator.ui.HistoryActivity
 import com.zhangxh.subtitletranslator.ui.SettingsActivity
 import com.zhangxh.subtitletranslator.ui.overlay.TranslationOverlayView
 import kotlinx.coroutines.CoroutineScope
@@ -63,16 +64,55 @@ class FloatingButtonService : Service() {
         const val EXTRA_RESULT_CODE = "extra_result_code"
         const val EXTRA_DATA = "extra_data"
 
+        /** 悬浮球尺寸，与 floating_button.xml 保持一致（快捷菜单定位需要） */
+        private const val FLOATING_BUTTON_SIZE_DP = 56
+        /** 快捷菜单与悬浮球的间距 */
+        private const val MENU_GAP_DP = 8
+        /** 快捷菜单距离屏幕边缘的最小留白 */
+        private const val MENU_SCREEN_MARGIN_DP = 8
+
+        /** 所有悬浮窗共用的窗口类型；minSdk 26 起 TYPE_APPLICATION_OVERLAY 始终可用 */
+        private const val OVERLAY_WINDOW_TYPE = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+
         private val translationHistory = CopyOnWriteArrayList<TranslationResult>()
 
         fun getTranslationHistory(): List<TranslationResult> = translationHistory.toList()
         fun clearTranslationHistory() = translationHistory.clear()
+
+        /** 服务是否在运行（主界面据此显示「启动」还是「停止」） */
+        @Volatile
+        private var running = false
+
+        /**
+         * 运行状态变化的监听者
+         *
+         * 停止服务是异步的（要经由系统调度到 onDestroy），主界面无法靠延时轮询可靠地刷新按钮，
+         * 所以由服务在状态真正变化时回调。回调在主线程触发。
+         */
+        private val runningStateListeners = CopyOnWriteArrayList<(Boolean) -> Unit>()
+
+        fun isRunning(): Boolean = running
+
+        fun addRunningStateListener(listener: (Boolean) -> Unit) {
+            runningStateListeners.add(listener)
+        }
+
+        fun removeRunningStateListener(listener: (Boolean) -> Unit) {
+            runningStateListeners.remove(listener)
+        }
+
+        private fun setRunning(value: Boolean) {
+            if (running == value) return
+            running = value
+            runningStateListeners.forEach { it(value) }
+        }
     }
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var windowManager: WindowManager? = null
     private var floatingView: View? = null
     private var overlayView: TranslationOverlayView? = null
+    private var quickMenuView: View? = null
     private var translationCoordinator: TranslationCoordinator? = null
     private var dictionaryProvider: DictionaryRepositoryProvider? = null
     private var mediaProjection: MediaProjection? = null
@@ -89,7 +129,10 @@ class FloatingButtonService : Service() {
     private var touchOffsetX = 0f
     private var touchOffsetY = 0f
     private var isDragging = false
+    private var longPressTriggered = false
+    private var longPressRunnable: Runnable? = null
     private val clickThreshold = 10  // 移动超过此像素视为拖动而非点击
+    private val longPressTimeout = 500L  // 按住多久算长按
     private val pressScale = 0.88f
     private val pressAnimDuration = 100L
 
@@ -139,6 +182,7 @@ class FloatingButtonService : Service() {
 
         // 显示悬浮按钮
         showFloatingButton()
+        setRunning(true)
 
         return START_STICKY
     }
@@ -147,6 +191,11 @@ class FloatingButtonService : Service() {
      * 初始化 MediaProjection
      */
     private fun initMediaProjection(resultCode: Int, data: Intent) {
+        // 重复启动（例如服务已在运行时又点了一次「启动」）会拿到新的授权，
+        // 旧的 MediaProjection 必须先释放，否则会泄漏一个屏幕采集会话
+        releaseMediaProjection()
+        releaseTranslationComponents()
+
         val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         mediaProjection = projectionManager.getMediaProjection(resultCode, data)
 
@@ -217,11 +266,7 @@ class FloatingButtonService : Service() {
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            } else {
-                WindowManager.LayoutParams.TYPE_PHONE
-            },
+            OVERLAY_WINDOW_TYPE,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         ).apply {
@@ -238,19 +283,25 @@ class FloatingButtonService : Service() {
     }
 
     /**
-     * 设置触摸监听，处理拖动和点击
-     * 点击判断完全在 OnTouchListener 内完成，不依赖 OnClickListener
+     * 设置触摸监听，处理拖动、点击与长按
+     *
+     * 点击/长按判断完全在 OnTouchListener 内完成，不依赖 OnClickListener：
+     * - 单击：显示或隐藏翻译
+     * - 长按：弹出快捷菜单（历史/设置/停止）
+     * - 移动超过阈值：拖动悬浮球
      */
     private fun setupTouchListener(view: View, params: WindowManager.LayoutParams) {
         view.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     isDragging = false
+                    longPressTriggered = false
                     downX = event.rawX
                     downY = event.rawY
                     touchOffsetX = event.rawX - params.x
                     touchOffsetY = event.rawY - params.y
                     setFloatingButtonPressed(view, true)
+                    scheduleLongPress(view)
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -258,6 +309,8 @@ class FloatingButtonService : Service() {
                     val dy = event.rawY - downY
                     if (!isDragging && (kotlin.math.abs(dx) > clickThreshold || kotlin.math.abs(dy) > clickThreshold)) {
                         isDragging = true
+                        cancelLongPress(view)
+                        dismissQuickMenu()
                         setFloatingButtonPressed(view, false)
                     }
                     if (isDragging) {
@@ -270,20 +323,40 @@ class FloatingButtonService : Service() {
                     true
                 }
                 MotionEvent.ACTION_UP -> {
+                    cancelLongPress(view)
                     setFloatingButtonPressed(view, false)
-                    // 没有发生拖动，视为点击
-                    if (!isDragging) {
+                    // 没有拖动、也没触发长按，才算点击
+                    if (!isDragging && !longPressTriggered) {
                         onFloatingButtonClick()
                     }
                     true
                 }
                 MotionEvent.ACTION_CANCEL -> {
+                    cancelLongPress(view)
                     setFloatingButtonPressed(view, false)
                     true
                 }
                 else -> false
             }
         }
+    }
+
+    /** 按住不动达到 [longPressTimeout] 后弹出快捷菜单 */
+    private fun scheduleLongPress(view: View) {
+        val runnable = Runnable {
+            if (!isDragging) {
+                longPressTriggered = true
+                setFloatingButtonPressed(view, false)
+                showQuickMenu()
+            }
+        }
+        longPressRunnable = runnable
+        view.postDelayed(runnable, longPressTimeout)
+    }
+
+    private fun cancelLongPress(view: View) {
+        longPressRunnable?.let { view.removeCallbacks(it) }
+        longPressRunnable = null
     }
 
     /**
@@ -301,12 +374,135 @@ class FloatingButtonService : Service() {
 
     /**
      * 悬浮按钮点击事件
+     *
+     * 菜单打开时点击只关闭菜单，避免误触发翻译。
      */
     private fun onFloatingButtonClick() {
+        if (quickMenuView != null) {
+            dismissQuickMenu()
+            return
+        }
         if (isShowingTranslation) {
             hideTranslation()
         } else {
             showTranslation()
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // 快捷菜单（长按悬浮球弹出）
+    // ---------------------------------------------------------------------
+
+    /**
+     * 弹出快捷菜单
+     *
+     * 菜单是独立于悬浮球的覆盖层窗口：悬浮球本身尺寸只有 56dp 且被触摸监听接管，
+     * 直接复用系统 PopupMenu 需要有效的窗口 token，在 TYPE_APPLICATION_OVERLAY 上不可靠，
+     * 因此沿用翻译覆盖层已验证过的 addView 方式。
+     */
+    private fun showQuickMenu() {
+        if (quickMenuView != null) {
+            dismissQuickMenu()
+            return
+        }
+        val windowManager = this.windowManager ?: return
+
+        val themedContext = ContextThemeWrapper(this, R.style.Theme_SubtitleTranslator)
+        val menu = LayoutInflater.from(themedContext).inflate(R.layout.floating_menu, null)
+
+        menu.findViewById<View>(R.id.menuHistory)?.setOnClickListener {
+            dismissQuickMenu()
+            openAppScreen(HistoryActivity::class.java)
+        }
+        menu.findViewById<View>(R.id.menuSettings)?.setOnClickListener {
+            dismissQuickMenu()
+            openAppScreen(SettingsActivity::class.java)
+        }
+        menu.findViewById<View>(R.id.menuStop)?.setOnClickListener {
+            dismissQuickMenu()
+            stopSelf()
+        }
+        // 点击菜单以外的区域关闭菜单（配合 FLAG_WATCH_OUTSIDE_TOUCH）
+        menu.setOnTouchListener { _, event ->
+            if (event.action == MotionEvent.ACTION_OUTSIDE) {
+                dismissQuickMenu()
+                true
+            } else {
+                false
+            }
+        }
+
+        menu.measure(
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            OVERLAY_WINDOW_TYPE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                    WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = menuX(menu.measuredWidth)
+            y = menuY(menu.measuredHeight)
+        }
+
+        try {
+            windowManager.addView(menu, params)
+            quickMenuView = menu
+        } catch (e: Exception) {
+            Log.e(TAG, "显示快捷菜单失败", e)
+        }
+    }
+
+    private fun dismissQuickMenu() {
+        quickMenuView?.let { menu ->
+            try {
+                windowManager?.removeView(menu)
+            } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "移除快捷菜单失败: 视图可能已被移除")
+            }
+        }
+        quickMenuView = null
+    }
+
+    /** 菜单横向位置：与悬浮球左对齐，贴边时向内收，避免超出屏幕 */
+    private fun menuX(menuWidth: Int): Int {
+        val screenWidth = resources.displayMetrics.widthPixels
+        val margin = (MENU_SCREEN_MARGIN_DP * resources.displayMetrics.density).toInt()
+        return lastX.coerceIn(margin, (screenWidth - menuWidth - margin).coerceAtLeast(margin))
+    }
+
+    /** 菜单纵向位置：优先显示在悬浮球下方，下方空间不足则显示在上方 */
+    private fun menuY(menuHeight: Int): Int {
+        val screenHeight = resources.displayMetrics.heightPixels
+        val density = resources.displayMetrics.density
+        val gap = (MENU_GAP_DP * density).toInt()
+        val margin = (MENU_SCREEN_MARGIN_DP * density).toInt()
+        val ballHeight = floatingView?.height?.takeIf { it > 0 } ?: (FLOATING_BUTTON_SIZE_DP * density).toInt()
+
+        val below = lastY + ballHeight + gap
+        return if (below + menuHeight + margin <= screenHeight) {
+            below
+        } else {
+            (lastY - menuHeight - gap).coerceAtLeast(margin)
+        }
+    }
+
+    /** 跳转到 App 内的界面；服务启动 Activity 需要 NEW_TASK */
+    private fun openAppScreen(activityClass: Class<*>) {
+        try {
+            startActivity(
+                Intent(this, activityClass).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "打开界面失败: ${activityClass.simpleName}", e)
         }
     }
 
@@ -395,11 +591,7 @@ class FloatingButtonService : Service() {
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            } else {
-                WindowManager.LayoutParams.TYPE_PHONE
-            },
+            OVERLAY_WINDOW_TYPE,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
@@ -539,6 +731,9 @@ class FloatingButtonService : Service() {
         super.onDestroy()
         Log.d(TAG, "服务销毁")
 
+        // 先通知界面：服务已停止（主界面据此把按钮切回「启动」）
+        setRunning(false)
+
         // 保存悬浮窗位置
         getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
@@ -546,15 +741,9 @@ class FloatingButtonService : Service() {
             .putInt(KEY_LAST_Y, lastY)
             .apply()
 
-        // 先隐藏翻译覆盖层
-        try {
-            overlayView?.let {
-                windowManager?.removeView(it)
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "移除 overlayView 失败", e)
-        }
-        overlayView = null
+        // 移除翻译覆盖层与快捷菜单，并释放翻译组件
+        releaseTranslationComponents()
+        releaseMediaProjection()
 
         // 移除悬浮按钮
         try {
@@ -566,14 +755,38 @@ class FloatingButtonService : Service() {
         }
         floatingView = null
 
-        // 释放资源
+        // 取消协程作用域
+        serviceScope.cancel()
+    }
+
+    /** 停止屏幕采集会话 */
+    private fun releaseMediaProjection() {
+        try {
+            mediaProjection?.stop()
+        } catch (e: Exception) {
+            Log.w(TAG, "停止 MediaProjection 失败", e)
+        }
+        mediaProjection = null
+    }
+
+    /** 移除覆盖层窗口并释放随 MediaProjection 一起创建的处理组件 */
+    private fun releaseTranslationComponents() {
+        dismissQuickMenu()
+
+        try {
+            overlayView?.let {
+                windowManager?.removeView(it)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "移除 overlayView 失败", e)
+        }
+        overlayView = null
+        isShowingTranslation = false
+
         translationCoordinator?.release()
         translationCoordinator = null
 
         dictionaryProvider?.release()
         dictionaryProvider = null
-
-        // 取消协程作用域
-        serviceScope.cancel()
     }
 }

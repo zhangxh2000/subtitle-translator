@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  长按悬浮球弹出的快捷菜单
+
+  使用与翻译覆盖层一致的深色圆角背景，保持视觉统一。
+  菜单项用 TextView + selectableItemBackground，比 Button 更紧凑，也更符合「菜单」的观感。
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_translation_overlay"
+    android:minWidth="150dp"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/menuHistory"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:paddingVertical="10dp"
+        android:text="翻译历史"
+        android:textColor="@android:color/white"
+        android:textSize="15sp" />
+
+    <TextView
+        android:id="@+id/menuSettings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:paddingVertical="10dp"
+        android:text="设置"
+        android:textColor="@android:color/white"
+        android:textSize="15sp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="4dp"
+        android:background="@android:color/darker_gray" />
+
+    <TextView
+        android:id="@+id/menuStop"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:paddingVertical="10dp"
+        android:text="停止字幕翻译"
+        android:textColor="@android:color/holo_red_light"
+        android:textSize="15sp" />
+
+</LinearLayout>
