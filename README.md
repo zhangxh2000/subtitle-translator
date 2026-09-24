@@ -49,10 +49,15 @@
 - `MLKitOcrEngine`：ML Kit 文字识别
 - 智能识别字幕区域（屏幕底部 55%-98%）
 
-### 3. 难词提取 (`domain/wordextractor/`)
-- `IWordExtractor`：单词提取接口
-- `LocalWordExtractor`：本地难词提取器，内置扩展词典
-- 基于词频、词根词缀和长度分析难度
+### 3. 词典与难词提取 (`domain/dictionary/`、`domain/wordextractor/`)
+
+词典数据来自开源的 **ECDICT**，打包为 SQLite 随应用分发，完全离线可用。
+
+- `IDictionaryRepository`：查词接口（按语言绑定，多语言可扩展）
+- `SqliteDictionaryRepository`：SQLite 实现，支持精确查询与**词形还原**（wolves → wolf、felt → feel）
+- `DictionaryRepositoryProvider`：按语言注册词典，新增语言的接入点
+- `IWordExtractor` / `LocalWordExtractor`：分词 → 查词典 → 评估难度 → 取前 N 个生词
+- `IWordDifficultyAssessor` / `EnglishDifficultyAssessor`：依据词典中真实的**考试标签**（中考/高考/四六级/考研/托福/雅思/GRE）、**语料库词频**、**柯林斯星级**评估难度
 
 ### 4. 屏幕截图 (`domain/screenshot/`)
 - `IScreenCaptureManager`：截图接口
@@ -85,11 +90,13 @@ subtitle-translator/
 │   │   ├── translator/                 # 翻译接口与实现
 │   │   ├── ocr/                        # OCR 接口与实现
 │   │   ├── screenshot/                 # 截图接口与实现
-│   │   └── wordextractor/              # 单词提取接口与实现
+│   │   ├── dictionary/                 # 词典模型与查词接口
+│   │   └── wordextractor/              # 单词提取与难度评估接口
 │   ├── data/                           # 数据层
 │   │   ├── translator/MLKitTranslator.kt
 │   │   ├── ocr/MLKitOcrEngine.kt
 │   │   ├── screenshot/ScreenCaptureManagerImpl.kt
+│   │   ├── dictionary/                 # SQLite 词典实现
 │   │   └── wordextractor/LocalWordExtractor.kt
 │   ├── service/                        # 服务层
 │   │   └── FloatingButtonService.kt    # 悬浮窗服务
@@ -97,9 +104,37 @@ subtitle-translator/
 │       ├── HistoryActivity.kt          # 历史记录
 │       ├── SettingsActivity.kt         # 设置
 │       └── overlay/                    # 悬浮窗视图
+├── app/src/main/assets/dictionary.db   # 词典数据库（由脚本生成后入库）
 ├── app/src/main/res/                   # 布局和资源
-└── app/build.gradle.kts               # 依赖配置
+├── app/src/test/                       # 单元测试
+└── scripts/import_ecdict.py            # ECDICT → dictionary.db 构建脚本
 ```
+
+## 词典数据
+
+词典由 [ECDICT](https://github.com/skywind3000/ECDICT)（MIT License, Copyright (c) Linwei）
+转换而来，构建脚本为 `scripts/import_ecdict.py`：
+
+```bash
+# 自动下载源数据（约 68MB）并构建
+python3 scripts/import_ecdict.py --download
+
+# 或用本地已有的源数据
+python3 scripts/import_ecdict.py --csv ecdict.csv --lemma lemma.en.txt
+```
+
+脚本产物 `app/src/main/assets/dictionary.db` 已入库，克隆后可直接编译，无需重新生成。
+
+**裁剪策略**：ECDICT 全量 77 万条，绝大部分是极罕见词、短语和专有名词。
+脚本只保留「字幕里真正常见」的词——有语料库词频排名、或有考试大纲标签、
+或有柯林斯星级、或是牛津核心词，最终 **59,137 条**（约 16MB）。
+
+**词形还原**：`word_form` 表记录屈折形式到原形的映射（约 5 万条），
+数据来自 ECDICT 的 `lemma.en.txt` 与 `exchange` 字段。
+
+**多语言扩展**：新增语言只需三步，上层代码无需改动——
+用类似的脚本生成 `assets/dictionary_xx.db`、实现该语言的释义解析器
+（`WordSenseParser`）、在 `DictionaryRepositoryProvider.DEFAULT_SOURCES` 中登记。
 
 ## 依赖库
 
@@ -108,6 +143,8 @@ subtitle-translator/
 - **Kotlin Coroutines**：异步处理
 - **AppCompat / Material**：兼容支持
 - **RecyclerView**：历史记录列表
+- **ECDICT**：离线词典数据（MIT License，见上文「词典数据」）
+- **JUnit / Robolectric**：单元测试（仅测试期依赖）
 
 ## 权限要求
 
@@ -121,11 +158,14 @@ subtitle-translator/
 
 - [x] 支持更多语言对
 - [ ] 接入百度/Google/DeepL 等云端翻译 API
-- [ ] 本地词典扩展（支持加载自定义词典文件）
+- [x] 本地词典扩展（内置 ECDICT 离线词典）
 - [x] 翻译历史记录
 - [ ] 悬浮窗样式自定义
 - [ ] 自动识别字幕语言
 - [ ] 翻译结果语音朗读
+- [ ] 点击字幕中的任意单词查询释义
+- [ ] 生词本（收藏生词、复习）
+- [ ] 更多语言的离线词典（词典层已预留扩展点）
 
 ## 注意事项
 
@@ -136,11 +176,15 @@ subtitle-translator/
 
 ## 最近更新
 
+- 接入 ECDICT 离线词典：生词释义由占位文案变为真实中英文释义、音标
+- 新增词形还原：wolves → wolf、felt → feel，屈折形式也能查到释义
+- 难度评估改用真实数据（考试标签 / 语料库词频 / 柯林斯星级），移除硬编码词表与词根词缀猜测
+- 词典初始化移出主线程（16MB 数据库拷贝不再阻塞界面），修复批量查询超出 SQLite 变量上限的问题
+- 新增单元测试（JUnit + Robolectric），覆盖释义解析、难度评估与真实词典查询
 - 修复 MediaProjection 生命周期管理，避免崩溃和内存泄漏
 - 修复悬浮窗拖动与点击冲突，提升交互体验
 - 修复通知栏点击行为，支持通知栏快速停止服务
 - 添加翻译历史记录功能
 - 添加语言设置页面，支持多语言对切换
 - 添加长按复制功能（原文/译文/单词）
-- 扩展内置难词词典
 - 优化代码结构，解耦 UI 与业务层

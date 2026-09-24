@@ -19,6 +19,13 @@ android {
         viewBinding = true
     }
 
+    testOptions {
+        unitTests {
+            // 让单元测试能读到 assets/ 下的词典数据库
+            isIncludeAndroidResources = true
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -56,4 +63,8 @@ dependencies {
 
     // RecyclerView
     implementation("androidx.recyclerview:recyclerview:1.3.2")
+
+    // 单元测试：Robolectric 用于在 JVM 上跑依赖 Android SQLite 的词典查询测试
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.12.2")
 }

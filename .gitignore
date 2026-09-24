@@ -17,3 +17,6 @@ app/build
 local.properties
 /.gradle/
 /.idea/
+__pycache__/
+# 词典构建脚本下载的 ECDICT 源数据（约 68MB，不入库）
+/.cache/

@@ -31,9 +31,11 @@ import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.data.ocr.MLKitOcrEngine
 import com.zhangxh.subtitletranslator.data.screenshot.ScreenCaptureManagerImpl
 import com.zhangxh.subtitletranslator.data.translator.MLKitTranslator
+import com.zhangxh.subtitletranslator.data.dictionary.DictionaryRepositoryProvider
 import com.zhangxh.subtitletranslator.data.wordextractor.LocalWordExtractor
 import com.zhangxh.subtitletranslator.domain.TranslationCoordinator
 import com.zhangxh.subtitletranslator.domain.TranslationResult
+import com.zhangxh.subtitletranslator.domain.wordextractor.NoOpWordExtractor
 import com.zhangxh.subtitletranslator.ui.SettingsActivity
 import com.zhangxh.subtitletranslator.ui.overlay.TranslationOverlayView
 import kotlinx.coroutines.CoroutineScope
@@ -72,6 +74,7 @@ class FloatingButtonService : Service() {
     private var floatingView: View? = null
     private var overlayView: TranslationOverlayView? = null
     private var translationCoordinator: TranslationCoordinator? = null
+    private var dictionaryProvider: DictionaryRepositoryProvider? = null
     private var mediaProjection: MediaProjection? = null
     private var isShowingTranslation = false
     private var resultCode: Int = -1
@@ -164,10 +167,19 @@ class FloatingButtonService : Service() {
 
             val ocrEngine = MLKitOcrEngine()
             val translator = MLKitTranslator(this)
-            val wordExtractor = LocalWordExtractor(this)
 
             val sourceLang = SettingsActivity.getSourceLang(this)
             val targetLang = SettingsActivity.getTargetLang(this)
+
+            // 词典：按源语言取内置词库；没有对应语言的词库时退化为「不提取生词」
+            val provider = DictionaryRepositoryProvider(this)
+            dictionaryProvider = provider
+            val wordExtractor = provider.repository(sourceLang)
+                ?.let { LocalWordExtractor(it) }
+                ?: run {
+                    Log.w(TAG, "源语言 $sourceLang 没有内置词典，将跳过生词提取")
+                    NoOpWordExtractor
+                }
 
             translationCoordinator = TranslationCoordinator(
                 context = this,
@@ -179,8 +191,14 @@ class FloatingButtonService : Service() {
                 targetLang = targetLang
             )
 
-            // 预加载翻译环境
+            // 预加载翻译环境与词典
             serviceScope.launch {
+                try {
+                    // 预热词典：首次需从 assets 复制约 16MB 数据库，必须在后台线程完成
+                    provider.prepare(sourceLang)
+                } catch (e: Exception) {
+                    Log.e(TAG, "预加载词典失败", e)
+                }
                 try {
                     translationCoordinator?.prepare()
                 } catch (e: Exception) {
@@ -551,6 +569,9 @@ class FloatingButtonService : Service() {
         // 释放资源
         translationCoordinator?.release()
         translationCoordinator = null
+
+        dictionaryProvider?.release()
+        dictionaryProvider = null
 
         // 取消协程作用域
         serviceScope.cancel()
