@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  调试截图存在 filesDir/debug_captures 下，分享时通过 FileProvider 授权给外部应用读取
+-->
+<paths>
+    <files-path
+        name="debug_captures"
+        path="debug_captures/" />
+</paths>

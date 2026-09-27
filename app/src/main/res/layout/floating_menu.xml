@@ -31,6 +31,18 @@
         android:textColor="@android:color/white"
         android:textSize="15sp" />
 
+    <!-- 仅在设置里打开了「保存识别过程截图」时显示，方便调试时快速查看 -->
+    <TextView
+        android:id="@+id/menuDebugCapture"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:paddingVertical="10dp"
+        android:text="识别截图"
+        android:textColor="@android:color/white"
+        android:textSize="15sp"
+        android:visibility="gone" />
+
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"

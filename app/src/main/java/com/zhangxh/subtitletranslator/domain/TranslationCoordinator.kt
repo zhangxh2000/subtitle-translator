@@ -9,7 +9,9 @@ import com.zhangxh.subtitletranslator.domain.ocr.OcrTextCleaner
 import com.zhangxh.subtitletranslator.domain.screenshot.IScreenCaptureManager
 import com.zhangxh.subtitletranslator.domain.translator.ITranslator
 import com.zhangxh.subtitletranslator.domain.wordextractor.IWordExtractor
-import com.zhangxh.subtitletranslator.util.DebugImageSaver
+import com.zhangxh.subtitletranslator.util.CropInfo
+import com.zhangxh.subtitletranslator.util.DebugCapture
+import com.zhangxh.subtitletranslator.util.DebugCaptureStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -24,7 +26,14 @@ class TranslationCoordinator(
     private val translator: ITranslator,
     private val wordExtractor: IWordExtractor,
     private val sourceLang: String = "en",
-    private val targetLang: String = "zh"
+    private val targetLang: String = "zh",
+    /**
+     * 是否保存调试截图
+     *
+     * 用回调而不是直接读设置，是为了让领域层不依赖 UI 层；
+     * 每次识别都问一次，所以用户在设置里打开开关后立刻生效，不必重启服务。
+     */
+    private val isDebugCaptureEnabled: () -> Boolean = { false }
 ) {
 
     companion object {
@@ -44,6 +53,8 @@ class TranslationCoordinator(
         private const val BINARY_THRESHOLD = 128   // 二值化固定阈值
     }
 
+    private val debugCaptureStore = DebugCaptureStore(context)
+
     /**
      * 执行完整的翻译流程
      */
@@ -51,78 +62,66 @@ class TranslationCoordinator(
         var screenshot: Bitmap? = null
         var subtitleBitmap: Bitmap? = null
         var processedBitmap: Bitmap? = null
+        var cropInfo: CropInfo? = null
+
+        // 调试记录需要的信息。失败路径同样要留现场（OCR 失败、未识别到文字时最需要看截图），
+        // 所以这些变量声明在 try 外面，在 finally 里统一落盘。
+        var rawText = ""
+        var cleanedText = ""
+        var translatedText = ""
+        var errorMessage: String? = null
+
+        /** 记录失败原因后返回失败结果，保证 finally 里的调试记录能带上原因 */
+        fun fail(message: String): TranslationResult {
+            errorMessage = message
+            return TranslationResult(isSuccess = false, errorMessage = message)
+        }
 
         try {
             // 1. 截图
             Log.d(TAG, "开始截图")
-            screenshot = screenCapture.captureScreen()
-                ?: return@withContext TranslationResult(
-                    isSuccess = false,
-                    errorMessage = "截图失败"
-                )
-
-            // 保存调试图：原始截图
-            DebugImageSaver.saveDebugImage(context, screenshot, "01_screenshot")
+            screenshot = screenCapture.captureScreen() ?: return@withContext fail("截图失败")
 
             // 2. 裁剪字幕区域（底部 1/3）
-            subtitleBitmap = cropSubtitleArea(screenshot)
-            if (subtitleBitmap == null) {
-                return@withContext TranslationResult(
-                    isSuccess = false,
-                    errorMessage = "字幕区域裁剪失败"
-                )
-            }
-
-            // 保存调试图：裁剪后的字幕区域
-            DebugImageSaver.saveDebugImage(context, subtitleBitmap, "02_subtitle")
+            val cropped = cropSubtitleArea(screenshot) ?: return@withContext fail("字幕区域裁剪失败")
+            subtitleBitmap = cropped.bitmap
+            cropInfo = cropped.info
 
             // 3. 图像预处理：放大 + 灰度化 + 二值化
             processedBitmap = preprocessForOcr(subtitleBitmap)
             Log.d(TAG, "预处理后尺寸: ${processedBitmap.width}x${processedBitmap.height}")
 
-            // 保存调试图：预处理后的 OCR 图像
-            DebugImageSaver.saveDebugImage(context, processedBitmap, "03_processed")
-
             // 4. OCR 识别
             val ocrResult = ocrEngine.recognizeText(processedBitmap)
 
             if (!ocrResult.isSuccess) {
-                return@withContext TranslationResult(
-                    isSuccess = false,
-                    errorMessage = "OCR 识别失败: ${ocrResult.errorMessage}"
-                )
+                return@withContext fail("OCR 识别失败: ${ocrResult.errorMessage}")
             }
 
             // 5. 获取字幕文字并清洗
-            val rawText = ocrResult.text.trim()
-            val subtitleText = OcrTextCleaner.clean(rawText)
+            rawText = ocrResult.text.trim()
+            cleanedText = OcrTextCleaner.clean(rawText)
 
-            if (subtitleText.isBlank()) {
-                return@withContext TranslationResult(
-                    isSuccess = false,
-                    errorMessage = "未识别到字幕文字"
-                )
+            if (cleanedText.isBlank()) {
+                return@withContext fail("未识别到字幕文字")
             }
 
             Log.d(TAG, "OCR原始结果: $rawText")
-            Log.d(TAG, "清洗后字幕: $subtitleText")
+            Log.d(TAG, "清洗后字幕: $cleanedText")
 
             // 6. 翻译
             Log.d(TAG, "开始翻译")
-            val translationResult = translator.translate(subtitleText, sourceLang, targetLang)
-            val translatedText = translationResult.getOrElse {
-                return@withContext TranslationResult(
-                    isSuccess = false,
-                    errorMessage = "翻译失败: ${it.message}"
-                )
+            val translationResult = translator.translate(cleanedText, sourceLang, targetLang)
+            translatedText = translationResult.getOrElse {
+                return@withContext fail("翻译失败: ${it.message}")
             }
 
             // 7. 提取难词
             Log.d(TAG, "提取难词")
-            val difficultWords = wordExtractor.extractDifficultWords(subtitleText, maxWords = 5)
+            val difficultWords = wordExtractor.extractDifficultWords(cleanedText, maxWords = 5)
 
             TranslationResult(
-                originalText = subtitleText,
+                originalText = cleanedText,
                 translatedText = translatedText,
                 difficultWords = difficultWords,
                 isSuccess = true
@@ -130,11 +129,26 @@ class TranslationCoordinator(
 
         } catch (e: Exception) {
             Log.e(TAG, "翻译流程失败", e)
-            TranslationResult(
-                isSuccess = false,
-                errorMessage = "翻译失败: ${e.message}"
-            )
+            fail("翻译失败: ${e.message}")
         } finally {
+            // 落盘必须在 recycle() 之前，否则写入的是已回收的 Bitmap
+            if (isDebugCaptureEnabled()) {
+                debugCaptureStore.save(
+                    DebugCapture(
+                        screenshot = screenshot,
+                        subtitle = subtitleBitmap,
+                        processed = processedBitmap,
+                        ocrRawText = rawText,
+                        cleanedText = cleanedText,
+                        translatedText = translatedText,
+                        errorMessage = errorMessage,
+                        cropInfo = cropInfo,
+                        scaleFactor = SCALE_FACTOR,
+                        binaryThreshold = BINARY_THRESHOLD
+                    )
+                )
+            }
+
             // 确保所有临时 Bitmap 都被回收
             processedBitmap?.recycle()
             subtitleBitmap?.recycle()
@@ -149,7 +163,10 @@ class TranslationCoordinator(
      * - 横屏（宽 > 高）：字幕通常在视频底部，截取屏幕底部 1/3
      * - 竖屏（高 > 宽）：按 16:9 比例估算视频画面高度，截取视频画面下半部分
      */
-    private fun cropSubtitleArea(bitmap: Bitmap): Bitmap? {
+    /** 裁剪结果：图像 + 实际使用的参数 */
+    private data class CroppedArea(val bitmap: Bitmap, val info: CropInfo)
+
+    private fun cropSubtitleArea(bitmap: Bitmap): CroppedArea? {
         return try {
             val isLandscape = bitmap.width > bitmap.height
 
@@ -165,7 +182,16 @@ class TranslationCoordinator(
                 }
 
                 Log.d(TAG, "横屏裁剪字幕区域: top=$top, bottom=$bottom, width=${bitmap.width}, height=$height")
-                Bitmap.createBitmap(bitmap, 0, top, bitmap.width, height)
+                val info = CropInfo(
+                    mode = "横屏",
+                    screenWidth = bitmap.width,
+                    screenHeight = bitmap.height,
+                    top = top,
+                    bottom = bottom,
+                    width = bitmap.width,
+                    height = height
+                )
+                CroppedArea(Bitmap.createBitmap(bitmap, 0, top, bitmap.width, height), info)
             } else {
                 // 竖屏：按 16:9 估算视频画面高度，截取视频下半部分
                 // 视频画面宽度填满屏幕，高度 = width * 9 / 16
@@ -180,7 +206,17 @@ class TranslationCoordinator(
                 }
 
                 Log.d(TAG, "竖屏裁剪字幕区域: top=$top, bottom=$bottom, width=${bitmap.width}, height=$height")
-                Bitmap.createBitmap(bitmap, 0, top, bitmap.width, height)
+                val info = CropInfo(
+                    mode = "竖屏",
+                    screenWidth = bitmap.width,
+                    screenHeight = bitmap.height,
+                    top = top,
+                    bottom = bottom,
+                    width = bitmap.width,
+                    height = height,
+                    videoHeight = videoHeight
+                )
+                CroppedArea(Bitmap.createBitmap(bitmap, 0, top, bitmap.width, height), info)
             }
         } catch (e: Exception) {
             Log.e(TAG, "字幕区域裁剪失败", e)

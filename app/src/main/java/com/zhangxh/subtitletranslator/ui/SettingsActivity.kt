@@ -1,6 +1,7 @@
 package com.zhangxh.subtitletranslator.ui
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
@@ -8,6 +9,7 @@ import android.widget.ArrayAdapter
 import android.widget.Spinner
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.switchmaterial.SwitchMaterial
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.domain.translator.Language
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficultyFilter
@@ -23,6 +25,7 @@ class SettingsActivity : AppCompatActivity() {
         private const val KEY_SOURCE_LANG = "source_lang"
         private const val KEY_TARGET_LANG = "target_lang"
         private const val KEY_DIFFICULTY_FILTER = "difficulty_filter"
+        private const val KEY_DEBUG_CAPTURE = "debug_capture_enabled"
 
         fun getSourceLang(context: Context): String {
             return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -47,6 +50,23 @@ class SettingsActivity : AppCompatActivity() {
                 .putString(KEY_DIFFICULTY_FILTER, filter.name)
                 .apply()
         }
+
+        /**
+         * 是否保存调试截图（原始截图 / 裁剪区域 / 预处理图）
+         *
+         * 每次识别都会读一次，所以打开开关后立刻生效，不需要重启服务。
+         */
+        fun isDebugCaptureEnabled(context: Context): Boolean {
+            return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getBoolean(KEY_DEBUG_CAPTURE, false)
+        }
+
+        private fun saveDebugCaptureEnabled(context: Context, enabled: Boolean) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean(KEY_DEBUG_CAPTURE, enabled)
+                .apply()
+        }
     }
 
     private lateinit var spinnerSource: Spinner
@@ -62,6 +82,7 @@ class SettingsActivity : AppCompatActivity() {
 
         setupSpinners()
         setupDifficultySpinner()
+        setupDebugCapture()
 
         findViewById<View>(R.id.btnBack)?.setOnClickListener {
             finish()
@@ -132,6 +153,23 @@ class SettingsActivity : AppCompatActivity() {
                 saveDifficultyFilter(this@SettingsActivity, filters[position])
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+    }
+
+    /**
+     * 调试截图开关与查看入口
+     *
+     * 开关立即生效（每次识别时读取），不需要重启服务。
+     */
+    private fun setupDebugCapture() {
+        val switch = findViewById<SwitchMaterial>(R.id.switchDebugCapture)
+        switch.isChecked = isDebugCaptureEnabled(this)
+        switch.setOnCheckedChangeListener { _, isChecked ->
+            saveDebugCaptureEnabled(this, isChecked)
+        }
+
+        findViewById<View>(R.id.btnViewDebugCaptures)?.setOnClickListener {
+            startActivity(Intent(this, DebugCaptureActivity::class.java))
         }
     }
 

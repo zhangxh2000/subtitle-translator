@@ -109,10 +109,7 @@ class MainActivity : AppCompatActivity() {
             permissions.add(Manifest.permission.POST_NOTIFICATIONS)
         }
 
-        // Android 10 及以下需要存储权限来保存调试图片
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
-            permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-        }
+        // 调试截图改存应用私有目录后，不再需要存储权限
 
         if (permissions.isNotEmpty()) {
             permissionLauncher.launch(permissions.toTypedArray())

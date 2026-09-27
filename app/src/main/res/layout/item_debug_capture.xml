@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  一条调试记录：时间与参数 + OCR 文本 + 三张阶段缩略图
+
+  缩略图统一 110dp 高、等宽横排，看清细节靠点击放大（缩略图尺寸不足以判断笔画是否被二值化吃掉）。
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    android:background="@drawable/bg_word_item"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <TextView
+        android:id="@+id/tvTime"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="12sp"
+        android:textColor="@android:color/darker_gray" />
+
+    <TextView
+        android:id="@+id/tvError"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textSize="12sp"
+        android:textColor="@android:color/holo_red_light"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/tvCropInfo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textSize="11sp"
+        android:textColor="@android:color/darker_gray" />
+
+    <TextView
+        android:id="@+id/tvOcrText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:textSize="13sp"
+        android:textColor="@android:color/white"
+        android:lineSpacingMultiplier="1.2" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:id="@+id/boxScreenshot"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackground"
+            android:orientation="vertical">
+
+            <ImageView
+                android:id="@+id/imgScreenshot"
+                android:layout_width="match_parent"
+                android:layout_height="110dp"
+                android:contentDescription="原始截图"
+                android:scaleType="fitCenter" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:gravity="center"
+                android:text="原始截图"
+                android:textColor="@android:color/darker_gray"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/boxSubtitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackground"
+            android:orientation="vertical">
+
+            <ImageView
+                android:id="@+id/imgSubtitle"
+                android:layout_width="match_parent"
+                android:layout_height="110dp"
+                android:contentDescription="裁剪区域"
+                android:scaleType="fitCenter" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:gravity="center"
+                android:text="裁剪区域"
+                android:textColor="@android:color/darker_gray"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/boxProcessed"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackground"
+            android:orientation="vertical">
+
+            <ImageView
+                android:id="@+id/imgProcessed"
+                android:layout_width="match_parent"
+                android:layout_height="110dp"
+                android:contentDescription="预处理图"
+                android:scaleType="fitCenter" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:gravity="center"
+                android:text="预处理"
+                android:textColor="@android:color/darker_gray"
+                android:textSize="10sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>

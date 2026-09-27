@@ -37,6 +37,7 @@ import com.zhangxh.subtitletranslator.domain.TranslationCoordinator
 import com.zhangxh.subtitletranslator.domain.TranslationResult
 import com.zhangxh.subtitletranslator.domain.wordextractor.EnglishDifficultyAssessor
 import com.zhangxh.subtitletranslator.domain.wordextractor.NoOpWordExtractor
+import com.zhangxh.subtitletranslator.ui.DebugCaptureActivity
 import com.zhangxh.subtitletranslator.ui.HistoryActivity
 import com.zhangxh.subtitletranslator.ui.SettingsActivity
 import com.zhangxh.subtitletranslator.ui.overlay.TranslationOverlayView
@@ -257,7 +258,9 @@ class FloatingButtonService : Service() {
                 translator = translator,
                 wordExtractor = wordExtractor,
                 sourceLang = sourceLang,
-                targetLang = targetLang
+                targetLang = targetLang,
+                // 用回调而不是传布尔值：开关打开后立刻生效，不必重启服务
+                isDebugCaptureEnabled = { SettingsActivity.isDebugCaptureEnabled(this) }
             )
 
             // 预加载翻译环境与词典
@@ -441,6 +444,18 @@ class FloatingButtonService : Service() {
         menu.findViewById<View>(R.id.menuStop)?.setOnClickListener {
             dismissQuickMenu()
             stopSelf()
+        }
+        // 调试入口只在开启「保存识别过程截图」后出现，平时不干扰正常使用
+        menu.findViewById<View>(R.id.menuDebugCapture)?.let { entry ->
+            if (SettingsActivity.isDebugCaptureEnabled(this)) {
+                entry.visibility = View.VISIBLE
+                entry.setOnClickListener {
+                    dismissQuickMenu()
+                    openAppScreen(DebugCaptureActivity::class.java)
+                }
+            } else {
+                entry.visibility = View.GONE
+            }
         }
         // 点击菜单以外的区域关闭菜单（配合 FLAG_WATCH_OUTSIDE_TOUCH）
         menu.setOnTouchListener { _, event ->

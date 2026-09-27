@@ -14,11 +14,10 @@
     <!-- 通知权限（Android 13+） -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- 存储权限：保存调试图片到公共 Pictures 目录 -->
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="29" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
+    <!--
+      注意：调试截图存在应用私有目录（filesDir/debug_captures），不需要任何存储权限，
+      因此这里不再声明 WRITE_EXTERNAL_STORAGE / READ_EXTERNAL_STORAGE。
+    -->
 
     <application
         android:allowBackup="true"
@@ -45,6 +44,25 @@
         <activity
             android:name=".ui.SettingsActivity"
             android:exported="false" />
+
+        <activity
+            android:name=".ui.DebugCaptureActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.ImagePreviewActivity"
+            android:exported="false" />
+
+        <!-- 分享调试截图时需要把私有目录的文件授权给外部应用读取 -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
         <!-- 悬浮窗服务 -->
         <service

@@ -95,7 +95,42 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="提示：以上设置将在下次启动翻译服务时生效"
+            android:text="调试截图"
+            android:textSize="14sp"
+            android:textColor="@android:color/darker_gray" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/switchDebugCapture"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="保存识别过程截图"
+            android:textColor="@android:color/white"
+            android:textSize="15sp" />
+
+        <Button
+            android:id="@+id/btnViewDebugCaptures"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="查看最近记录"
+            android:textColor="@android:color/white" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="开启后每次识别会保存「原始截图 / 裁剪区域 / 预处理图」和当次 OCR 文本，用于判断是截图、裁剪、预处理还是 OCR 的问题。只保留最近 5 次（约 6MB），存在应用私有目录，不会出现在相册里。"
+            android:textSize="12sp"
+            android:textColor="@android:color/darker_gray"
+            android:lineSpacingMultiplier="1.2" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="提示：语言与生词筛选设置在下次启动翻译服务时生效；调试截图开关立即生效"
             android:textSize="12sp"
             android:textColor="@android:color/darker_gray" />
     </LinearLayout>
