@@ -71,7 +71,31 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="提示：语言设置将在下次启动翻译服务时生效"
+            android:text="生词筛选"
+            android:textSize="14sp"
+            android:textColor="@android:color/darker_gray" />
+
+        <Spinner
+            android:id="@+id/spinnerDifficulty"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_word_item" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="决定「重点词汇」里显示多少词：宽松会多显示一些，严格只显示难词。若译文下常常没有词汇，可调宽松一些。"
+            android:textSize="12sp"
+            android:textColor="@android:color/darker_gray"
+            android:lineSpacingMultiplier="1.2" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="提示：以上设置将在下次启动翻译服务时生效"
             android:textSize="12sp"
             android:textColor="@android:color/darker_gray" />
     </LinearLayout>

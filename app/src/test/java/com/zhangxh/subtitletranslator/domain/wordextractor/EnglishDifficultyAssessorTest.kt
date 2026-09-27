@@ -114,4 +114,69 @@ class EnglishDifficultyAssessorTest {
         )
         assertEquals(100, both.frequencyRank)
     }
+
+    // ---------------------------------------------------------------------
+    // 筛选强度（用户可在设置里调整）
+    // ---------------------------------------------------------------------
+
+    /**
+     * 宽松档下调门槛后，边界词会被判为中等词
+     *
+     * regret 的难度分是 0.58：适中档(1.0)视为简单词，宽松档(0.55)视为中等词。
+     * 这正是「多显示一些词」的实现方式。
+     */
+    @Test
+    fun `loose threshold reclassifies borderline word`() {
+        // 与词典中 regret 的真实数据一致：难度分 0.58
+        val regret = entry(
+            "regret",
+            tags = listOf("zk", "gk", "cet4", "cet6", "ky"),
+            collins = 3,
+            oxford = true,
+            rank = 3773
+        )
+
+        assertEquals(WordDifficulty.EASY, EnglishDifficultyAssessor().assess(regret))
+        assertEquals(
+            WordDifficulty.MEDIUM,
+            EnglishDifficultyAssessor(easyThreshold = WordDifficultyFilter.LOOSE.easyThreshold).assess(regret)
+        )
+    }
+
+    /** 严格档把门槛提到 3.0，只有真正的难词能留下 */
+    @Test
+    fun `strict threshold keeps only hard words`() {
+        val assessor = EnglishDifficultyAssessor(easyThreshold = WordDifficultyFilter.STRICT.easyThreshold)
+
+        val hard = assessor.assess(entry("serendipity", tags = listOf("gre"), rank = 23199))
+        assertEquals(WordDifficulty.HARD, hard)
+
+        val medium = assessor.assess(
+            entry("inevitable", tags = listOf("cet4"), collins = 3, oxford = true, rank = 2837)
+        )
+        assertEquals(WordDifficulty.EASY, medium)
+    }
+
+    /** 档位越宽松，被当作生词接受的词越多（数据取自词典真实条目） */
+    @Test
+    fun `looser filter accepts more words`() {
+        val words = listOf(
+            // 4.0 分：GRE 级难词
+            entry("serendipity", tags = listOf("gre"), rank = 23199),
+            // 1.0 分：正好卡在适中档门槛上
+            entry("inevitable", tags = listOf("cet4", "cet6", "ky", "toefl", "ielts"), collins = 3, oxford = true, rank = 2837),
+            // 0.58 分：只被宽松档接受
+            entry("regret", tags = listOf("zk", "gk", "cet4", "cet6", "ky"), collins = 3, oxford = true, rank = 3773),
+            // 0.33 分：基础词，任何档位都不该显示
+            entry("know", tags = listOf("zk"), collins = 3, oxford = true, rank = 47)
+        )
+
+        fun accepted(filter: WordDifficultyFilter) = words.count {
+            EnglishDifficultyAssessor(easyThreshold = filter.easyThreshold).assess(it) != WordDifficulty.EASY
+        }
+
+        assertEquals(3, accepted(WordDifficultyFilter.LOOSE))
+        assertEquals(2, accepted(WordDifficultyFilter.NORMAL))
+        assertEquals(1, accepted(WordDifficultyFilter.STRICT))
+    }
 }

@@ -35,6 +35,7 @@ import com.zhangxh.subtitletranslator.data.dictionary.DictionaryRepositoryProvid
 import com.zhangxh.subtitletranslator.data.wordextractor.LocalWordExtractor
 import com.zhangxh.subtitletranslator.domain.TranslationCoordinator
 import com.zhangxh.subtitletranslator.domain.TranslationResult
+import com.zhangxh.subtitletranslator.domain.wordextractor.EnglishDifficultyAssessor
 import com.zhangxh.subtitletranslator.domain.wordextractor.NoOpWordExtractor
 import com.zhangxh.subtitletranslator.ui.HistoryActivity
 import com.zhangxh.subtitletranslator.ui.SettingsActivity
@@ -232,8 +233,18 @@ class FloatingButtonService : Service() {
             // 词典：按源语言取内置词库；没有对应语言的词库时退化为「不提取生词」
             val provider = DictionaryRepositoryProvider(this)
             dictionaryProvider = provider
+            // 生词筛选强度由用户在设置里选择，决定「重点词汇」显示多少词
+            val difficultyFilter = SettingsActivity.getDifficultyFilter(this)
+            Log.d(TAG, "生词筛选强度: ${difficultyFilter.label}")
             val wordExtractor = provider.repository(sourceLang)
-                ?.let { LocalWordExtractor(it) }
+                ?.let { repository ->
+                    LocalWordExtractor(
+                        dictionaryRepository = repository,
+                        difficultyAssessor = EnglishDifficultyAssessor(
+                            easyThreshold = difficultyFilter.easyThreshold
+                        )
+                    )
+                }
                 ?: run {
                     Log.w(TAG, "源语言 $sourceLang 没有内置词典，将跳过生词提取")
                     NoOpWordExtractor

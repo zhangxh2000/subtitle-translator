@@ -8,6 +8,7 @@ import com.zhangxh.subtitletranslator.domain.wordextractor.IWordDifficultyAssess
 import com.zhangxh.subtitletranslator.domain.wordextractor.IWordExtractor
 import com.zhangxh.subtitletranslator.domain.wordextractor.Meaning
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficulty
+import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficultyFilter
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -25,7 +26,10 @@ import kotlinx.coroutines.withContext
  */
 class LocalWordExtractor(
     private val dictionaryRepository: IDictionaryRepository,
-    private val difficultyAssessor: IWordDifficultyAssessor = EnglishDifficultyAssessor(),
+    /** 默认与设置的默认档位保持一致，调用方通常会按用户设置显式传入 */
+    private val difficultyAssessor: IWordDifficultyAssessor = EnglishDifficultyAssessor(
+        easyThreshold = WordDifficultyFilter.DEFAULT.easyThreshold
+    ),
     private val tokenizer: EnglishTokenizer = EnglishTokenizer()
 ) : IWordExtractor {
 

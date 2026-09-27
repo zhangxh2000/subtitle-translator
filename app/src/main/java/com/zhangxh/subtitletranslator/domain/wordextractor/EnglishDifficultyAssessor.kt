@@ -16,8 +16,14 @@ import com.zhangxh.subtitletranslator.domain.dictionary.DictionaryEntry
  *
  * 三项信号按权重加权平均（缺失的信号不计入，权重重新归一化），
  * 分数越高越难。没有词频也没有标签的词视为罕见词。
+ *
+ * @param easyThreshold 分数低于此值判为简单词；由用户的「生词筛选强度」设置决定
+ * @param hardThreshold 分数高于此值判为难词
  */
-class EnglishDifficultyAssessor : IWordDifficultyAssessor {
+class EnglishDifficultyAssessor(
+    private val easyThreshold: Double = DEFAULT_EASY_THRESHOLD,
+    private val hardThreshold: Double = DEFAULT_HARD_THRESHOLD
+) : IWordDifficultyAssessor {
 
     override fun assess(entry: DictionaryEntry?): WordDifficulty? {
         // 词典未收录：多半是专有名词、拼写错误，不作为生词展示
@@ -37,8 +43,8 @@ class EnglishDifficultyAssessor : IWordDifficultyAssessor {
         val score = signals.sumOf { it.first * it.second } / totalWeight
 
         return when {
-            score < EASY_THRESHOLD -> WordDifficulty.EASY
-            score < HARD_THRESHOLD -> WordDifficulty.MEDIUM
+            score < easyThreshold -> WordDifficulty.EASY
+            score < hardThreshold -> WordDifficulty.MEDIUM
             else -> WordDifficulty.HARD
         }
     }
@@ -77,9 +83,9 @@ class EnglishDifficultyAssessor : IWordDifficultyAssessor {
         const val COLLINS_WEIGHT = 0.2
         const val OXFORD_WEIGHT = 0.2
 
-        /** 难度分界：低于 EASY_THRESHOLD 为简单词，低于 HARD_THRESHOLD 为中等词 */
-        const val EASY_THRESHOLD = 1.0
-        const val HARD_THRESHOLD = 3.0
+        /** 默认难度分界：低于 EASY_THRESHOLD 为简单词，低于 HARD_THRESHOLD 为中等词 */
+        const val DEFAULT_EASY_THRESHOLD = 1.0
+        const val DEFAULT_HARD_THRESHOLD = 3.0
 
         /** 无排名：语料库前 5 万都没收录，是很强的「罕见」信号，但不绝对（口语词可能没进书面语料库） */
         const val UNRANKED_SCORE = 4.0

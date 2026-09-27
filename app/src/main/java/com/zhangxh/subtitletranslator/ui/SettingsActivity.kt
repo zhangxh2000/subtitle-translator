@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.domain.translator.Language
+import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficultyFilter
 
 /**
  * 设置界面
@@ -21,6 +22,7 @@ class SettingsActivity : AppCompatActivity() {
         private const val PREFS_NAME = "subtitle_translator_prefs"
         private const val KEY_SOURCE_LANG = "source_lang"
         private const val KEY_TARGET_LANG = "target_lang"
+        private const val KEY_DIFFICULTY_FILTER = "difficulty_filter"
 
         fun getSourceLang(context: Context): String {
             return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -30,6 +32,20 @@ class SettingsActivity : AppCompatActivity() {
         fun getTargetLang(context: Context): String {
             return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .getString(KEY_TARGET_LANG, "zh") ?: "zh"
+        }
+
+        /** 生词筛选强度，决定「重点词汇」里显示多少词 */
+        fun getDifficultyFilter(context: Context): WordDifficultyFilter {
+            val name = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(KEY_DIFFICULTY_FILTER, null)
+            return WordDifficultyFilter.fromName(name)
+        }
+
+        private fun saveDifficultyFilter(context: Context, filter: WordDifficultyFilter) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putString(KEY_DIFFICULTY_FILTER, filter.name)
+                .apply()
         }
     }
 
@@ -45,6 +61,7 @@ class SettingsActivity : AppCompatActivity() {
         spinnerTarget = findViewById(R.id.spinnerTarget)
 
         setupSpinners()
+        setupDifficultySpinner()
 
         findViewById<View>(R.id.btnBack)?.setOnClickListener {
             finish()
@@ -88,6 +105,31 @@ class SettingsActivity : AppCompatActivity() {
                     return
                 }
                 saveLanguage(KEY_TARGET_LANG, selected)
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+    }
+
+    /**
+     * 生词筛选强度
+     *
+     * 决定「重点词汇」区显示多少词：宽松多显示一些，严格只显示难词。
+     */
+    private fun setupDifficultySpinner() {
+        val filters = WordDifficultyFilter.entries
+        val spinner = findViewById<Spinner>(R.id.spinnerDifficulty)
+        val adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            filters.map { it.label }
+        )
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinner.adapter = adapter
+        spinner.setSelection(filters.indexOf(getDifficultyFilter(this)).coerceAtLeast(0))
+
+        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                saveDifficultyFilter(this@SettingsActivity, filters[position])
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
