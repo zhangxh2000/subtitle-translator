@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:fitsSystemWindows="true"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -32,24 +33,31 @@
             android:textColor="@android:color/white" />
     </LinearLayout>
 
-    <LinearLayout
+    <!-- 设置项较多，小屏或横屏下可能超出屏幕，包一层滚动容器 -->
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:layout_height="match_parent"
+        android:scrollbars="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="源语言"
             android:textSize="14sp"
-            android:textColor="@android:color/darker_gray" />
+            android:textColor="@color/text_secondary" />
 
         <Spinner
             android:id="@+id/spinnerSource"
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:layout_marginTop="8dp"
+            android:paddingHorizontal="12dp"
             android:background="@drawable/bg_word_item" />
 
         <TextView
@@ -58,13 +66,14 @@
             android:layout_marginTop="24dp"
             android:text="目标语言"
             android:textSize="14sp"
-            android:textColor="@android:color/darker_gray" />
+            android:textColor="@color/text_secondary" />
 
         <Spinner
             android:id="@+id/spinnerTarget"
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:layout_marginTop="8dp"
+            android:paddingHorizontal="12dp"
             android:background="@drawable/bg_word_item" />
 
         <TextView
@@ -73,13 +82,14 @@
             android:layout_marginTop="24dp"
             android:text="生词筛选"
             android:textSize="14sp"
-            android:textColor="@android:color/darker_gray" />
+            android:textColor="@color/text_secondary" />
 
         <Spinner
             android:id="@+id/spinnerDifficulty"
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:layout_marginTop="8dp"
+            android:paddingHorizontal="12dp"
             android:background="@drawable/bg_word_item" />
 
         <TextView
@@ -88,7 +98,7 @@
             android:layout_marginTop="8dp"
             android:text="决定「重点词汇」里显示多少词：宽松会多显示一些，严格只显示难词。若译文下常常没有词汇，可调宽松一些。"
             android:textSize="12sp"
-            android:textColor="@android:color/darker_gray"
+            android:textColor="@color/text_secondary"
             android:lineSpacingMultiplier="1.2" />
 
         <TextView
@@ -97,7 +107,7 @@
             android:layout_marginTop="24dp"
             android:text="调试截图"
             android:textSize="14sp"
-            android:textColor="@android:color/darker_gray" />
+            android:textColor="@color/text_secondary" />
 
         <com.google.android.material.switchmaterial.SwitchMaterial
             android:id="@+id/switchDebugCapture"
@@ -123,7 +133,7 @@
             android:layout_marginTop="8dp"
             android:text="开启后每次识别会保存「原始截图 / 裁剪区域 / 预处理图」和当次 OCR 文本，用于判断是截图、裁剪、预处理还是 OCR 的问题。只保留最近 5 次（约 6MB），存在应用私有目录，不会出现在相册里。"
             android:textSize="12sp"
-            android:textColor="@android:color/darker_gray"
+            android:textColor="@color/text_secondary"
             android:lineSpacingMultiplier="1.2" />
 
         <TextView
@@ -132,7 +142,8 @@
             android:layout_marginTop="24dp"
             android:text="提示：语言与生词筛选设置在下次启动翻译服务时生效；调试截图开关立即生效"
             android:textSize="12sp"
-            android:textColor="@android:color/darker_gray" />
-    </LinearLayout>
+            android:textColor="@color/text_secondary" />
+        </LinearLayout>
+    </ScrollView>
 
 </LinearLayout>

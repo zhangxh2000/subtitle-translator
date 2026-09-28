@@ -16,4 +16,13 @@
     <color name="word_item_background">#F5F5F5</color>
     <!-- 服务运行中「停止」按钮的警示色 -->
     <color name="stop_button">#FFD32F2F</color>
+
+    <!--
+      深色界面下的文字与分隔线
+      界面背景是纯黑，此前用的 @android:color/darker_gray (#444444) 对比度仅 2.6:1，
+      远低于 WCAG AA 要求的 4.5:1，所以单独定义这两个颜色。
+      次级文字在黑底上对比度约 9:1。
+    -->
+    <color name="text_secondary">#FFB3B3B3</color>
+    <color name="divider">#33FFFFFF</color>
 </resources>

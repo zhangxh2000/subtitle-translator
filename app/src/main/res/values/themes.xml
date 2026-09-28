@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.SubtitleTranslator" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <!--
+      固定使用深色主题（不再用 DayNight）
+
+      所有界面都硬编码了「黑底 + 白字」的配色，若跟随系统切到浅色模式，
+      Spinner 等由主题驱动颜色的控件会变成深色文字压在黑底上，几乎看不见，
+      所以这里直接锁定深色，保证主题色与布局配色一致。
+    -->
+    <style name="Theme.SubtitleTranslator" parent="Theme.MaterialComponents.NoActionBar">
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/purple_500</item>
         <item name="colorPrimaryVariant">@color/purple_700</item>
@@ -9,7 +16,14 @@
         <item name="colorSecondary">@color/teal_200</item>
         <item name="colorSecondaryVariant">@color/teal_700</item>
         <item name="colorOnSecondary">@color/black</item>
-        <!-- Status bar color. -->
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <!--
+          状态栏：targetSdk 35（Android 15）起系统强制 edge-to-edge，
+          statusBarColor 在 API 35 上已失效、状态栏透明，露出的是界面自身的黑色背景。
+          这里显式设为黑，让低版本系统上的观感与之保持一致。
+          深色背景需要浅色状态栏图标。
+        -->
+        <item name="android:statusBarColor">@android:color/background_dark</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">@android:color/background_dark</item>
     </style>
 </resources>

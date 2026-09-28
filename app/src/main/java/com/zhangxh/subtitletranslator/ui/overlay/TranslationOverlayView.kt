@@ -54,7 +54,7 @@ class TranslationOverlayView @JvmOverloads constructor(
             val noWordsView = TextView(context).apply {
                 text = "未检测到难词"
                 textSize = 14f
-                setTextColor(context.getColor(android.R.color.darker_gray))
+                setTextColor(context.getColor(R.color.text_secondary))
             }
             wordsContainer?.addView(noWordsView)
         }

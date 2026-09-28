@@ -38,7 +38,7 @@
         android:layout_marginTop="12dp"
         android:text="原文"
         android:textSize="12sp"
-        android:textColor="@android:color/darker_gray" />
+        android:textColor="@color/text_secondary" />
 
     <TextView
         android:id="@+id/tvOriginalText"
@@ -54,7 +54,7 @@
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginVertical="12dp"
-        android:background="@android:color/darker_gray" />
+        android:background="@color/divider" />
 
     <!-- 译文 -->
     <TextView
@@ -62,7 +62,7 @@
         android:layout_height="wrap_content"
         android:text="译文"
         android:textSize="12sp"
-        android:textColor="@android:color/darker_gray" />
+        android:textColor="@color/text_secondary" />
 
     <TextView
         android:id="@+id/tvTranslatedText"
@@ -79,7 +79,7 @@
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginVertical="12dp"
-        android:background="@android:color/darker_gray" />
+        android:background="@color/divider" />
 
     <!-- 难词释义 -->
     <TextView
@@ -87,7 +87,7 @@
         android:layout_height="wrap_content"
         android:text="重点词汇"
         android:textSize="12sp"
-        android:textColor="@android:color/darker_gray" />
+        android:textColor="@color/text_secondary" />
 
     <LinearLayout
         android:id="@+id/wordsContainer"

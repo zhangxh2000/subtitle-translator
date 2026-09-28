@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:fitsSystemWindows="true"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/background_dark"
@@ -49,7 +50,7 @@
         android:text="暂无识别记录\n\n在设置中打开「保存识别过程截图」，\n之后每次识别都会记录一张截图"
         android:textSize="15sp"
         android:lineSpacingMultiplier="1.4"
-        android:textColor="@android:color/darker_gray" />
+        android:textColor="@color/text_secondary" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
