@@ -8,7 +8,6 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Spinner
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.domain.translator.Language
@@ -18,7 +17,7 @@ import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficultyFilter
  * 设置界面
  * 支持选择翻译语言对
  */
-class SettingsActivity : AppCompatActivity() {
+class SettingsActivity : BaseActivity() {
 
     companion object {
         private const val PREFS_NAME = "subtitle_translator_prefs"

@@ -25,4 +25,6 @@
     -->
     <color name="text_secondary">#FFB3B3B3</color>
     <color name="divider">#33FFFFFF</color>
+    <!-- 描边按钮的边框：默认描边是低透明度，纯黑背景上几乎看不见 -->
+    <color name="button_outline">#66FFFFFF</color>
 </resources>

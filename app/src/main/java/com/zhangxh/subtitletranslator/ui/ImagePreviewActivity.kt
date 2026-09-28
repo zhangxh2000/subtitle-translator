@@ -7,7 +7,6 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.util.DebugCaptureStore
@@ -23,7 +22,7 @@ import kotlinx.coroutines.launch
  * 缩略图尺寸看不出笔画有没有被二值化吃掉、字幕有没有切在框外，所以需要按屏幕宽度
  * 重新解码一张清晰的图。截图存在应用私有目录，需要导出时通过 [FileProvider] 分享。
  */
-class ImagePreviewActivity : AppCompatActivity() {
+class ImagePreviewActivity : BaseActivity() {
 
     companion object {
         private const val TAG = "ImagePreviewActivity"

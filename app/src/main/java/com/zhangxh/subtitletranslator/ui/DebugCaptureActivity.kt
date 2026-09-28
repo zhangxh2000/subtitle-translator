@@ -8,7 +8,6 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.zhangxh.subtitletranslator.R
@@ -29,7 +28,7 @@ import java.util.Locale
  * 按时间倒序列出最近几次识别记录，每条展开「原始截图 / 裁剪区域 / 预处理图」三个阶段，
  * 用于判断识别不准的原因出在哪一环。点任意一张图可放大查看并分享。
  */
-class DebugCaptureActivity : AppCompatActivity() {
+class DebugCaptureActivity : BaseActivity() {
 
     private companion object {
         /** 缩略图解码宽度上限，够清晰又不会占太多内存 */

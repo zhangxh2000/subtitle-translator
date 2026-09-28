@@ -13,8 +13,8 @@ import android.view.View
 import android.widget.Button
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.zhangxh.subtitletranslator.ui.BaseActivity
 import com.zhangxh.subtitletranslator.service.FloatingButtonService
 import com.zhangxh.subtitletranslator.ui.HistoryActivity
 
@@ -22,7 +22,7 @@ import com.zhangxh.subtitletranslator.ui.HistoryActivity
  * 主界面
  * 负责权限申请和启动悬浮窗服务
  */
-class MainActivity : AppCompatActivity() {
+class MainActivity : BaseActivity() {
 
     companion object {
         const val EXTRA_RESTART_SERVICE = "extra_restart_service"
