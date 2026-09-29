@@ -21,6 +21,24 @@ class TranslationOverlayView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : LinearLayout(context, attrs, defStyleAttr) {
 
+    companion object {
+        /**
+         * 覆盖层高度上限占屏幕高度的比例
+         *
+         * 留出上方空间，既不让面板顶到状态栏，也不至于完全挡住视频画面。
+         */
+        const val MAX_HEIGHT_RATIO = 0.6f
+
+        /**
+         * 计算悬浮窗高度
+         *
+         * 内容不多时按内容撑开；内容过多（单词释义很长时很常见）时按屏幕高度封顶，
+         * 超出的部分靠面板内滚动查看 —— 否则窗口会超出屏幕，顶部内容被裁掉。
+         */
+        fun windowHeightFor(contentHeight: Int, screenHeight: Int): Int =
+            minOf(contentHeight, (screenHeight * MAX_HEIGHT_RATIO).toInt())
+    }
+
     private var onCloseListener: (() -> Unit)? = null
     private var onCopyListener: ((String) -> Unit)? = null
 

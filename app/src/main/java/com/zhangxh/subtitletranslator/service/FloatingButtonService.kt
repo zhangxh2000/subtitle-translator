@@ -648,9 +648,19 @@ class FloatingButtonService : Service() {
             }
         }
 
+        // 单词释义多时面板会很高：这里按屏幕高度给窗口封顶，
+        // 超出部分靠面板内的滚动查看，否则窗口会超出屏幕、顶部内容被裁掉
+        val screenWidth = resources.displayMetrics.widthPixels
+        val screenHeight = resources.displayMetrics.heightPixels
+        overlayView?.measure(
+            View.MeasureSpec.makeMeasureSpec(screenWidth, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        val contentHeight = overlayView?.measuredHeight ?: 0
+
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            TranslationOverlayView.windowHeightFor(contentHeight, screenHeight),
             OVERLAY_WINDOW_TYPE,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
