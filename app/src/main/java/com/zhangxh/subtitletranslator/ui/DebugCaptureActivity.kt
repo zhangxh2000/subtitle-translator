@@ -11,6 +11,7 @@ import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.zhangxh.subtitletranslator.R
+import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
 import com.zhangxh.subtitletranslator.util.CaptureRecord
 import com.zhangxh.subtitletranslator.util.DebugCaptureStore
 import kotlinx.coroutines.CoroutineScope
@@ -169,7 +170,8 @@ class DebugCaptureActivity : BaseActivity() {
             /** 把裁剪参数摊开写，方便判断字幕有没有落在裁剪框里 */
             private fun formatCropInfo(record: CaptureRecord): String {
                 val crop = record.cropInfo
-                val preprocess = "缩放 ${record.scaleFactor}x · 阈值 ${record.binaryThreshold}"
+                val mode = OcrPreprocessMode.fromName(record.preprocessMode).label
+                val preprocess = "缩放 ${record.scaleFactor}x · 预处理 $mode"
                 if (crop == null) return "裁剪参数缺失 · $preprocess"
 
                 val estimate = if (crop.videoHeight > 0) " · 估算视频高 ${crop.videoHeight}" else ""

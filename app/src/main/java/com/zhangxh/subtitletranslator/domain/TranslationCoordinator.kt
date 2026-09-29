@@ -5,6 +5,8 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.util.Log
 import com.zhangxh.subtitletranslator.domain.ocr.IOcrEngine
+import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
+import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessor
 import com.zhangxh.subtitletranslator.domain.ocr.OcrTextCleaner
 import com.zhangxh.subtitletranslator.domain.screenshot.IScreenCaptureManager
 import com.zhangxh.subtitletranslator.domain.translator.ITranslator
@@ -33,7 +35,14 @@ class TranslationCoordinator(
      * 用回调而不是直接读设置，是为了让领域层不依赖 UI 层；
      * 每次识别都问一次，所以用户在设置里打开开关后立刻生效，不必重启服务。
      */
-    private val isDebugCaptureEnabled: () -> Boolean = { false }
+    private val isDebugCaptureEnabled: () -> Boolean = { false },
+    /**
+     * OCR 预处理方式
+     *
+     * 同样用回调：字幕与背景颜色接近时固定阈值会让文字消失，
+     * 需要能在真机上切换对比，不必重启服务。
+     */
+    private val preprocessMode: () -> OcrPreprocessMode = { OcrPreprocessMode.DEFAULT }
 ) {
 
     companion object {
@@ -48,9 +57,6 @@ class TranslationCoordinator(
         private const val VIDEO_ASPECT_RATIO_WIDTH = 16f
         private const val VIDEO_ASPECT_RATIO_HEIGHT = 9f
 
-        // OCR 预处理参数
-        private const val SCALE_FACTOR = 1.0f      // 放大倍数（临时设为 1.0 测试 OCR 速度）
-        private const val BINARY_THRESHOLD = 128   // 二值化固定阈值
     }
 
     private val debugCaptureStore = DebugCaptureStore(context)
@@ -70,6 +76,7 @@ class TranslationCoordinator(
         var cleanedText = ""
         var translatedText = ""
         var errorMessage: String? = null
+        var usedPreprocessMode = OcrPreprocessMode.DEFAULT
 
         /** 记录失败原因后返回失败结果，保证 finally 里的调试记录能带上原因 */
         fun fail(message: String): TranslationResult {
@@ -88,7 +95,8 @@ class TranslationCoordinator(
             cropInfo = cropped.info
 
             // 3. 图像预处理：放大 + 灰度化 + 二值化
-            processedBitmap = preprocessForOcr(subtitleBitmap)
+            usedPreprocessMode = preprocessMode()
+            processedBitmap = OcrPreprocessor.process(subtitleBitmap, usedPreprocessMode)
             Log.d(TAG, "预处理后尺寸: ${processedBitmap.width}x${processedBitmap.height}")
 
             // 4. OCR 识别
@@ -143,8 +151,8 @@ class TranslationCoordinator(
                         translatedText = translatedText,
                         errorMessage = errorMessage,
                         cropInfo = cropInfo,
-                        scaleFactor = SCALE_FACTOR,
-                        binaryThreshold = BINARY_THRESHOLD
+                        scaleFactor = OcrPreprocessor.SCALE_FACTOR,
+                        preprocessMode = usedPreprocessMode.name
                     )
                 )
             }
@@ -224,47 +232,6 @@ class TranslationCoordinator(
         }
     }
 
-    /**
-     * OCR 图像预处理：放大 + 灰度化 + 二值化
-     *
-     * 处理流程：
-     * 1. 放大 2x：提升字幕文字高度到 ML Kit 最佳识别区间（32~64px）
-     * 2. 灰度化：去除颜色干扰
-     * 3. 二值化：文字边缘锐化，减少描边/阴影导致的字符粘连
-     */
-    private fun preprocessForOcr(bitmap: Bitmap): Bitmap {
-        // 1. 放大
-        val scaledWidth = (bitmap.width * SCALE_FACTOR).toInt()
-        val scaledHeight = (bitmap.height * SCALE_FACTOR).toInt()
-        val scaled = Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, true)
-
-        // 2. 创建输出图
-        val output = Bitmap.createBitmap(scaledWidth, scaledHeight, Bitmap.Config.ARGB_8888)
-
-        // 3. 逐像素处理：灰度化 + 二值化
-        val pixels = IntArray(scaledWidth * scaledHeight)
-        scaled.getPixels(pixels, 0, scaledWidth, 0, 0, scaledWidth, scaledHeight)
-
-        for (i in pixels.indices) {
-            val pixel = pixels[i]
-            val r = Color.red(pixel)
-            val g = Color.green(pixel)
-            val b = Color.blue(pixel)
-
-            // 灰度化
-            val gray = (0.299 * r + 0.587 * g + 0.114 * b).toInt()
-
-            // 二值化：亮度高于阈值设为白色，否则黑色
-            // 字幕通常是亮色文字在暗背景上，二值化后边缘会更锐利
-            val binary = if (gray > BINARY_THRESHOLD) Color.WHITE else Color.BLACK
-            pixels[i] = binary
-        }
-
-        output.setPixels(pixels, 0, scaledWidth, 0, 0, scaledWidth, scaledHeight)
-        scaled.recycle()
-
-        return output
-    }
 
     /**
      * 预加载翻译环境

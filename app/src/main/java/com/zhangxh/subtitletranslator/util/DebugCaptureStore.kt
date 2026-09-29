@@ -158,7 +158,7 @@ class DebugCaptureStore(private val context: Context) {
         json.put("id", id)
         json.put("timestamp", System.currentTimeMillis())
         json.put("scaleFactor", capture.scaleFactor.toDouble())
-        json.put("binaryThreshold", capture.binaryThreshold)
+        json.put("preprocessMode", capture.preprocessMode)
         capture.cropInfo?.let { crop ->
             json.put("mode", crop.mode)
             json.put("screenWidth", crop.screenWidth)
@@ -198,7 +198,7 @@ class DebugCaptureStore(private val context: Context) {
                     )
                 } else null,
                 scaleFactor = json.optDouble("scaleFactor", 1.0).toFloat(),
-                binaryThreshold = json.optInt("binaryThreshold", 0),
+                preprocessMode = json.optString("preprocessMode"),
                 ocrRawText = json.optString("ocrRawText"),
                 cleanedText = json.optString("cleanedText"),
                 translatedText = json.optString("translatedText"),

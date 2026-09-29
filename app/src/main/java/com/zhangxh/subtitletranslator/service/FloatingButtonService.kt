@@ -260,7 +260,8 @@ class FloatingButtonService : Service() {
                 sourceLang = sourceLang,
                 targetLang = targetLang,
                 // 用回调而不是传布尔值：开关打开后立刻生效，不必重启服务
-                isDebugCaptureEnabled = { SettingsActivity.isDebugCaptureEnabled(this) }
+                isDebugCaptureEnabled = { SettingsActivity.isDebugCaptureEnabled(this) },
+                preprocessMode = { SettingsActivity.getPreprocessMode(this) }
             )
 
             // 预加载翻译环境与词典

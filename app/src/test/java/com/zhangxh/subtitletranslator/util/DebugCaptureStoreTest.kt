@@ -2,6 +2,7 @@ package com.zhangxh.subtitletranslator.util
 
 import android.content.Context
 import android.graphics.Bitmap
+import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -63,7 +64,7 @@ class DebugCaptureStoreTest {
         errorMessage = errorMessage,
         cropInfo = cropInfo,
         scaleFactor = 1.0f,
-        binaryThreshold = 128
+        preprocessMode = OcrPreprocessMode.GRAYSCALE.name
     )
 
     private fun savedDirs(): List<File> =
@@ -96,7 +97,7 @@ class DebugCaptureStoreTest {
         assertEquals(608, record.cropInfo?.height)
         assertEquals(1215, record.cropInfo?.videoHeight)
         assertEquals(1.0f, record.scaleFactor, 0.001f)
-        assertEquals(128, record.binaryThreshold)
+        assertEquals(OcrPreprocessMode.GRAYSCALE.name, record.preprocessMode)
         assertFalse(record.isFailed)
         assertEquals(
             listOf(

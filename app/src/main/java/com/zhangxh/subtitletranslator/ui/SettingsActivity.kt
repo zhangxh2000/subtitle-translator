@@ -7,10 +7,12 @@ import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Spinner
+import android.widget.TextView
 import android.widget.Toast
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.domain.translator.Language
+import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficultyFilter
 
 /**
@@ -25,6 +27,7 @@ class SettingsActivity : BaseActivity() {
         private const val KEY_TARGET_LANG = "target_lang"
         private const val KEY_DIFFICULTY_FILTER = "difficulty_filter"
         private const val KEY_DEBUG_CAPTURE = "debug_capture_enabled"
+        private const val KEY_PREPROCESS_MODE = "ocr_preprocess_mode"
 
         fun getSourceLang(context: Context): String {
             return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -60,6 +63,25 @@ class SettingsActivity : BaseActivity() {
                 .getBoolean(KEY_DEBUG_CAPTURE, false)
         }
 
+        /**
+         * OCR 预处理方式
+         *
+         * 字幕颜色与背景接近时，固定阈值二值化会把两者处理成同色导致文字消失，
+         * 这时需要换用灰度或自适应阈值。
+         */
+        fun getPreprocessMode(context: Context): OcrPreprocessMode {
+            val name = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(KEY_PREPROCESS_MODE, null)
+            return OcrPreprocessMode.fromName(name)
+        }
+
+        private fun savePreprocessMode(context: Context, mode: OcrPreprocessMode) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putString(KEY_PREPROCESS_MODE, mode.name)
+                .apply()
+        }
+
         private fun saveDebugCaptureEnabled(context: Context, enabled: Boolean) {
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .edit()
@@ -81,6 +103,7 @@ class SettingsActivity : BaseActivity() {
 
         setupSpinners()
         setupDifficultySpinner()
+        setupPreprocessSpinner()
         setupDebugCapture()
 
         findViewById<View>(R.id.btnBack)?.setOnClickListener {
@@ -150,6 +173,36 @@ class SettingsActivity : BaseActivity() {
         spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 saveDifficultyFilter(this@SettingsActivity, filters[position])
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+    }
+
+    /**
+     * OCR 预处理方式
+     *
+     * 与调试截图配套使用：开启调试截图后能看到"预处理图"，
+     * 换一种方式再识别一次就能直接对比哪种效果更好。
+     */
+    private fun setupPreprocessSpinner() {
+        val modes = OcrPreprocessMode.entries
+        val spinner = findViewById<Spinner>(R.id.spinnerPreprocess)
+        val adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            modes.map { it.label }
+        )
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinner.adapter = adapter
+        spinner.setSelection(modes.indexOf(getPreprocessMode(this)).coerceAtLeast(0))
+
+        val hint = findViewById<TextView>(R.id.tvPreprocessHint)
+        hint.text = modes.first { it == getPreprocessMode(this) }.description
+
+        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                savePreprocessMode(this@SettingsActivity, modes[position])
+                hint.text = modes[position].description
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }

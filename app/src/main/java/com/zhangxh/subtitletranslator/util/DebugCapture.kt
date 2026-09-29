@@ -27,8 +27,8 @@ data class DebugCapture(
     val cropInfo: CropInfo?,
     /** 预处理时的放大倍数（当前为 1.0，即关闭放大） */
     val scaleFactor: Float,
-    /** 预处理时的二值化阈值 */
-    val binaryThreshold: Int
+    /** 预处理方式（OcrPreprocessMode 的枚举名），便于对比哪次记录用的哪种方式 */
+    val preprocessMode: String
 )
 
 /**
@@ -59,7 +59,7 @@ data class CaptureRecord(
     val timestamp: Long,
     val cropInfo: CropInfo?,
     val scaleFactor: Float,
-    val binaryThreshold: Int,
+    val preprocessMode: String,
     val ocrRawText: String,
     val cleanedText: String,
     val translatedText: String,
