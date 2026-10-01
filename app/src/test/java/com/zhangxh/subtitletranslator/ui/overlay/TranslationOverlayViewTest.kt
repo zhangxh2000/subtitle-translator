@@ -81,10 +81,18 @@ class TranslationOverlayViewTest {
         assertTrue("封顶高度必须小于内容高度，否则不会滚动", capped < 5000)
     }
 
-    /** 封顶比例要留出上方空间，不能占满整个屏幕 */
+    /**
+     * 封顶比例要两头兼顾
+     *
+     * 太小会让内容稍多就得频繁滚动（0.6 时实测就是这样），
+     * 太大则会完全占满屏幕、看不到画面。
+     */
     @Test
-    fun `cap leaves room above the panel`() {
-        assertTrue(TranslationOverlayView.MAX_HEIGHT_RATIO <= 0.8f)
+    fun `cap balances readable area and leaving room above`() {
+        val ratio = TranslationOverlayView.MAX_HEIGHT_RATIO
+
+        assertTrue("上限 $ratio 偏小，内容稍多就要一直滚动", ratio >= 0.8f)
+        assertTrue("上限 $ratio 偏大，会完全挡住画面", ratio <= 0.95f)
     }
 
     /**

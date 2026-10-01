@@ -25,9 +25,11 @@ class TranslationOverlayView @JvmOverloads constructor(
         /**
          * 覆盖层高度上限占屏幕高度的比例
          *
-         * 留出上方空间，既不让面板顶到状态栏，也不至于完全挡住视频画面。
+         * 取值偏大：面板是查看释义用的，内容看不全要频繁滚动比多挡一点画面更难受。
+         * 留出的顶部空间只够露出状态栏即可，面板随时可以点悬浮球收起。
+         * （这里曾取 0.6，实测内容稍多就要一直滑，已调大。）
          */
-        const val MAX_HEIGHT_RATIO = 0.6f
+        const val MAX_HEIGHT_RATIO = 0.85f
 
         /**
          * 计算悬浮窗高度
