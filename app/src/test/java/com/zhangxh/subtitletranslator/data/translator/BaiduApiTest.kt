@@ -124,6 +124,23 @@ class BaiduApiTest {
         assertTrue("应说明是额度问题: $message", message.contains("额度"))
     }
 
+    /**
+     * 未授权：APP ID 填错或通用翻译服务没开通时最常见的返回
+     *
+     * 这个 JSON 是从百度接口实际请求回来的响应（用无效凭据），
+     * 用于确认解析器与真实返回结构一致 —— 包括 error_code 是字符串这一点。
+     */
+    @Test
+    fun `parses real unauthorized response`() {
+        val json = """{"error_code":"52003","error_msg":"UNAUTHORIZED USER"}"""
+
+        val error = BaiduApi.parseResponse(json).exceptionOrNull()
+
+        assertTrue(error is BaiduTranslationException)
+        assertEquals("52003", (error as BaiduTranslationException).errorCode)
+        assertTrue("应提示检查 APP ID: ${error.message}", error.message!!.contains("APP ID"))
+    }
+
     /** 未收录的错误码退化为展示原始信息，不能吞掉 */
     @Test
     fun `falls back to raw message for unknown error code`() {
