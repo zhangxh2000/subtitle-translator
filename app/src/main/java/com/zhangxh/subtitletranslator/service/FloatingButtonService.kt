@@ -30,7 +30,7 @@ import com.zhangxh.subtitletranslator.MainActivity
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.data.ocr.MLKitOcrEngine
 import com.zhangxh.subtitletranslator.data.screenshot.ScreenCaptureManagerImpl
-import com.zhangxh.subtitletranslator.data.translator.MLKitTranslator
+import com.zhangxh.subtitletranslator.data.translator.TranslatorProvider
 import com.zhangxh.subtitletranslator.data.dictionary.DictionaryRepositoryProvider
 import com.zhangxh.subtitletranslator.data.wordextractor.LocalWordExtractor
 import com.zhangxh.subtitletranslator.domain.TranslationCoordinator
@@ -226,7 +226,11 @@ class FloatingButtonService : Service() {
             screenCapture.initialize(this, projection, metrics.widthPixels, metrics.heightPixels, metrics.densityDpi)
 
             val ocrEngine = MLKitOcrEngine()
-            val translator = MLKitTranslator(this)
+            // 翻译引擎由用户在设置里选择；在线引擎失败会自动回退到离线引擎
+            val translator = TranslatorProvider(this).create(
+                engine = SettingsActivity.getTranslationEngine(this),
+                credentials = { SettingsActivity.getBaiduCredentials(this) }
+            )
 
             val sourceLang = SettingsActivity.getSourceLang(this)
             val targetLang = SettingsActivity.getTargetLang(this)

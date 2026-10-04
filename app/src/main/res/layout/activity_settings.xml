@@ -80,6 +80,95 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
+            android:text="翻译引擎"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary" />
+
+        <Spinner
+            android:id="@+id/spinnerEngine"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:paddingHorizontal="12dp"
+            android:background="@drawable/bg_word_item" />
+
+        <TextView
+            android:id="@+id/tvEngineHint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:lineSpacingMultiplier="1.2" />
+
+        <!-- 百度凭据：仅在选择百度翻译时显示 -->
+        <LinearLayout
+            android:id="@+id/baiduConfigGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="百度 APP ID"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary" />
+
+            <EditText
+                android:id="@+id/etBaiduAppId"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_word_item"
+                android:hint="例如 2025010100000001"
+                android:importantForAutofill="no"
+                android:inputType="text"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="12dp"
+                android:textColor="@android:color/white"
+                android:textColorHint="@color/text_secondary"
+                android:textSize="15sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="百度密钥"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary" />
+
+            <EditText
+                android:id="@+id/etBaiduSecret"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_word_item"
+                android:hint="在控制台查看"
+                android:importantForAutofill="no"
+                android:inputType="textPassword"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="12dp"
+                android:textColor="@android:color/white"
+                android:textColorHint="@color/text_secondary"
+                android:textSize="15sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="在 fanyi-api.baidu.com 注册开发者并创建应用即可获得。免费额度按你的账号计算，填在这里只存在本机。"
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary"
+                android:lineSpacingMultiplier="1.2" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
             android:text="生词筛选"
             android:textSize="14sp"
             android:textColor="@color/text_secondary" />
