@@ -43,6 +43,7 @@ class TranslationOverlayView @JvmOverloads constructor(
 
     private var onCloseListener: (() -> Unit)? = null
     private var onCopyListener: ((String) -> Unit)? = null
+    private var onPronounceListener: ((String) -> Unit)? = null
 
     init {
         orientation = VERTICAL
@@ -92,6 +93,13 @@ class TranslationOverlayView @JvmOverloads constructor(
      */
     fun setOnCopyListener(listener: (String) -> Unit) {
         onCopyListener = listener
+    }
+
+    /**
+     * 设置朗读监听
+     */
+    fun setOnPronounceListener(listener: (String) -> Unit) {
+        onPronounceListener = listener
     }
 
     /**
@@ -153,6 +161,12 @@ class TranslationOverlayView @JvmOverloads constructor(
                     difficultyView?.text = "易"
                     difficultyView?.setBackgroundColor(context.getColor(android.R.color.holo_green_light))
                 }
+            }
+
+            // 点喇叭朗读单词。图标可点之后会吃掉自己的按下事件，
+            // 所以图标区域内长按不再冒泡到下面那个复制监听 —— 属预期行为。
+            findViewById<android.widget.ImageButton>(R.id.btnPronounce)?.setOnClickListener {
+                onPronounceListener?.invoke(wordEntry.word)
             }
 
             // 长按复制单词

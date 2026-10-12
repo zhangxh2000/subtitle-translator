@@ -19,6 +19,16 @@
       因此这里不再声明 WRITE_EXTERNAL_STORAGE / READ_EXTERNAL_STORAGE。
     -->
 
+    <!--
+      Android 11+ 的包可见性限制：不声明这段的话应用看不到 TTS 引擎服务，
+      TextToSpeech 初始化会直接失败（朗读功能不可用）。
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"

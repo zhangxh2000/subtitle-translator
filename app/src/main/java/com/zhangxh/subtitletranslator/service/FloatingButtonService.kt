@@ -32,9 +32,12 @@ import com.zhangxh.subtitletranslator.data.ocr.MLKitOcrEngine
 import com.zhangxh.subtitletranslator.data.screenshot.ScreenCaptureManagerImpl
 import com.zhangxh.subtitletranslator.data.translator.TranslatorProvider
 import com.zhangxh.subtitletranslator.data.dictionary.DictionaryRepositoryProvider
+import com.zhangxh.subtitletranslator.data.speech.AndroidTtsPronouncer
 import com.zhangxh.subtitletranslator.data.wordextractor.LocalWordExtractor
 import com.zhangxh.subtitletranslator.domain.TranslationCoordinator
 import com.zhangxh.subtitletranslator.domain.TranslationResult
+import com.zhangxh.subtitletranslator.domain.speech.IPronouncer
+import com.zhangxh.subtitletranslator.domain.speech.PronouncerError
 import com.zhangxh.subtitletranslator.domain.wordextractor.EnglishDifficultyAssessor
 import com.zhangxh.subtitletranslator.domain.wordextractor.NoOpWordExtractor
 import com.zhangxh.subtitletranslator.ui.DebugCaptureActivity
@@ -117,6 +120,7 @@ class FloatingButtonService : Service() {
     private var quickMenuView: View? = null
     private var translationCoordinator: TranslationCoordinator? = null
     private var dictionaryProvider: DictionaryRepositoryProvider? = null
+    private var pronouncer: IPronouncer? = null
     private var mediaProjection: MediaProjection? = null
     private var isShowingTranslation = false
 
@@ -231,6 +235,16 @@ class FloatingButtonService : Service() {
                 engine = SettingsActivity.getTranslationEngine(this),
                 credentials = { SettingsActivity.getBaiduCredentials(this) }
             )
+
+            // 生词朗读：系统 TTS，引擎到用户第一次点喇叭时才真正创建
+            pronouncer = AndroidTtsPronouncer(this) { error ->
+                val message = when (error) {
+                    PronouncerError.ENGINE_UNAVAILABLE -> "语音引擎不可用"
+                    PronouncerError.ENGLISH_VOICE_UNAVAILABLE -> "缺少英语语音数据，请在系统设置中下载"
+                }
+                Log.e(TAG, "朗读失败: $error")
+                Toast.makeText(this@FloatingButtonService, message, Toast.LENGTH_SHORT).show()
+            }
 
             val sourceLang = SettingsActivity.getSourceLang(this)
             val targetLang = SettingsActivity.getTargetLang(this)
@@ -622,6 +636,9 @@ class FloatingButtonService : Service() {
      * 所以移除动作统一走这里，保证「同时最多只有一个覆盖层」。
      */
     private fun removeOverlayView() {
+        // 面板一关就停朗读：TTS 走音乐流，边读边恢复播放会被 isMusicActive 误判成「视频正在播」
+        pronouncer?.stop()
+
         overlayView?.let { view ->
             try {
                 windowManager?.removeView(view)
@@ -649,6 +666,9 @@ class FloatingButtonService : Service() {
             }
             setOnCopyListener { text ->
                 copyToClipboard(text)
+            }
+            setOnPronounceListener { word ->
+                pronouncer?.speak(word)
             }
         }
 
@@ -854,5 +874,8 @@ class FloatingButtonService : Service() {
 
         dictionaryProvider?.release()
         dictionaryProvider = null
+
+        pronouncer?.release()
+        pronouncer = null
     }
 }

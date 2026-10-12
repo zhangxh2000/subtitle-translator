@@ -46,6 +46,21 @@
                 android:layout_marginStart="8dp"
                 android:textSize="12sp"
                 android:textColor="@color/text_secondary" />
+
+            <!--
+              朗读按钮：点击区域 40dp，图标只有 24dp —— padding 必须留着，
+              否则 ImageButton 默认的 fitCenter 会把矢量图放大到撑满整个点击区。
+            -->
+            <ImageButton
+                android:id="@+id/btnPronounce"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="4dp"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_volume_up"
+                android:contentDescription="朗读" />
         </LinearLayout>
 
         <TextView

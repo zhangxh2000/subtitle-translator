@@ -1,10 +1,13 @@
 package com.zhangxh.subtitletranslator.ui.overlay
 
 import android.view.View
+import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.ScrollView
 import androidx.appcompat.view.ContextThemeWrapper
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.domain.TranslationResult
+import com.zhangxh.subtitletranslator.domain.speech.IPronouncer
 import com.zhangxh.subtitletranslator.domain.wordextractor.Meaning
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficulty
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordEntry
@@ -149,6 +152,107 @@ class TranslationOverlayViewTest {
         assertNotNull(close)
 
         assertFalse("关闭按钮不能位于滚动区内", hasAncestor<ScrollView>(close))
+    }
+
+    // ---------------------------------------------------------------------
+    // 朗读
+    // ---------------------------------------------------------------------
+
+    /**
+     * 记录朗读调用的假实现
+     *
+     * 真实实现要连系统语音引擎，界面测试只关心「点了哪一行的喇叭」，
+     * 所以这里用假实现接住回调。
+     */
+    private class RecordingPronouncer : IPronouncer {
+        val spoken = mutableListOf<String>()
+        var stopCount = 0
+
+        override fun speak(word: String) {
+            spoken.add(word)
+        }
+
+        override fun stop() {
+            stopCount++
+        }
+
+        override fun release() = Unit
+    }
+
+    private fun rows(overlay: TranslationOverlayView): LinearLayout =
+        requireNotNull(overlay.findViewById(R.id.wordsContainer))
+
+    private fun pronounceButton(row: View): ImageButton =
+        requireNotNull(row.findViewById(R.id.btnPronounce)) { "该行没有朗读按钮" }
+
+    /** 每个生词后面都要有喇叭，且点击区明显大于图标本身 */
+    @Test
+    fun `each word row has a pronounce button with a bigger touch target`() {
+        val overlay = overlay()
+        overlay.setTranslationResult(longResult(wordCount = 3))
+
+        val density = overlay.resources.displayMetrics.density
+        val container = rows(overlay)
+        assertEquals(3, container.childCount)
+
+        repeat(container.childCount) { index ->
+            val button = pronounceButton(container.getChildAt(index))
+            val boxDp = button.layoutParams.width / density
+            val paddingDp = button.paddingLeft / density
+
+            assertTrue("点击区 $boxDp" + "dp 太小，手指点不准", boxDp >= 40f)
+            assertTrue(
+                "点击区(${boxDp}dp)必须大于图标(${boxDp - 2 * paddingDp}dp)，差额靠 padding 撑",
+                paddingDp > 0f
+            )
+        }
+    }
+
+    /** 点哪一行的喇叭就读哪个词 */
+    @Test
+    fun `tapping the speaker speaks that word only`() {
+        val pronouncing = RecordingPronouncer()
+        val overlay = overlay()
+        overlay.setOnPronounceListener(pronouncing::speak)
+        overlay.setTranslationResult(longResult(wordCount = 3))
+
+        pronounceButton(rows(overlay).getChildAt(1)).performClick()
+
+        assertEquals(listOf("word2"), pronouncing.spoken)
+    }
+
+    /** 朗读不抢复制：点喇叭只朗读，长按整行仍然复制 */
+    @Test
+    fun `speaking does not copy while long pressing the row still does`() {
+        val pronouncing = RecordingPronouncer()
+        val copied = mutableListOf<String>()
+        val overlay = overlay()
+        overlay.setOnPronounceListener(pronouncing::speak)
+        overlay.setOnCopyListener { copied.add(it) }
+        overlay.setTranslationResult(longResult(wordCount = 2))
+
+        val row = rows(overlay).getChildAt(0)
+        pronounceButton(row).performClick()
+
+        assertEquals(listOf("word1"), pronouncing.spoken)
+        assertTrue("点喇叭不应触发复制", copied.isEmpty())
+
+        row.performLongClick()
+        assertEquals("长按整行仍要能复制", listOf("word1"), copied)
+    }
+
+    /** 每次翻译都会重建生词列表，喇叭数量要跟着最新的结果走 */
+    @Test
+    fun `pronounce buttons follow the latest result`() {
+        val overlay = overlay()
+        overlay.setTranslationResult(longResult(wordCount = 4))
+        overlay.setTranslationResult(longResult(wordCount = 2))
+
+        val container = rows(overlay)
+        assertEquals(2, container.childCount)
+        repeat(container.childCount) { index ->
+            pronounceButton(container.getChildAt(index))
+        }
     }
 
     private inline fun <reified T : View> hasAncestor(view: View): Boolean {
