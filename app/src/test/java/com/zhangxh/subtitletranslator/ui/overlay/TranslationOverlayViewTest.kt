@@ -4,6 +4,7 @@ import android.view.View
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.TextView
 import androidx.appcompat.view.ContextThemeWrapper
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.domain.TranslationResult
@@ -20,6 +21,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import kotlin.math.abs
 
 /**
  * 翻译覆盖层测试
@@ -253,6 +255,40 @@ class TranslationOverlayViewTest {
         repeat(container.childCount) { index ->
             pronounceButton(container.getChildAt(index))
         }
+    }
+
+    /**
+     * 难度标识要和单词对齐
+     *
+     * 喇叭按钮的 40dp 触摸框把「单词行」撑高了（单词在行内垂直居中），
+     * 标识要是还顶格放，就会比单词高一截 —— 这是加朗读按钮时踩过的坑。
+     */
+    @Test
+    fun `difficulty badge is vertically aligned with the word`() {
+        val overlay = overlay()
+        overlay.setTranslationResult(longResult(wordCount = 1))
+        overlay.measure(
+            View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        overlay.layout(0, 0, 1080, overlay.measuredHeight)
+
+        val row = rows(overlay).getChildAt(0)
+        val badge = requireNotNull(row.findViewById<TextView>(R.id.tvDifficulty))
+        val word = requireNotNull(row.findViewById<TextView>(R.id.tvWord))
+
+        // 单词在「单词行」里是垂直居中的，所以标识要对齐的是这一行的中心；
+        // 中间隔了两层父容器，逐层累加算出该行在整行坐标系里的位置。
+        // （不用 offsetDescendantRectToMyCoords：Robolectric 下它只返回退化矩形）
+        val wordLine = word.parent as View
+        val wordBlock = wordLine.parent as View
+        val badgeCenter = badge.top + badge.height / 2
+        val wordLineCenter = wordBlock.top + wordLine.top + wordLine.height / 2
+
+        assertTrue(
+            "难度标识中心($badgeCenter)与单词中心($wordLineCenter)相差过大",
+            abs(badgeCenter - wordLineCenter) <= 2
+        )
     }
 
     private inline fun <reified T : View> hasAncestor(view: View): Boolean {

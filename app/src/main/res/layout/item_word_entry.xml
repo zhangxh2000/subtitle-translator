@@ -7,11 +7,17 @@
     android:layout_marginTop="4dp"
     android:background="@drawable/bg_word_item">
 
-    <!-- 难度标识 -->
+    <!--
+      难度标识：要与单词在同一水平线上。
+      右边那行被朗读按钮撑到 40dp、单词在该行内垂直居中，而标识只有 24dp，
+      所以下移 (40-24)/2 = 8dp 才能对齐 —— 改按钮高度时这个值要跟着改。
+      回归用例：TranslationOverlayViewTest「difficulty badge is vertically aligned with the word」
+    -->
     <TextView
         android:id="@+id/tvDifficulty"
         android:layout_width="24dp"
         android:layout_height="24dp"
+        android:layout_marginTop="8dp"
         android:gravity="center"
         android:textSize="10sp"
         android:textColor="@android:color/white"
