@@ -285,6 +285,14 @@ class TranslationOverlayViewTest {
         val badgeCenter = badge.top + badge.height / 2
         val wordLineCenter = wordBlock.top + wordLine.top + wordLine.height / 2
 
+        // 单词要在 40dp 的单词行里真正垂直居中，标识才对得上：
+        // 水平 LinearLayout 默认按基线排列，加了按钮后文字会贴到行顶部。
+        // （Robolectric 的字体度量是桩，测不出文字真实位置，只能把开关钉住）
+        assertFalse(
+            "单词行必须关闭 baseline 对齐，否则单词不会垂直居中",
+            (wordLine as LinearLayout).isBaselineAligned
+        )
+
         assertTrue(
             "难度标识中心($badgeCenter)与单词中心($wordLineCenter)相差过大",
             abs(badgeCenter - wordLineCenter) <= 2
