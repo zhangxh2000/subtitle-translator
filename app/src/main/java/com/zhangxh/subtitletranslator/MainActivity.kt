@@ -93,6 +93,10 @@ class MainActivity : BaseActivity() {
             startActivity(Intent(this, HistoryActivity::class.java))
         }
 
+        findViewById<Button>(R.id.btnVocabulary)?.setOnClickListener {
+            startActivity(Intent(this, com.zhangxh.subtitletranslator.ui.VocabularyActivity::class.java))
+        }
+
         findViewById<Button>(R.id.btnSettings)?.setOnClickListener {
             startActivity(Intent(this, com.zhangxh.subtitletranslator.ui.SettingsActivity::class.java))
         }

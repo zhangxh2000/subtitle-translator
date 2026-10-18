@@ -9,6 +9,7 @@ import com.zhangxh.subtitletranslator.ui.DebugCaptureActivity
 import com.zhangxh.subtitletranslator.ui.HistoryActivity
 import com.zhangxh.subtitletranslator.ui.ImagePreviewActivity
 import com.zhangxh.subtitletranslator.ui.SettingsActivity
+import com.zhangxh.subtitletranslator.ui.VocabularyActivity
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -37,6 +38,7 @@ class WindowInsetsTest {
         val ACTIVITIES = listOf(
             SettingsActivity::class.java,
             HistoryActivity::class.java,
+            VocabularyActivity::class.java,
             DebugCaptureActivity::class.java,
             ImagePreviewActivity::class.java,
             MainActivity::class.java

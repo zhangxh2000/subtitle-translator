@@ -33,6 +33,7 @@ import com.zhangxh.subtitletranslator.data.screenshot.ScreenCaptureManagerImpl
 import com.zhangxh.subtitletranslator.data.translator.TranslatorProvider
 import com.zhangxh.subtitletranslator.data.dictionary.DictionaryRepositoryProvider
 import com.zhangxh.subtitletranslator.data.speech.AndroidTtsPronouncer
+import com.zhangxh.subtitletranslator.data.vocabulary.SqliteVocabularyRepository
 import com.zhangxh.subtitletranslator.data.wordextractor.LocalWordExtractor
 import com.zhangxh.subtitletranslator.domain.TranslationCoordinator
 import com.zhangxh.subtitletranslator.domain.TranslationResult
@@ -40,6 +41,7 @@ import com.zhangxh.subtitletranslator.domain.speech.IPronouncer
 import com.zhangxh.subtitletranslator.domain.speech.PronouncerError
 import com.zhangxh.subtitletranslator.domain.wordextractor.EnglishDifficultyAssessor
 import com.zhangxh.subtitletranslator.domain.wordextractor.NoOpWordExtractor
+import com.zhangxh.subtitletranslator.domain.wordextractor.WordEntry
 import com.zhangxh.subtitletranslator.ui.DebugCaptureActivity
 import com.zhangxh.subtitletranslator.ui.HistoryActivity
 import com.zhangxh.subtitletranslator.ui.SettingsActivity
@@ -121,6 +123,7 @@ class FloatingButtonService : Service() {
     private var translationCoordinator: TranslationCoordinator? = null
     private var dictionaryProvider: DictionaryRepositoryProvider? = null
     private var pronouncer: IPronouncer? = null
+    private var vocabularyRepository: SqliteVocabularyRepository? = null
     private var mediaProjection: MediaProjection? = null
     private var isShowingTranslation = false
 
@@ -168,6 +171,9 @@ class FloatingButtonService : Service() {
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         lastX = prefs.getInt(KEY_LAST_X, 0)
         lastY = prefs.getInt(KEY_LAST_Y, 200)
+
+        // 生词库独立于 MediaProjection 生命周期：投影重启、换视频都不该影响收藏
+        vocabularyRepository = SqliteVocabularyRepository(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -670,6 +676,9 @@ class FloatingButtonService : Service() {
             setOnPronounceListener { word ->
                 pronouncer?.speak(word)
             }
+            setOnSaveToggleListener { entry ->
+                toggleSavedWord(entry)
+            }
         }
 
         // 单词释义多时面板会很高：这里按屏幕高度给窗口封顶，
@@ -696,11 +705,49 @@ class FloatingButtonService : Service() {
 
         try {
             windowManager?.addView(overlayView, params)
+            // 收藏状态存在数据库里，异步查回来再点亮书签图标
+            overlayView?.let { view -> refreshSavedStates(result.difficultWords, view) }
         } catch (e: Exception) {
             Log.e(TAG, "添加翻译覆盖层失败", e)
             overlayView = null
             isShowingTranslation = false
             toggleMediaPlayback()
+        }
+    }
+
+    /**
+     * 收藏/取消收藏生词
+     *
+     * 图标只在数据库操作成功后更新，始终和库里的数据保持一致。
+     */
+    private fun toggleSavedWord(entry: WordEntry) {
+        val repository = vocabularyRepository ?: return
+        serviceScope.launch {
+            val result = repository.toggle(entry)
+            if (!result.success) {
+                Log.e(TAG, "保存生词失败: ${entry.word}")
+                Toast.makeText(this@FloatingButtonService, "保存失败，请稍后重试", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            overlayView?.setWordSaved(entry.word, result.saved)
+            val message = if (result.saved) "已加入生词库" else "已从生词库移除"
+            Toast.makeText(this@FloatingButtonService, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
+     * 初始化弹层里每个生词的收藏图标状态
+     */
+    private fun refreshSavedStates(entries: List<WordEntry>, target: TranslationOverlayView) {
+        if (entries.isEmpty()) return
+        val repository = vocabularyRepository ?: return
+        val words = entries.map { it.word }
+        serviceScope.launch {
+            val saved = repository.savedWords(words)
+            // 查询期间弹层可能已关闭或被下一次翻译替换，旧结果不能写到新视图上
+            if (overlayView === target) {
+                words.forEach { word -> target.setWordSaved(word, word in saved) }
+            }
         }
     }
 
@@ -851,6 +898,9 @@ class FloatingButtonService : Service() {
 
         // 取消协程作用域
         serviceScope.cancel()
+
+        vocabularyRepository?.close()
+        vocabularyRepository = null
     }
 
     /** 停止屏幕采集会话 */

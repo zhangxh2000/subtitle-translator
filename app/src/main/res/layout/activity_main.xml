@@ -90,8 +90,22 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginEnd="6dp"
+            android:layout_marginEnd="4dp"
+            android:minWidth="0dp"
             android:text="翻译历史"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/btnVocabulary"
+            style="?attr/materialButtonOutlinedStyle"
+            app:strokeColor="@color/button_outline"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
+            android:minWidth="0dp"
+            android:text="生词库"
             android:textColor="@android:color/white" />
 
         <Button
@@ -101,7 +115,8 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="6dp"
+            android:layout_marginStart="4dp"
+            android:minWidth="0dp"
             android:text="设置"
             android:textColor="@android:color/white" />
     </LinearLayout>

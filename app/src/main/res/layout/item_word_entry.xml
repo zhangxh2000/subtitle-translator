@@ -73,6 +73,17 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_volume_up"
                 android:contentDescription="朗读" />
+
+            <!-- 收藏按钮：与朗读按钮同样的 40dp 点击区 / 24dp 图标 -->
+            <ImageButton
+                android:id="@+id/btnSaveWord"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_bookmark_border"
+                android:contentDescription="收藏" />
         </LinearLayout>
 
         <TextView

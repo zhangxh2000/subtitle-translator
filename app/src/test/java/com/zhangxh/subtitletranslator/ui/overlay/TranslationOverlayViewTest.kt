@@ -299,6 +299,124 @@ class TranslationOverlayViewTest {
         )
     }
 
+    // ---------------------------------------------------------------------
+    // 收藏生词
+    // ---------------------------------------------------------------------
+
+    private fun saveButton(row: View): ImageButton =
+        requireNotNull(row.findViewById(R.id.btnSaveWord)) { "该行没有收藏按钮" }
+
+    /** 收藏按钮同样要有大于图标的点击区 */
+    @Test
+    fun `each word row has a save button with a bigger touch target`() {
+        val overlay = overlay()
+        overlay.setTranslationResult(longResult(wordCount = 3))
+
+        val density = overlay.resources.displayMetrics.density
+        val container = rows(overlay)
+        assertEquals(3, container.childCount)
+
+        repeat(container.childCount) { index ->
+            val button = saveButton(container.getChildAt(index))
+            val boxDp = button.layoutParams.width / density
+            val paddingDp = button.paddingLeft / density
+
+            assertTrue("点击区 ${boxDp}dp 太小，手指点不准", boxDp >= 40f)
+            assertTrue("点击区(${boxDp}dp)必须大于图标，差额靠 padding 撑", paddingDp > 0f)
+        }
+    }
+
+    /** 点收藏要把整条 WordEntry 传出去（存库需要音标/释义/难度） */
+    @Test
+    fun `tapping save passes the whole word entry`() {
+        val received = mutableListOf<WordEntry>()
+        val overlay = overlay()
+        overlay.setOnSaveToggleListener { received.add(it) }
+        val result = longResult(wordCount = 3)
+        overlay.setTranslationResult(result)
+
+        saveButton(rows(overlay).getChildAt(1)).performClick()
+
+        assertEquals(1, received.size)
+        assertEquals(result.difficultWords[1], received.single())
+    }
+
+    /** 数据库里的收藏状态回来后要点亮对应图标，大小写不敏感 */
+    @Test
+    fun `setWordSaved switches the icon state case insensitively`() {
+        val overlay = overlay()
+        overlay.setTranslationResult(longResult(wordCount = 2))
+        val button = saveButton(rows(overlay).getChildAt(0))
+
+        assertEquals("收藏", button.contentDescription)
+        assertFalse(button.isSelected)
+
+        overlay.setWordSaved("word1", true)
+        assertEquals("取消收藏", button.contentDescription)
+        assertTrue(button.isSelected)
+
+        overlay.setWordSaved("WORD1", false)
+        assertEquals("收藏", button.contentDescription)
+        assertFalse(button.isSelected)
+    }
+
+    /** 每次翻译都会重建行，收藏状态不能从上一批结果泄漏过来 */
+    @Test
+    fun `saved state does not leak across rebuilt results`() {
+        val overlay = overlay()
+        overlay.setTranslationResult(longResult(wordCount = 2))
+        overlay.setWordSaved("word1", true)
+
+        overlay.setTranslationResult(longResult(wordCount = 2))
+
+        val button = saveButton(rows(overlay).getChildAt(0))
+        assertEquals("收藏", button.contentDescription)
+        assertFalse(button.isSelected)
+    }
+
+    /** 同一个词在一个结果里出现多次时，所有行一起点亮 */
+    @Test
+    fun `saved state updates every row with the same word`() {
+        val duplicate = WordEntry(
+            word = "dup",
+            phonetic = "dʌp",
+            difficulty = WordDifficulty.MEDIUM,
+            meanings = listOf(Meaning("n.", "duplicate", "重复", emptyList()))
+        )
+        val overlay = overlay()
+        overlay.setTranslationResult(
+            TranslationResult(
+                originalText = "dup dup",
+                translatedText = "重复 重复",
+                difficultWords = listOf(duplicate, duplicate),
+                isSuccess = true
+            )
+        )
+
+        overlay.setWordSaved("DUP", true)
+
+        val container = rows(overlay)
+        repeat(container.childCount) { index ->
+            assertTrue("第 $index 行未点亮", saveButton(container.getChildAt(index)).isSelected)
+        }
+    }
+
+    /** 点收藏只收藏：不朗读、不复制 */
+    @Test
+    fun `tapping save does not pronounce or copy`() {
+        val pronouncing = RecordingPronouncer()
+        val copied = mutableListOf<String>()
+        val overlay = overlay()
+        overlay.setOnPronounceListener(pronouncing::speak)
+        overlay.setOnCopyListener { copied.add(it) }
+        overlay.setTranslationResult(longResult(wordCount = 2))
+
+        saveButton(rows(overlay).getChildAt(0)).performClick()
+
+        assertTrue("点收藏不应触发朗读", pronouncing.spoken.isEmpty())
+        assertTrue("点收藏不应触发复制", copied.isEmpty())
+    }
+
     private inline fun <reified T : View> hasAncestor(view: View): Boolean {
         var parent = view.parent
         while (parent != null) {

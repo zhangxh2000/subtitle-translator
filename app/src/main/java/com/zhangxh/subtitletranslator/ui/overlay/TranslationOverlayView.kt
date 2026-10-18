@@ -8,6 +8,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.domain.TranslationResult
+import com.zhangxh.subtitletranslator.domain.vocabulary.VocabularyKey
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficulty
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordEntry
 
@@ -44,6 +45,7 @@ class TranslationOverlayView @JvmOverloads constructor(
     private var onCloseListener: (() -> Unit)? = null
     private var onCopyListener: ((String) -> Unit)? = null
     private var onPronounceListener: ((String) -> Unit)? = null
+    private var onSaveToggleListener: ((WordEntry) -> Unit)? = null
 
     init {
         orientation = VERTICAL
@@ -100,6 +102,38 @@ class TranslationOverlayView @JvmOverloads constructor(
      */
     fun setOnPronounceListener(listener: (String) -> Unit) {
         onPronounceListener = listener
+    }
+
+    /**
+     * 设置收藏切换监听
+     *
+     * 回调传整条 [WordEntry]：收藏到生词库需要词、音标、释义和难度。
+     */
+    fun setOnSaveToggleListener(listener: (WordEntry) -> Unit) {
+        onSaveToggleListener = listener
+    }
+
+    /**
+     * 更新生词收藏状态
+     *
+     * 收藏状态存在数据库里，服务异步查回来后再调用这里点亮图标。
+     * 同一个词可能在一个结果中出现多次，所以按归一化后的键遍历所有行。
+     */
+    fun setWordSaved(word: String, saved: Boolean) {
+        val key = VocabularyKey.of(word) ?: return
+        val container = findViewById<LinearLayout>(R.id.wordsContainer) ?: return
+        for (index in 0 until container.childCount) {
+            val button = container.getChildAt(index)
+                .findViewById<android.widget.ImageButton>(R.id.btnSaveWord)
+                ?: continue
+            if (button.tag == key) bindSavedState(button, saved)
+        }
+    }
+
+    private fun bindSavedState(button: android.widget.ImageButton, saved: Boolean) {
+        button.setImageResource(if (saved) R.drawable.ic_bookmark else R.drawable.ic_bookmark_border)
+        button.contentDescription = if (saved) "取消收藏" else "收藏"
+        button.isSelected = saved
     }
 
     /**
@@ -167,6 +201,15 @@ class TranslationOverlayView @JvmOverloads constructor(
             // 所以图标区域内长按不再冒泡到下面那个复制监听 —— 属预期行为。
             findViewById<android.widget.ImageButton>(R.id.btnPronounce)?.setOnClickListener {
                 onPronounceListener?.invoke(wordEntry.word)
+            }
+
+            // 收藏到生词库：tag 存归一化后的词键，服务异步查回收藏状态时按它匹配行
+            findViewById<android.widget.ImageButton>(R.id.btnSaveWord)?.apply {
+                tag = VocabularyKey.of(wordEntry.word)
+                bindSavedState(this, false)
+                setOnClickListener {
+                    onSaveToggleListener?.invoke(wordEntry)
+                }
             }
 
             // 长按复制单词
