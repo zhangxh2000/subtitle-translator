@@ -34,6 +34,7 @@ class MainActivity : BaseActivity() {
     private var mediaProjectionData: Intent? = null
     private var isRestarting = false
     private var shouldStartServiceOnResume = false
+    private var shouldRequestPermissionsOnResume = false
 
     /**
      * 服务运行状态回调
@@ -72,10 +73,11 @@ class MainActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // 检查是否是服务停止后重新启动
+        // 检查是否是录屏权限失效后重新启动：自动重新发起授权，用户不用再点一次启动
         isRestarting = intent.getBooleanExtra(EXTRA_RESTART_SERVICE, false)
         if (isRestarting) {
             Toast.makeText(this, "录屏权限已失效，请重新授权", Toast.LENGTH_LONG).show()
+            shouldRequestPermissionsOnResume = true
         }
 
         statusContainer = findViewById(R.id.statusContainer)
@@ -170,14 +172,31 @@ class MainActivity : BaseActivity() {
         FloatingButtonService.addRunningStateListener(serviceStateListener)
         updateServiceState()
 
-        // 用户从设置返回后，检查悬浮窗权限
-        if (shouldStartServiceOnResume && Settings.canDrawOverlays(this)) {
+        if (shouldRequestPermissionsOnResume) {
+            // 录屏权限失效后自动重新走授权流程
+            shouldRequestPermissionsOnResume = false
+            checkPermissions()
+        } else if (shouldStartServiceOnResume && Settings.canDrawOverlays(this)) {
+            // 用户从设置返回后，检查悬浮窗权限
             shouldStartServiceOnResume = false
             if (mediaProjectionData != null) {
                 startFloatingService()
             } else {
                 requestMediaProjection()
             }
+        }
+    }
+
+    /**
+     * singleTask 下界面已存在时再次收到「重新授权」启动，不会走 onCreate
+     */
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        if (intent?.getBooleanExtra(EXTRA_RESTART_SERVICE, false) == true) {
+            setIntent(intent)
+            Toast.makeText(this, "录屏权限已失效，请重新授权", Toast.LENGTH_LONG).show()
+            shouldRequestPermissionsOnResume = false
+            checkPermissions()
         }
     }
 

@@ -212,7 +212,12 @@ class FloatingButtonService : Service() {
             this.resultData = data
             initMediaProjection(newResultCode, data)
         } else {
-            Log.e(TAG, "error, result code is $newResultCode")
+            // 系统以 START_STICKY 重启服务时 intent 为 null，或授权数据无效。
+            // 此时没有可用的录屏会话，不能让悬浮球停在「看似运行、点了却报错」的状态，
+            // 直接引导用户重新授权。
+            Log.w(TAG, "缺少有效的录屏授权（resultCode=$newResultCode），引导重新授权")
+            restartAndRequestPermission()
+            return START_NOT_STICKY
         }
 
         // 显示悬浮按钮
@@ -241,10 +246,17 @@ class FloatingButtonService : Service() {
 
             // 设置 MediaProjection 停止监听
             screenCapture.setOnProjectionStoppedListener {
-                Log.d(TAG, "MediaProjection 已停止，标记状态")
+                // 旧会话的停止回调可能晚于新会话建立，不能误伤新会话
+                if (mediaProjection !== projection) {
+                    Log.d(TAG, "忽略旧 MediaProjection 的停止回调")
+                    return@setOnProjectionStoppedListener
+                }
+                // 锁屏、系统回收或用户取消都会走到这里，录屏会话已经不可用
+                Log.d(TAG, "MediaProjection 已停止，需要重新授权")
                 isProjectionStopped = true
                 mediaProjection = null
-                translationCoordinator = null
+                // 释放截图/翻译/词典组件；下次授权后 initMediaProjection 会重新创建
+                releaseTranslationComponents()
             }
 
             screenCapture.initialize(this, projection, metrics.widthPixels, metrics.heightPixels, metrics.densityDpi)
@@ -844,10 +856,11 @@ class FloatingButtonService : Service() {
      */
     private fun restartAndRequestPermission() {
         try {
-            val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                putExtra(MainActivity.EXTRA_RESTART_SERVICE, true)
-            }
+            // 拿不到启动 Intent 时用显式组件兜底，避免点了悬浮球却什么都没发生
+            val intent = packageManager.getLaunchIntentForPackage(packageName)
+                ?: Intent(this, MainActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            intent.putExtra(MainActivity.EXTRA_RESTART_SERVICE, true)
             startActivity(intent)
         } catch (e: Exception) {
             Log.e(TAG, "启动主界面失败", e)
