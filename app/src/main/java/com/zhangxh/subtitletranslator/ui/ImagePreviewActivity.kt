@@ -7,20 +7,14 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.core.content.FileProvider
 import com.zhangxh.subtitletranslator.R
-import com.zhangxh.subtitletranslator.util.DebugCaptureStore
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
 
 /**
  * 单张调试截图的大图查看
  *
- * 缩略图尺寸看不出笔画有没有被二值化吃掉、字幕有没有切在框外，所以需要按屏幕宽度
- * 重新解码一张清晰的图。截图存在应用私有目录，需要导出时通过 [FileProvider] 分享。
+ * 图片加载由 [ImagePreviewViewModel] 负责；分享（FileProvider + chooser）属于界面交互，留在这里。
  */
 class ImagePreviewActivity : BaseActivity() {
 
@@ -32,8 +26,7 @@ class ImagePreviewActivity : BaseActivity() {
         const val EXTRA_LABEL = "extra_label"
     }
 
-    private val store by lazy { DebugCaptureStore(this) }
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val viewModel: ImagePreviewViewModel by viewModels()
 
     private lateinit var sessionId: String
     private lateinit var fileName: String
@@ -45,35 +38,25 @@ class ImagePreviewActivity : BaseActivity() {
         sessionId = intent.getStringExtra(EXTRA_SESSION_ID).orEmpty()
         fileName = intent.getStringExtra(EXTRA_FILE_NAME).orEmpty()
 
+        val imageView = findViewById<ImageView>(R.id.imageView)
         findViewById<TextView>(R.id.tvLabel)?.text = intent.getStringExtra(EXTRA_LABEL).orEmpty()
         findViewById<View>(R.id.btnBack)?.setOnClickListener { finish() }
         findViewById<View>(R.id.btnShare)?.setOnClickListener { shareImage() }
 
-        loadImage()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        scope.cancel()
-    }
-
-    /** 按屏幕宽度解码，保证 1:1 左右显示，能看清笔画细节 */
-    private fun loadImage() {
-        val imageView = findViewById<ImageView>(R.id.imageView)
-        val maxWidth = resources.displayMetrics.widthPixels
-
-        scope.launch {
-            val bitmap = store.loadImage(sessionId, fileName, maxWidth)
-            if (bitmap != null) {
-                imageView.setImageBitmap(bitmap)
-            } else {
-                Toast.makeText(this@ImagePreviewActivity, "图片读取失败", Toast.LENGTH_SHORT).show()
+        viewModel.uiState.observe(this) { state ->
+            state.bitmap?.let { imageView.setImageBitmap(it) }
+        }
+        viewModel.messages.observe(this) { event ->
+            event.getContentIfNotHandled()?.let { message ->
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
             }
         }
+
+        viewModel.load(sessionId, fileName, resources.displayMetrics.widthPixels)
     }
 
     private fun shareImage() {
-        val file = store.sessionFile(sessionId, fileName)
+        val file = viewModel.sessionFile(sessionId, fileName)
         if (!file.exists()) {
             Toast.makeText(this, "图片不存在", Toast.LENGTH_SHORT).show()
             return

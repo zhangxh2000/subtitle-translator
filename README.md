@@ -37,6 +37,15 @@
 └───────────────────────────────────────────┘
 ```
 
+### 分层与 MVVM 约束
+
+- `ui/`：Activity 只负责渲染和系统交互；每个页面配套 `XxxViewModel`，用 `by viewModels()` 获取。
+- ViewModel 负责业务状态与数据编排：用 `viewModelScope` 执行异步任务，通过 `LiveData` 暴露状态、`Event` 暴露一次性事件。
+- `data/`：可写数据库（生词库）、文件（调试截图）、SharedPreferences（`SettingsStore`）、翻译历史（`TranslationHistoryStore`）等数据源。
+- `domain/`：与 Android 无关的接口和模型。
+
+强制规则见 [`CLAUDE.md`](CLAUDE.md)。
+
 ## 核心模块
 
 ### 1. 翻译引擎 (`domain/translator/`)
@@ -260,6 +269,10 @@ python3 scripts/import_ecdict.py --csv ecdict.csv --lemma lemma.en.txt
 4. 悬浮窗位置会自动记忆，下次启动时恢复上次位置
 
 ## 最近更新
+
+- 架构改造：全部界面切换为 MVVM —— Activity 只做渲染与系统交互，权限编排、设置持久化、
+  数据读写全部移入 ViewModel；设置项抽到 `SettingsStore`，翻译历史抽到 `TranslationHistoryStore`；
+  新增 `CLAUDE.md` 记录架构约束
 
 - 翻译引擎做成设置项可选：新增百度翻译（自填密钥）与 Google 翻译（免密钥公开接口），
   两者失败时自动回退到 ML Kit 离线引擎；顺带删除了从未被使用的 TranslatorFactory

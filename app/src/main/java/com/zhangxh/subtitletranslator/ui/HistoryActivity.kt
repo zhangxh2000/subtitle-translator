@@ -6,23 +6,26 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.domain.TranslationResult
-import com.zhangxh.subtitletranslator.service.FloatingButtonService
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /**
  * 翻译历史记录界面
+ *
+ * 只负责列表渲染；数据由 [HistoryViewModel] 提供。
  */
 class HistoryActivity : BaseActivity() {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var tvEmpty: TextView
     private val adapter = HistoryAdapter()
+    private val viewModel: HistoryViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,27 +37,28 @@ class HistoryActivity : BaseActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
 
-        findViewById<View>(R.id.btnClear)?.setOnClickListener {
-            FloatingButtonService.clearTranslationHistory()
-            loadHistory()
-            Toast.makeText(this, "历史记录已清空", Toast.LENGTH_SHORT).show()
-        }
+        findViewById<View>(R.id.btnClear)?.setOnClickListener { viewModel.clear() }
+        findViewById<View>(R.id.btnBack)?.setOnClickListener { finish() }
 
-        findViewById<View>(R.id.btnBack)?.setOnClickListener {
-            finish()
+        viewModel.uiState.observe(this) { state ->
+            adapter.setData(state.items)
+            tvEmpty.visibility = if (state.isEmpty) View.VISIBLE else View.GONE
+            recyclerView.visibility = if (state.isEmpty) View.GONE else View.VISIBLE
         }
-
-        loadHistory()
+        viewModel.messages.observe(this) { event ->
+            event.getContentIfNotHandled()?.let { message ->
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
-    private fun loadHistory() {
-        val history = FloatingButtonService.getTranslationHistory().reversed()
-        adapter.setData(history)
-        tvEmpty.visibility = if (history.isEmpty()) View.VISIBLE else View.GONE
-        recyclerView.visibility = if (history.isEmpty()) View.GONE else View.VISIBLE
+    override fun onResume() {
+        super.onResume()
+        // 页面打开期间可能又产生了新的翻译
+        viewModel.refresh()
     }
 
-    private inner class HistoryAdapter : RecyclerView.Adapter<HistoryAdapter.ViewHolder>() {
+    private class HistoryAdapter : RecyclerView.Adapter<HistoryAdapter.ViewHolder>() {
 
         private var items = listOf<TranslationResult>()
         private val dateFormat = SimpleDateFormat("MM-dd HH:mm", Locale.getDefault())

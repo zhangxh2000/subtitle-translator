@@ -64,6 +64,10 @@ dependencies {
     // RecyclerView
     implementation("androidx.recyclerview:recyclerview:1.3.2")
 
+    // MVVM：by viewModels() / viewModelScope（LiveData 与 ViewModel 基础构件已由 appcompat 传递引入）
+    implementation("androidx.activity:activity-ktx:1.8.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.1")
+
     // 单元测试：Robolectric 用于在 JVM 上跑依赖 Android SQLite 的词典查询测试
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.12.2")

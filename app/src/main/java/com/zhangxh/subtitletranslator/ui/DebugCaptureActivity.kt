@@ -8,39 +8,37 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
 import com.zhangxh.subtitletranslator.util.CaptureRecord
 import com.zhangxh.subtitletranslator.util.DebugCaptureStore
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/** 缩略图解码宽度上限，够清晰又不会占太多内存 */
+private const val THUMBNAIL_WIDTH_PX = 400
+
 /**
  * 识别截图查看界面
  *
- * 按时间倒序列出最近几次识别记录，每条展开「原始截图 / 裁剪区域 / 预处理图」三个阶段，
- * 用于判断识别不准的原因出在哪一环。点任意一张图可放大查看并分享。
+ * 按时间倒序列出最近几次识别记录，每条展开「原始截图 / 裁剪区域 / 预处理图」三个阶段。
+ * 数据与图片加载由 [DebugCaptureViewModel] 负责，这里只做渲染与导航。
  */
 class DebugCaptureActivity : BaseActivity() {
 
-    private companion object {
-        /** 缩略图解码宽度上限，够清晰又不会占太多内存 */
-        const val THUMBNAIL_WIDTH_PX = 400
-    }
-
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyView: TextView
-    private val adapter = CaptureAdapter()
-    private val store by lazy { DebugCaptureStore(this) }
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val viewModel: DebugCaptureViewModel by viewModels()
+    private val adapter = CaptureAdapter(
+        loadThumbnail = { recordId, fileName, onLoaded ->
+            viewModel.loadThumbnail(recordId, fileName, THUMBNAIL_WIDTH_PX, onLoaded)
+        },
+        onOpenPreview = { record, fileName, label -> openPreview(record, fileName, label) }
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,31 +50,17 @@ class DebugCaptureActivity : BaseActivity() {
         recyclerView.adapter = adapter
 
         findViewById<View>(R.id.btnBack)?.setOnClickListener { finish() }
-        findViewById<View>(R.id.btnClear)?.setOnClickListener { clearAll() }
+        findViewById<View>(R.id.btnClear)?.setOnClickListener { viewModel.clear() }
 
-        loadCaptures()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        scope.cancel()
-    }
-
-    private fun loadCaptures() {
-        scope.launch {
-            val captures = store.listCaptures()
-            adapter.setData(captures)
-            val isEmpty = captures.isEmpty()
-            emptyView.visibility = if (isEmpty) View.VISIBLE else View.GONE
-            recyclerView.visibility = if (isEmpty) View.GONE else View.VISIBLE
+        viewModel.uiState.observe(this) { state ->
+            adapter.setData(state.items)
+            emptyView.visibility = if (state.isEmpty) View.VISIBLE else View.GONE
+            recyclerView.visibility = if (state.isEmpty) View.GONE else View.VISIBLE
         }
-    }
-
-    private fun clearAll() {
-        scope.launch {
-            store.clearAll()
-            loadCaptures()
-            Toast.makeText(this@DebugCaptureActivity, "已清空", Toast.LENGTH_SHORT).show()
+        viewModel.messages.observe(this) { event ->
+            event.getContentIfNotHandled()?.let { message ->
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -91,7 +75,10 @@ class DebugCaptureActivity : BaseActivity() {
         )
     }
 
-    private inner class CaptureAdapter : RecyclerView.Adapter<CaptureAdapter.ViewHolder>() {
+    private class CaptureAdapter(
+        private val loadThumbnail: (String, String, (android.graphics.Bitmap?) -> Unit) -> Unit,
+        private val onOpenPreview: (CaptureRecord, String, String) -> Unit
+    ) : RecyclerView.Adapter<CaptureAdapter.ViewHolder>() {
 
         private var items: List<CaptureRecord> = emptyList()
 
@@ -101,7 +88,10 @@ class DebugCaptureActivity : BaseActivity() {
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder =
-            ViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_debug_capture, parent, false))
+            ViewHolder(
+                LayoutInflater.from(parent.context)
+                    .inflate(R.layout.item_debug_capture, parent, false)
+            )
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             holder.bind(items[position])
@@ -141,7 +131,12 @@ class DebugCaptureActivity : BaseActivity() {
                 bindImage(imgProcessed, record, DebugCaptureStore.FILE_PROCESSED, "预处理图")
             }
 
-            private fun bindImage(imageView: ImageView, record: CaptureRecord, fileName: String, label: String) {
+            private fun bindImage(
+                imageView: ImageView,
+                record: CaptureRecord,
+                fileName: String,
+                label: String
+            ) {
                 // 用「会话 + 文件名」作为标识，避免列表复用后旧图覆盖新图
                 val tag = "${record.id}/$fileName"
                 imageView.tag = tag
@@ -152,9 +147,8 @@ class DebugCaptureActivity : BaseActivity() {
                     return
                 }
 
-                imageView.setOnClickListener { openPreview(record, fileName, label) }
-                scope.launch {
-                    val bitmap = store.loadImage(record.id, fileName, THUMBNAIL_WIDTH_PX)
+                imageView.setOnClickListener { onOpenPreview(record, fileName, label) }
+                loadThumbnail(record.id, fileName) { bitmap ->
                     if (imageView.tag == tag) {
                         imageView.setImageBitmap(bitmap)
                     }
@@ -162,7 +156,8 @@ class DebugCaptureActivity : BaseActivity() {
             }
 
             private fun formatHeader(record: CaptureRecord): String {
-                val time = SimpleDateFormat("MM-dd HH:mm:ss", Locale.getDefault()).format(Date(record.timestamp))
+                val time = SimpleDateFormat("MM-dd HH:mm:ss", Locale.getDefault())
+                    .format(Date(record.timestamp))
                 val crop = record.cropInfo ?: return time
                 return "$time · ${crop.mode} ${crop.screenWidth}×${crop.screenHeight}"
             }

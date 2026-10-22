@@ -11,49 +11,33 @@ import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.zhangxh.subtitletranslator.R
-import com.zhangxh.subtitletranslator.data.speech.AndroidTtsPronouncer
-import com.zhangxh.subtitletranslator.data.vocabulary.SqliteVocabularyRepository
-import com.zhangxh.subtitletranslator.domain.speech.PronouncerError
 import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWord
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficulty
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /**
  * 生词库界面
- *
- * 列出在翻译结果里收藏的生词，支持朗读、单条删除和清空。
+ * 只负责列表渲染；数据、朗读与增删由 [VocabularyViewModel] 处理。
  */
 class VocabularyActivity : BaseActivity() {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var tvEmpty: TextView
-    private val adapter = VocabularyAdapter()
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-    private lateinit var repository: SqliteVocabularyRepository
-    private lateinit var pronouncer: AndroidTtsPronouncer
+    private val viewModel: VocabularyViewModel by viewModels()
+    private val adapter = VocabularyAdapter(
+        onSpeak = { word -> viewModel.speak(word) },
+        onDelete = { word -> viewModel.delete(word) }
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_vocabulary)
-
-        repository = SqliteVocabularyRepository(this)
-        pronouncer = AndroidTtsPronouncer(this) { error ->
-            val message = when (error) {
-                PronouncerError.ENGINE_UNAVAILABLE -> "语音引擎不可用"
-                PronouncerError.ENGLISH_VOICE_UNAVAILABLE -> "缺少英语语音数据，请在系统设置中下载"
-            }
-            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-        }
 
         recyclerView = findViewById(R.id.recyclerView)
         tvEmpty = findViewById(R.id.tvEmpty)
@@ -61,51 +45,24 @@ class VocabularyActivity : BaseActivity() {
         recyclerView.adapter = adapter
 
         findViewById<View>(R.id.btnBack)?.setOnClickListener { finish() }
-        findViewById<View>(R.id.btnClear)?.setOnClickListener { clearAll() }
+        findViewById<View>(R.id.btnClear)?.setOnClickListener { viewModel.clear() }
 
-        loadWords()
-    }
-
-    override fun onDestroy() {
-        scope.cancel()
-        pronouncer.release()
-        repository.close()
-        super.onDestroy()
-    }
-
-    private fun loadWords() {
-        scope.launch {
-            val words = repository.list()
-            adapter.setData(words)
-            val isEmpty = words.isEmpty()
-            tvEmpty.visibility = if (isEmpty) View.VISIBLE else View.GONE
-            recyclerView.visibility = if (isEmpty) View.GONE else View.VISIBLE
+        viewModel.uiState.observe(this) { state ->
+            adapter.setData(state.items)
+            tvEmpty.visibility = if (state.isEmpty) View.VISIBLE else View.GONE
+            recyclerView.visibility = if (state.isEmpty) View.GONE else View.VISIBLE
         }
-    }
-
-    private fun clearAll() {
-        scope.launch {
-            if (repository.clear()) {
-                loadWords()
-                Toast.makeText(this@VocabularyActivity, "生词库已清空", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this@VocabularyActivity, "清空失败，请稍后重试", Toast.LENGTH_SHORT).show()
+        viewModel.messages.observe(this) { event ->
+            event.getContentIfNotHandled()?.let { message ->
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun deleteWord(item: SavedWord) {
-        scope.launch {
-            if (repository.remove(item.word)) {
-                loadWords()
-                Toast.makeText(this@VocabularyActivity, "已删除“${item.word}”", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this@VocabularyActivity, "删除失败，请稍后重试", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    private inner class VocabularyAdapter : RecyclerView.Adapter<VocabularyAdapter.ViewHolder>() {
+    private class VocabularyAdapter(
+        private val onSpeak: (String) -> Unit,
+        private val onDelete: (String) -> Unit
+    ) : RecyclerView.Adapter<VocabularyAdapter.ViewHolder>() {
 
         private var items = listOf<SavedWord>()
         private val dateFormat = SimpleDateFormat("MM-dd HH:mm", Locale.getDefault())
@@ -181,8 +138,8 @@ class VocabularyActivity : BaseActivity() {
 
                 tvAddedAt.text = "收藏于 ${dateFormat.format(Date(item.createdAt))}"
 
-                btnPronounce.setOnClickListener { pronouncer.speak(item.word) }
-                btnDelete.setOnClickListener { deleteWord(item) }
+                btnPronounce.setOnClickListener { onSpeak(item.word) }
+                btnDelete.setOnClickListener { onDelete(item.word) }
             }
         }
     }

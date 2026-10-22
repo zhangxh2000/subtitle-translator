@@ -34,6 +34,8 @@ import com.zhangxh.subtitletranslator.data.ocr.MLKitOcrEngine
 import com.zhangxh.subtitletranslator.data.screenshot.ScreenCaptureManagerImpl
 import com.zhangxh.subtitletranslator.data.translator.TranslatorProvider
 import com.zhangxh.subtitletranslator.data.dictionary.DictionaryRepositoryProvider
+import com.zhangxh.subtitletranslator.data.history.TranslationHistoryStore
+import com.zhangxh.subtitletranslator.data.settings.SettingsStore
 import com.zhangxh.subtitletranslator.data.speech.AndroidTtsPronouncer
 import com.zhangxh.subtitletranslator.data.vocabulary.SqliteVocabularyRepository
 import com.zhangxh.subtitletranslator.data.wordextractor.LocalWordExtractor
@@ -93,11 +95,6 @@ class FloatingButtonService : Service() {
         private const val OVERLAY_SHOW_ANIM_MS = 180L
         private const val OVERLAY_HIDE_ANIM_MS = 140L
 
-        private val translationHistory = CopyOnWriteArrayList<TranslationResult>()
-
-        fun getTranslationHistory(): List<TranslationResult> = translationHistory.toList()
-        fun clearTranslationHistory() = translationHistory.clear()
-
         /** 服务是否在运行（主界面据此显示「启动」还是「停止」） */
         @Volatile
         private var running = false
@@ -138,6 +135,7 @@ class FloatingButtonService : Service() {
     private var dictionaryProvider: DictionaryRepositoryProvider? = null
     private var pronouncer: IPronouncer? = null
     private var vocabularyRepository: SqliteVocabularyRepository? = null
+    private lateinit var settingsStore: SettingsStore
     private var mediaProjection: MediaProjection? = null
     private var isShowingTranslation = false
 
@@ -188,6 +186,7 @@ class FloatingButtonService : Service() {
 
         // 生词库独立于 MediaProjection 生命周期：投影重启、换视频都不该影响收藏
         vocabularyRepository = SqliteVocabularyRepository(this)
+        settingsStore = SettingsStore(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -264,8 +263,8 @@ class FloatingButtonService : Service() {
             val ocrEngine = MLKitOcrEngine()
             // 翻译引擎由用户在设置里选择；在线引擎失败会自动回退到离线引擎
             val translator = TranslatorProvider(this).create(
-                engine = SettingsActivity.getTranslationEngine(this),
-                credentials = { SettingsActivity.getBaiduCredentials(this) }
+                engine = settingsStore.translationEngine,
+                credentials = { settingsStore.baiduCredentials }
             )
 
             // 生词朗读：系统 TTS，引擎到用户第一次点喇叭时才真正创建
@@ -278,14 +277,14 @@ class FloatingButtonService : Service() {
                 Toast.makeText(this@FloatingButtonService, message, Toast.LENGTH_SHORT).show()
             }
 
-            val sourceLang = SettingsActivity.getSourceLang(this)
-            val targetLang = SettingsActivity.getTargetLang(this)
+            val sourceLang = settingsStore.sourceLang
+            val targetLang = settingsStore.targetLang
 
             // 词典：按源语言取内置词库；没有对应语言的词库时退化为「不提取生词」
             val provider = DictionaryRepositoryProvider(this)
             dictionaryProvider = provider
             // 生词筛选强度由用户在设置里选择，决定「重点词汇」显示多少词
-            val difficultyFilter = SettingsActivity.getDifficultyFilter(this)
+            val difficultyFilter = settingsStore.difficultyFilter
             Log.d(TAG, "生词筛选强度: ${difficultyFilter.label}")
             val wordExtractor = provider.repository(sourceLang)
                 ?.let { repository ->
@@ -310,8 +309,8 @@ class FloatingButtonService : Service() {
                 sourceLang = sourceLang,
                 targetLang = targetLang,
                 // 用回调而不是传布尔值：开关打开后立刻生效，不必重启服务
-                isDebugCaptureEnabled = { SettingsActivity.isDebugCaptureEnabled(this) },
-                preprocessMode = { SettingsActivity.getPreprocessMode(this) }
+                isDebugCaptureEnabled = { settingsStore.debugCaptureEnabled },
+                preprocessMode = { settingsStore.preprocessMode }
             )
 
             // 预加载翻译环境与词典
@@ -498,7 +497,7 @@ class FloatingButtonService : Service() {
         }
         // 调试入口只在开启「保存识别过程截图」后出现，平时不干扰正常使用
         menu.findViewById<View>(R.id.menuDebugCapture)?.let { entry ->
-            if (SettingsActivity.isDebugCaptureEnabled(this)) {
+            if (settingsStore.debugCaptureEnabled) {
                 entry.visibility = View.VISIBLE
                 entry.setOnClickListener {
                     dismissQuickMenu()
@@ -626,12 +625,8 @@ class FloatingButtonService : Service() {
                 val result = translationCoordinator?.translateSubtitle()
 
                 if (result?.isSuccess == true) {
-                    // 保存到历史记录
-                    translationHistory.add(result)
-                    // 限制历史记录数量
-                    while (translationHistory.size > 50) {
-                        translationHistory.removeAt(0)
-                    }
+                    // 保存到历史记录（上限由 store 维护）
+                    TranslationHistoryStore.add(result)
                     showTranslationOverlay(result)
                     isShowingTranslation = true
                 } else {
