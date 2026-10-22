@@ -1,5 +1,6 @@
 package com.zhangxh.subtitletranslator.service
 
+import android.animation.ValueAnimator
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -22,6 +23,7 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity.RESULT_OK
 import androidx.appcompat.view.ContextThemeWrapper
@@ -81,6 +83,16 @@ class FloatingButtonService : Service() {
         /** 所有悬浮窗共用的窗口类型；minSdk 26 起 TYPE_APPLICATION_OVERLAY 始终可用 */
         private const val OVERLAY_WINDOW_TYPE = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
+        /** 覆盖层距屏幕底部的间距 */
+        private const val OVERLAY_BOTTOM_MARGIN_DP = 16
+        /** 覆盖层最大阅读宽度：横屏/平板上不铺满整块屏幕 */
+        private const val OVERLAY_MAX_WIDTH_DP = 600
+        /** 出现时从下方滑入的距离 */
+        private const val OVERLAY_SLIDE_DP = 24
+        /** 出现 / 消失动画时长 */
+        private const val OVERLAY_SHOW_ANIM_MS = 180L
+        private const val OVERLAY_HIDE_ANIM_MS = 140L
+
         private val translationHistory = CopyOnWriteArrayList<TranslationResult>()
 
         fun getTranslationHistory(): List<TranslationResult> = translationHistory.toList()
@@ -119,6 +131,8 @@ class FloatingButtonService : Service() {
     private var windowManager: WindowManager? = null
     private var floatingView: View? = null
     private var overlayView: TranslationOverlayView? = null
+    private var dismissingOverlay: View? = null
+    private var overlayAnimator: ValueAnimator? = null
     private var quickMenuView: View? = null
     private var translationCoordinator: TranslationCoordinator? = null
     private var dictionaryProvider: DictionaryRepositoryProvider? = null
@@ -628,7 +642,7 @@ class FloatingButtonService : Service() {
      * 隐藏翻译
      */
     private fun hideTranslation() {
-        removeOverlayView()
+        removeOverlayView(animated = true)
         isShowingTranslation = false
 
         // 恢复视频播放
@@ -641,18 +655,43 @@ class FloatingButtonService : Service() {
      * 覆盖层是手动 addView 到 WindowManager 的，字段被重新赋值时旧视图不会自动消失，
      * 所以移除动作统一走这里，保证「同时最多只有一个覆盖层」。
      */
-    private fun removeOverlayView() {
+    private fun removeOverlayView(animated: Boolean = false) {
         // 面板一关就停朗读：TTS 走音乐流，边读边恢复播放会被 isMusicActive 误判成「视频正在播」
         pronouncer?.stop()
+        overlayAnimator?.cancel()
+        overlayAnimator = null
 
-        overlayView?.let { view ->
-            try {
-                windowManager?.removeView(view)
-            } catch (e: IllegalArgumentException) {
-                Log.w(TAG, "移除 overlayView 失败: 视图可能已被移除")
-            }
+        // 上一个还在淡出的视图先彻底移除，避免动画期间又叠出一层
+        dismissingOverlay?.let { view ->
+            removeViewSafely(view)
+            dismissingOverlay = null
         }
+
+        val view = overlayView ?: return
         overlayView = null
+
+        if (!animated) {
+            removeViewSafely(view)
+            return
+        }
+
+        dismissingOverlay = view
+        view.animate()
+            .alpha(0f)
+            .setDuration(OVERLAY_HIDE_ANIM_MS)
+            .withEndAction {
+                removeViewSafely(view)
+                if (dismissingOverlay === view) dismissingOverlay = null
+            }
+            .start()
+    }
+
+    private fun removeViewSafely(view: View) {
+        try {
+            windowManager?.removeView(view)
+        } catch (e: IllegalArgumentException) {
+            Log.w(TAG, "移除 overlayView 失败: 视图可能已被移除")
+        }
     }
 
     /**
@@ -685,34 +724,73 @@ class FloatingButtonService : Service() {
         // 超出部分靠面板内的滚动查看，否则窗口会超出屏幕、顶部内容被裁掉
         val screenWidth = resources.displayMetrics.widthPixels
         val screenHeight = resources.displayMetrics.heightPixels
+        val density = resources.displayMetrics.density
+
+        // 横屏/平板上面板不铺满整块屏幕，限制最大阅读宽度并居中
+        val overlayWidth = minOf(screenWidth, (OVERLAY_MAX_WIDTH_DP * density).toInt())
+
         overlayView?.measure(
-            View.MeasureSpec.makeMeasureSpec(screenWidth, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(overlayWidth, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         )
         val contentHeight = overlayView?.measuredHeight ?: 0
 
+        val baseY = (OVERLAY_BOTTOM_MARGIN_DP * density).toInt()
+        val slidePx = (OVERLAY_SLIDE_DP * density).toInt()
+
         val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.MATCH_PARENT,
+            overlayWidth,
             TranslationOverlayView.windowHeightFor(contentHeight, screenHeight),
             OVERLAY_WINDOW_TYPE,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.BOTTOM
-            y = 100  // 距离底部距离
+            gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            // 从略低于最终位置的地方滑入
+            y = baseY - slidePx
         }
+
+        overlayView?.alpha = 0f
 
         try {
             windowManager?.addView(overlayView, params)
-            // 收藏状态存在数据库里，异步查回来再点亮书签图标
-            overlayView?.let { view -> refreshSavedStates(result.difficultWords, view) }
+            overlayView?.let { view ->
+                // 收藏状态存在数据库里，异步查回来再点亮书签图标
+                refreshSavedStates(result.difficultWords, view)
+                animateOverlayIn(view, params, baseY, slidePx)
+            }
         } catch (e: Exception) {
             Log.e(TAG, "添加翻译覆盖层失败", e)
             overlayView = null
             isShowingTranslation = false
             toggleMediaPlayback()
         }
+    }
+
+    /** 淡入 + 轻微上滑 */
+    private fun animateOverlayIn(
+        view: View,
+        params: WindowManager.LayoutParams,
+        baseY: Int,
+        slidePx: Int
+    ) {
+        val animator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = OVERLAY_SHOW_ANIM_MS
+            interpolator = DecelerateInterpolator()
+            addUpdateListener { animation ->
+                val progress = animation.animatedValue as Float
+                view.alpha = progress
+                params.y = baseY - (slidePx * (1f - progress)).toInt()
+                try {
+                    windowManager?.updateViewLayout(view, params)
+                } catch (e: IllegalArgumentException) {
+                    Log.w(TAG, "更新覆盖层位置失败: 视图可能已被移除")
+                }
+            }
+        }
+        overlayAnimator = animator
+        animator.start()
     }
 
     /**

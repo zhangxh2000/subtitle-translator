@@ -203,6 +203,13 @@ class MainActivity : BaseActivity() {
             // 置空即恢复主题默认配色
             null
         }
+        // 停止态是红底，配浅色文字；启动态是 accent 底，配深色文字
+        btnStartService.setTextColor(
+            ContextCompat.getColor(
+                this,
+                if (running) R.color.text_primary else R.color.on_accent
+            )
+        )
     }
 
     /**

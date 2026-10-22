@@ -3,25 +3,22 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="12dp"
-    android:layout_margin="8dp"
-    android:background="@drawable/bg_word_item">
+    android:padding="16dp"
+    android:layout_marginTop="12dp"
+    android:background="@drawable/bg_card">
 
     <TextView
         android:id="@+id/tvTime"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="12sp"
-        android:textColor="@color/text_secondary" />
+        android:textAppearance="@style/TextAppearance.SubtitleTranslator.Caption" />
 
     <TextView
         android:id="@+id/tvOriginal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textSize="14sp"
-        android:textColor="@android:color/white"
-        android:lineSpacingMultiplier="1.2" />
+        android:layout_marginTop="6dp"
+        android:textAppearance="@style/TextAppearance.SubtitleTranslator.Body" />
 
     <TextView
         android:id="@+id/tvTranslated"
@@ -29,7 +26,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:textSize="14sp"
-        android:textColor="@android:color/holo_green_light"
-        android:lineSpacingMultiplier="1.2" />
+        android:textColor="@color/accent_dim"
+        android:lineSpacingMultiplier="1.4" />
 
 </LinearLayout>

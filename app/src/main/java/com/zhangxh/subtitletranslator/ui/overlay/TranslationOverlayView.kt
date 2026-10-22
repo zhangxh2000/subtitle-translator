@@ -1,6 +1,10 @@
 package com.zhangxh.subtitletranslator.ui.overlay
 
 import android.content.Context
+import android.content.res.ColorStateList
+import android.text.Spannable
+import android.text.SpannableStringBuilder
+import android.text.style.ForegroundColorSpan
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
@@ -64,6 +68,12 @@ class TranslationOverlayView @JvmOverloads constructor(
         // 译文
         findViewById<TextView>(R.id.tvTranslatedText)?.text = result.translatedText
 
+        // 词数：没有生词时不显示
+        findViewById<TextView>(R.id.tvWordCount)?.apply {
+            text = "${result.difficultWords.size} 个词"
+            visibility = if (result.difficultWords.isEmpty()) View.GONE else View.VISIBLE
+        }
+
         // 难词列表
         val wordsContainer = findViewById<LinearLayout>(R.id.wordsContainer)
         wordsContainer?.removeAllViews()
@@ -77,7 +87,10 @@ class TranslationOverlayView @JvmOverloads constructor(
             val noWordsView = TextView(context).apply {
                 text = "未检测到难词"
                 textSize = 14f
+                gravity = android.view.Gravity.CENTER
                 setTextColor(context.getColor(R.color.text_secondary))
+                val vertical = (24 * resources.displayMetrics.density).toInt()
+                setPadding(0, vertical, 0, vertical)
             }
             wordsContainer?.addView(noWordsView)
         }
@@ -173,29 +186,41 @@ class TranslationOverlayView @JvmOverloads constructor(
             findViewById<TextView>(R.id.tvWord)?.text = wordEntry.word
             findViewById<TextView>(R.id.tvPhonetic)?.text = wordEntry.phonetic
 
-            // 释义
-            val meaningsText = wordEntry.meanings.joinToString("\n") { meaning ->
-                val pos = if (meaning.partOfSpeech.isNotEmpty()) "[${meaning.partOfSpeech}] " else ""
-                "$pos${meaning.chineseDefinition}"
+            // 释义：词性用强调色，释义本身保持中性色
+            val meaningsText = SpannableStringBuilder()
+            wordEntry.meanings.forEachIndexed { index, meaning ->
+                if (index > 0) meaningsText.append("\n")
+                if (meaning.partOfSpeech.isNotEmpty()) {
+                    val start = meaningsText.length
+                    meaningsText.append("[${meaning.partOfSpeech}] ")
+                    meaningsText.setSpan(
+                        ForegroundColorSpan(context.getColor(R.color.accent)),
+                        start,
+                        meaningsText.length,
+                        Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                }
+                meaningsText.append(meaning.chineseDefinition)
             }
             findViewById<TextView>(R.id.tvMeanings)?.text = meaningsText
 
-            // 难度标识
+            // 难度标签：低饱和底色 + 同色系文字
             val difficultyView = findViewById<TextView>(R.id.tvDifficulty)
-            when (wordEntry.difficulty) {
-                WordDifficulty.HARD -> {
-                    difficultyView?.text = "难"
-                    difficultyView?.setBackgroundColor(context.getColor(android.R.color.holo_red_light))
-                }
-                WordDifficulty.MEDIUM -> {
-                    difficultyView?.text = "中"
-                    difficultyView?.setBackgroundColor(context.getColor(android.R.color.holo_orange_light))
-                }
-                else -> {
-                    difficultyView?.text = "易"
-                    difficultyView?.setBackgroundColor(context.getColor(android.R.color.holo_green_light))
-                }
+            val (backgroundRes, textRes, label) = when (wordEntry.difficulty) {
+                WordDifficulty.HARD -> Triple(
+                    R.color.difficulty_hard_bg, R.color.difficulty_hard_text, "难"
+                )
+                WordDifficulty.MEDIUM -> Triple(
+                    R.color.difficulty_medium_bg, R.color.difficulty_medium_text, "中"
+                )
+                else -> Triple(
+                    R.color.difficulty_easy_bg, R.color.difficulty_easy_text, "易"
+                )
             }
+            difficultyView?.text = label
+            difficultyView?.backgroundTintList =
+                ColorStateList.valueOf(context.getColor(backgroundRes))
+            difficultyView?.setTextColor(context.getColor(textRes))
 
             // 点喇叭朗读单词。图标可点之后会吃掉自己的按下事件，
             // 所以图标区域内长按不再冒泡到下面那个复制监听 —— 属预期行为。

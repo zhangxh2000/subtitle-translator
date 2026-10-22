@@ -1,6 +1,10 @@
 package com.zhangxh.subtitletranslator.ui
 
+import android.content.res.ColorStateList
 import android.os.Bundle
+import android.text.Spannable
+import android.text.SpannableStringBuilder
+import android.text.style.ForegroundColorSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -136,27 +140,44 @@ class VocabularyActivity : BaseActivity() {
                 tvWord.text = item.word
                 tvPhonetic.text = item.phonetic
 
-                val meaningsText = item.meanings.joinToString("\n") { meaning ->
-                    val pos = if (meaning.partOfSpeech.isNotEmpty()) "[${meaning.partOfSpeech}] " else ""
-                    "$pos${meaning.chineseDefinition}"
+                // 释义：词性用强调色，释义本身保持中性色
+                val meaningsText = SpannableStringBuilder()
+                item.meanings.forEachIndexed { index, meaning ->
+                    if (index > 0) meaningsText.append("\n")
+                    if (meaning.partOfSpeech.isNotEmpty()) {
+                        val start = meaningsText.length
+                        meaningsText.append("[${meaning.partOfSpeech}] ")
+                        meaningsText.setSpan(
+                            ForegroundColorSpan(
+                                tvMeanings.context.getColor(R.color.accent)
+                            ),
+                            start,
+                            meaningsText.length,
+                            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                    }
+                    meaningsText.append(meaning.chineseDefinition)
                 }
                 tvMeanings.text = meaningsText
                 tvMeanings.visibility = if (meaningsText.isEmpty()) View.GONE else View.VISIBLE
 
-                when (item.difficulty) {
-                    WordDifficulty.HARD -> {
-                        tvDifficulty.text = "难"
-                        tvDifficulty.setBackgroundColor(tvDifficulty.context.getColor(android.R.color.holo_red_light))
-                    }
-                    WordDifficulty.MEDIUM -> {
-                        tvDifficulty.text = "中"
-                        tvDifficulty.setBackgroundColor(tvDifficulty.context.getColor(android.R.color.holo_orange_light))
-                    }
-                    else -> {
-                        tvDifficulty.text = "易"
-                        tvDifficulty.setBackgroundColor(tvDifficulty.context.getColor(android.R.color.holo_green_light))
-                    }
+                // 难度标签：低饱和底色 + 同色系文字
+                val (backgroundRes, textRes, label) = when (item.difficulty) {
+                    WordDifficulty.HARD -> Triple(
+                        R.color.difficulty_hard_bg, R.color.difficulty_hard_text, "难"
+                    )
+                    WordDifficulty.MEDIUM -> Triple(
+                        R.color.difficulty_medium_bg, R.color.difficulty_medium_text, "中"
+                    )
+                    else -> Triple(
+                        R.color.difficulty_easy_bg, R.color.difficulty_easy_text, "易"
+                    )
                 }
+                tvDifficulty.text = label
+                tvDifficulty.backgroundTintList = ColorStateList.valueOf(
+                    tvDifficulty.context.getColor(backgroundRes)
+                )
+                tvDifficulty.setTextColor(tvDifficulty.context.getColor(textRes))
 
                 tvAddedAt.text = "收藏于 ${dateFormat.format(Date(item.createdAt))}"
 

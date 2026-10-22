@@ -3,29 +3,29 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:padding="8dp"
-    android:layout_marginTop="4dp"
-    android:background="@drawable/bg_word_item">
+    android:padding="16dp"
+    android:layout_marginTop="12dp"
+    android:background="@drawable/bg_card">
 
-    <!--
-      与 item_word_entry 相同的对齐约定：单词行被 40dp 按钮撑高，
-      24dp 难度标识要下移 (40-24)/2 = 8dp；单词行必须关闭 baseline 对齐。
-    -->
+    <!-- 与 item_word_entry 相同的对齐约定：单词行被 48dp 按钮撑高，标签下移 (48-24)/2 = 12dp -->
     <TextView
         android:id="@+id/tvDifficulty"
-        android:layout_width="24dp"
+        android:layout_width="wrap_content"
         android:layout_height="24dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="12dp"
+        android:minWidth="32dp"
+        android:paddingHorizontal="8dp"
         android:gravity="center"
-        android:textSize="10sp"
-        android:textColor="@android:color/white"
-        android:background="@drawable/bg_difficulty" />
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:textColor="@color/difficulty_medium_text"
+        android:background="@drawable/bg_difficulty_tag" />
 
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="12dp"
         android:orientation="vertical">
 
         <LinearLayout
@@ -39,24 +39,26 @@
                 android:id="@+id/tvWord"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:textColor="@android:color/white" />
+                android:textAppearance="@style/TextAppearance.SubtitleTranslator.Word" />
 
             <TextView
                 android:id="@+id/tvPhonetic"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:textSize="12sp"
-                android:textColor="@color/text_secondary" />
+                android:textAppearance="@style/TextAppearance.SubtitleTranslator.Phonetic" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
 
             <ImageButton
                 android:id="@+id/btnPronounce"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="@dimen/touch_target"
+                android:layout_height="@dimen/touch_target"
                 android:layout_marginStart="4dp"
-                android:padding="8dp"
+                android:padding="@dimen/icon_button_padding"
                 android:scaleType="fitCenter"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_volume_up"
@@ -64,9 +66,9 @@
 
             <ImageButton
                 android:id="@+id/btnDelete"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:padding="8dp"
+                android:layout_width="@dimen/touch_target"
+                android:layout_height="@dimen/touch_target"
+                android:padding="@dimen/icon_button_padding"
                 android:scaleType="fitCenter"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_delete"
@@ -78,15 +80,13 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
-            android:textSize="12sp"
-            android:textColor="@android:color/holo_blue_light"
-            android:lineSpacingMultiplier="1.2" />
+            android:textAppearance="@style/TextAppearance.SubtitleTranslator.Meaning" />
 
         <TextView
             android:id="@+id/tvAddedAt"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="4dp"
             android:textSize="11sp"
             android:textColor="@color/text_secondary" />
     </LinearLayout>

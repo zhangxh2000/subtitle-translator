@@ -8,7 +8,7 @@
         android:layout_width="32dp"
         android:layout_height="32dp"
         android:layout_gravity="center"
-        android:src="@drawable/ic_translate"
+        android:src="@drawable/ic_translate_dark"
         android:contentDescription="@string/app_name" />
 
 </FrameLayout>

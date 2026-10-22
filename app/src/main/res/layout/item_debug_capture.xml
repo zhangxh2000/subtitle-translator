@@ -6,17 +6,16 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
-    android:background="@drawable/bg_word_item"
+    android:layout_marginTop="12dp"
+    android:background="@drawable/bg_card"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="16dp">
 
     <TextView
         android:id="@+id/tvTime"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="12sp"
-        android:textColor="@color/text_secondary" />
+        android:textAppearance="@style/TextAppearance.SubtitleTranslator.Caption" />
 
     <TextView
         android:id="@+id/tvError"
@@ -24,7 +23,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:textSize="12sp"
-        android:textColor="@android:color/holo_red_light"
+        android:textColor="@color/difficulty_hard_text"
         android:visibility="gone" />
 
     <TextView
@@ -32,17 +31,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:textSize="11sp"
-        android:textColor="@color/text_secondary" />
+        android:textAppearance="@style/TextAppearance.SubtitleTranslator.Caption" />
 
     <TextView
         android:id="@+id/tvOcrText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:textSize="13sp"
-        android:textColor="@android:color/white"
-        android:lineSpacingMultiplier="1.2" />
+        android:textAppearance="@style/TextAppearance.SubtitleTranslator.Body" />
 
     <LinearLayout
         android:layout_width="match_parent"

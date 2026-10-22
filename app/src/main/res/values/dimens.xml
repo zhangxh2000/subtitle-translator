@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 间距 -->
+    <dimen name="space_xs">4dp</dimen>
+    <dimen name="space_sm">8dp</dimen>
+    <dimen name="space_md">12dp</dimen>
+    <dimen name="space_lg">16dp</dimen>
+    <dimen name="space_xl">24dp</dimen>
+    <dimen name="space_2xl">32dp</dimen>
+    <dimen name="page_padding">24dp</dimen>
+
+    <!-- 圆角 -->
+    <dimen name="card_radius">12dp</dimen>
+    <dimen name="panel_radius">20dp</dimen>
+
+    <!-- 控件尺寸 -->
+    <dimen name="touch_target">48dp</dimen>
+    <dimen name="icon_button_padding">14dp</dimen>
+</resources>

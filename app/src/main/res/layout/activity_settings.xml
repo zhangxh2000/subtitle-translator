@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@android:color/background_dark">
+    android:background="@color/screen_bg">
 
     <!-- 标题栏 -->
     <LinearLayout
@@ -12,12 +12,15 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="16dp">
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="16dp">
 
         <ImageButton
             android:id="@+id/btnBack"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="@dimen/touch_target"
+            android:layout_height="@dimen/touch_target"
+            android:padding="@dimen/icon_button_padding"
+            android:scaleType="fitCenter"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_close"
             android:contentDescription="返回" />
@@ -28,9 +31,7 @@
             android:layout_weight="1"
             android:layout_marginStart="16dp"
             android:text="设置"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:textColor="@android:color/white" />
+            android:textAppearance="@style/TextAppearance.SubtitleTranslator.ScreenTitle" />
     </LinearLayout>
 
     <!-- 设置项较多，小屏或横屏下可能超出屏幕，包一层滚动容器 -->
@@ -58,7 +59,7 @@
             android:layout_height="48dp"
             android:layout_marginTop="8dp"
             android:paddingHorizontal="12dp"
-            android:background="@drawable/bg_word_item" />
+            android:background="@drawable/bg_card" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -74,7 +75,7 @@
             android:layout_height="48dp"
             android:layout_marginTop="8dp"
             android:paddingHorizontal="12dp"
-            android:background="@drawable/bg_word_item" />
+            android:background="@drawable/bg_card" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -90,7 +91,7 @@
             android:layout_height="48dp"
             android:layout_marginTop="8dp"
             android:paddingHorizontal="12dp"
-            android:background="@drawable/bg_word_item" />
+            android:background="@drawable/bg_card" />
 
         <TextView
             android:id="@+id/tvEngineHint"
@@ -122,13 +123,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:background="@drawable/bg_word_item"
+                android:background="@drawable/bg_card"
                 android:hint="例如 2025010100000001"
                 android:importantForAutofill="no"
                 android:inputType="text"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="12dp"
-                android:textColor="@android:color/white"
+                android:textColor="@color/text_primary"
                 android:textColorHint="@color/text_secondary"
                 android:textSize="15sp" />
 
@@ -145,13 +146,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:background="@drawable/bg_word_item"
+                android:background="@drawable/bg_card"
                 android:hint="在控制台查看"
                 android:importantForAutofill="no"
                 android:inputType="textPassword"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="12dp"
-                android:textColor="@android:color/white"
+                android:textColor="@color/text_primary"
                 android:textColorHint="@color/text_secondary"
                 android:textSize="15sp" />
 
@@ -179,7 +180,7 @@
             android:layout_height="48dp"
             android:layout_marginTop="8dp"
             android:paddingHorizontal="12dp"
-            android:background="@drawable/bg_word_item" />
+            android:background="@drawable/bg_card" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -204,7 +205,7 @@
             android:layout_height="48dp"
             android:layout_marginTop="8dp"
             android:paddingHorizontal="12dp"
-            android:background="@drawable/bg_word_item" />
+            android:background="@drawable/bg_card" />
 
         <TextView
             android:id="@+id/tvPreprocessHint"
@@ -229,18 +230,16 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="保存识别过程截图"
-            android:textColor="@android:color/white"
+            android:textColor="@color/text_primary"
             android:textSize="15sp" />
 
         <Button
             android:id="@+id/btnViewDebugCaptures"
-            style="?attr/materialButtonOutlinedStyle"
-            app:strokeColor="@color/button_outline"
+            style="@style/Widget.SubtitleTranslator.Button.Outlined"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="查看最近记录"
-            android:textColor="@android:color/white" />
+            android:text="查看最近记录" />
 
         <TextView
             android:layout_width="wrap_content"

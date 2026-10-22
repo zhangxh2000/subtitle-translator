@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@android:color/background_dark">
+    android:background="@color/screen_bg">
 
     <!-- 标题栏 -->
     <LinearLayout
@@ -12,12 +12,15 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="16dp">
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="16dp">
 
         <ImageButton
             android:id="@+id/btnBack"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="@dimen/touch_target"
+            android:layout_height="@dimen/touch_target"
+            android:padding="@dimen/icon_button_padding"
+            android:scaleType="fitCenter"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_close"
             android:contentDescription="返回" />
@@ -28,18 +31,14 @@
             android:layout_weight="1"
             android:layout_marginStart="16dp"
             android:text="翻译历史"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:textColor="@android:color/white" />
+            android:textAppearance="@style/TextAppearance.SubtitleTranslator.ScreenTitle" />
 
         <Button
             android:id="@+id/btnClear"
-            style="?attr/materialButtonOutlinedStyle"
-            app:strokeColor="@color/button_outline"
+            style="@style/Widget.SubtitleTranslator.Button.Outlined"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="清空"
-            android:textColor="@android:color/white" />
+            android:text="清空" />
     </LinearLayout>
 
     <TextView
@@ -48,7 +47,7 @@
         android:layout_height="match_parent"
         android:gravity="center"
         android:text="暂无翻译记录"
-        android:textSize="16sp"
+        android:textSize="15sp"
         android:textColor="@color/text_secondary"
         android:visibility="visible" />
 
@@ -56,7 +55,7 @@
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="8dp"
+        android:padding="16dp"
         android:clipToPadding="false"
         android:visibility="gone" />
 

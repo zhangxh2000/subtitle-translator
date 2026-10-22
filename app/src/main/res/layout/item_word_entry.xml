@@ -3,38 +3,41 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:padding="8dp"
-    android:layout_marginTop="4dp"
-    android:background="@drawable/bg_word_item">
+    android:padding="16dp"
+    android:layout_marginTop="12dp"
+    android:background="@drawable/bg_card">
 
     <!--
-      难度标识：要与单词在同一水平线上。
-      右边那行被朗读按钮撑到 40dp、单词在该行内垂直居中（依赖下面关掉的 baseline 对齐），
-      而标识只有 24dp，所以下移 (40-24)/2 = 8dp 才能对齐 —— 改按钮高度时这个值要跟着改。
-      回归用例：TranslationOverlayViewTest「difficulty badge is vertically aligned with the word」
+      难度标签：要与单词行中心对齐。
+      单词行被 48dp 的朗读/收藏按钮撑高，标签高 24dp，
+      所以下移 (48-24)/2 = 12dp —— 改按钮高度时这个值要跟着改。
+      标签形状固定，颜色在运行时按难度用 backgroundTintList 上色。
     -->
     <TextView
         android:id="@+id/tvDifficulty"
-        android:layout_width="24dp"
+        android:layout_width="wrap_content"
         android:layout_height="24dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="12dp"
+        android:minWidth="32dp"
+        android:paddingHorizontal="8dp"
         android:gravity="center"
-        android:textSize="10sp"
-        android:textColor="@android:color/white"
-        android:background="@drawable/bg_difficulty" />
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:textColor="@color/difficulty_medium_text"
+        android:background="@drawable/bg_difficulty_tag" />
 
     <!-- 单词信息 -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="12dp"
         android:orientation="vertical">
 
         <!--
           必须关闭 baseline 对齐：水平 LinearLayout 默认按文字基线排列，
-          这行里塞进 40dp 的朗读按钮后，单词会被贴到行顶部而不是垂直居中，
-          gravity="center_vertical" 形同虚设，右侧难度标识也就对不上了。
+          这行里塞进 48dp 的图标按钮后，单词会被贴到行顶部而不是垂直居中，
+          gravity="center_vertical" 形同虚设，右侧难度标签也就对不上了。
         -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -47,39 +50,37 @@
                 android:id="@+id/tvWord"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:textColor="@android:color/white" />
+                android:textAppearance="@style/TextAppearance.SubtitleTranslator.Word" />
 
             <TextView
                 android:id="@+id/tvPhonetic"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:textSize="12sp"
-                android:textColor="@color/text_secondary" />
+                android:textAppearance="@style/TextAppearance.SubtitleTranslator.Phonetic" />
 
-            <!--
-              朗读按钮：点击区域 40dp，图标只有 24dp —— padding 必须留着，
-              否则 ImageButton 默认的 fitCenter 会把矢量图放大到撑满整个点击区。
-            -->
+            <!-- 弹性留白：把两个图标按钮推到行尾，长单词不会把它们挤出去 -->
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
             <ImageButton
                 android:id="@+id/btnPronounce"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="@dimen/touch_target"
+                android:layout_height="@dimen/touch_target"
                 android:layout_marginStart="4dp"
-                android:padding="8dp"
+                android:padding="@dimen/icon_button_padding"
                 android:scaleType="fitCenter"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_volume_up"
                 android:contentDescription="朗读" />
 
-            <!-- 收藏按钮：与朗读按钮同样的 40dp 点击区 / 24dp 图标 -->
             <ImageButton
                 android:id="@+id/btnSaveWord"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:padding="8dp"
+                android:layout_width="@dimen/touch_target"
+                android:layout_height="@dimen/touch_target"
+                android:padding="@dimen/icon_button_padding"
                 android:scaleType="fitCenter"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_bookmark_border"
@@ -91,9 +92,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
-            android:textSize="12sp"
-            android:textColor="@android:color/holo_blue_light"
-            android:lineSpacingMultiplier="1.2" />
+            android:textAppearance="@style/TextAppearance.SubtitleTranslator.Meaning" />
     </LinearLayout>
 
 </LinearLayout>

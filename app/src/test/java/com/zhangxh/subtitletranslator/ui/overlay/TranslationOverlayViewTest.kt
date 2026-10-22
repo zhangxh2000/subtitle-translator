@@ -417,6 +417,20 @@ class TranslationOverlayViewTest {
         assertTrue("点收藏不应触发复制", copied.isEmpty())
     }
 
+    /** 重点词汇标题行要显示词数；没有生词时隐藏 */
+    @Test
+    fun `word count follows the result`() {
+        val overlay = overlay()
+        overlay.setTranslationResult(longResult(wordCount = 3))
+
+        val count = requireNotNull(overlay.findViewById<TextView>(R.id.tvWordCount))
+        assertEquals(View.VISIBLE, count.visibility)
+        assertEquals("3 个词", count.text.toString())
+
+        overlay.setTranslationResult(longResult(wordCount = 0))
+        assertEquals(View.GONE, count.visibility)
+    }
+
     private inline fun <reified T : View> hasAncestor(view: View): Boolean {
         var parent = view.parent
         while (parent != null) {
