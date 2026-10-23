@@ -19,6 +19,7 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -139,6 +140,9 @@ class FloatingButtonService : Service() {
     private lateinit var settingsStore: SettingsStore
     private var mediaProjection: MediaProjection? = null
     private var isShowingTranslation = false
+
+    /** 当前的暂停是否由本服务发出，关闭面板时只恢复自己暂停过的媒体 */
+    private var mediaPausedByApp = false
 
     /**
      * 是否有一次翻译正在进行
@@ -311,7 +315,9 @@ class FloatingButtonService : Service() {
                 targetLang = targetLang,
                 // 用回调而不是传布尔值：开关打开后立刻生效，不必重启服务
                 isDebugCaptureEnabled = { settingsStore.debugCaptureEnabled },
-                preprocessMode = { settingsStore.preprocessMode }
+                preprocessMode = { settingsStore.preprocessMode },
+                // 截图完成后再暂停视频：部分 App 暂停时会显示控制条，不能让它进入截图
+                onScreenshotCaptured = { serviceScope.launch { pauseMedia() } }
             )
 
             // 预加载翻译环境与词典
@@ -619,8 +625,8 @@ class FloatingButtonService : Service() {
 
         serviceScope.launch {
             try {
-                // 暂停视频播放
-                toggleMediaPlayback()
+                // 注意：暂停媒体的时机在 TranslationCoordinator 截图成功之后（见 onScreenshotCaptured），
+                // 这样 YouTube 等 App 的暂停控件不会出现在 OCR 截图里
 
                 // 执行翻译
                 val result = translationCoordinator?.translateSubtitle()
@@ -636,8 +642,8 @@ class FloatingButtonService : Service() {
                         ?.resolve(this@FloatingButtonService)
                         ?: getString(R.string.service_translation_failed)
                     Toast.makeText(this@FloatingButtonService, message, Toast.LENGTH_SHORT).show()
-                    // 恢复播放
-                    toggleMediaPlayback()
+                    // 只恢复由本服务暂停的媒体
+                    resumeMedia()
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "显示翻译失败", e)
@@ -646,7 +652,7 @@ class FloatingButtonService : Service() {
                     getString(R.string.service_translation_error, e.message),
                     Toast.LENGTH_SHORT
                 ).show()
-                toggleMediaPlayback()
+                resumeMedia()
             } finally {
                 isTranslating = false
             }
@@ -660,8 +666,8 @@ class FloatingButtonService : Service() {
         removeOverlayView(animated = true)
         isShowingTranslation = false
 
-        // 恢复视频播放
-        toggleMediaPlayback()
+        // 只恢复由本服务暂停的媒体
+        resumeMedia()
     }
 
     /**
@@ -779,7 +785,7 @@ class FloatingButtonService : Service() {
             Log.e(TAG, "添加翻译覆盖层失败", e)
             overlayView = null
             isShowingTranslation = false
-            toggleMediaPlayback()
+            resumeMedia()
         }
     }
 
@@ -879,44 +885,48 @@ class FloatingButtonService : Service() {
     }
 
     /**
-     * 切换媒体播放/暂停
-     * 使用 KEYCODE_MEDIA_PLAY 和 KEYCODE_MEDIA_PAUSE 分别控制，避免某些App将 PLAY_PAUSE 识别为下一首
+     * 暂停媒体
+     *
+     * 只在本服务确实发出暂停键后把 [mediaPausedByApp] 置位，
+     * 关闭面板时据此决定要不要恢复，避免把用户自己暂停的视频重新播放。
      */
-    private fun toggleMediaPlayback() {
+    private fun pauseMedia() {
+        if (mediaPausedByApp) return
         try {
-            Log.d(TAG, "toggleMediaPlayback")
             val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-
-            // 检查当前是否有音乐在播放
-            val isPlaying = audioManager.isMusicActive
-
-            // 根据当前状态发送对应的按键事件
-            val keyCode = if (isPlaying) {
-                android.view.KeyEvent.KEYCODE_MEDIA_PAUSE
-            } else {
-                android.view.KeyEvent.KEYCODE_MEDIA_PLAY
+            if (!audioManager.isMusicActive) {
+                Log.d(TAG, "没有正在播放的媒体，跳过暂停")
+                return
             }
-
-            // 发送 DOWN 事件
-            audioManager.dispatchMediaKeyEvent(
-                android.view.KeyEvent(
-                    android.view.KeyEvent.ACTION_DOWN,
-                    keyCode
-                )
-            )
-
-            // 发送 UP 事件
-            audioManager.dispatchMediaKeyEvent(
-                android.view.KeyEvent(
-                    android.view.KeyEvent.ACTION_UP,
-                    keyCode
-                )
-            )
-
-            Log.d(TAG, "发送按键: ${if (isPlaying) "PAUSE" else "PLAY"}")
+            dispatchMediaKey(audioManager, KeyEvent.KEYCODE_MEDIA_PAUSE)
+            mediaPausedByApp = true
         } catch (e: Exception) {
-            Log.e(TAG, "切换播放状态失败", e)
+            Log.e(TAG, "暂停媒体失败", e)
         }
+    }
+
+    /** 只恢复由本服务暂停的媒体 */
+    private fun resumeMedia() {
+        if (!mediaPausedByApp) return
+        mediaPausedByApp = false
+        try {
+            val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            dispatchMediaKey(audioManager, KeyEvent.KEYCODE_MEDIA_PLAY)
+        } catch (e: Exception) {
+            Log.e(TAG, "恢复媒体播放失败", e)
+        }
+    }
+
+    /**
+     * 发送媒体键
+     *
+     * 用 KEYCODE_MEDIA_PLAY / KEYCODE_MEDIA_PAUSE 分别控制，
+     * 避免某些 App 把 PLAY_PAUSE 识别成下一首。
+     */
+    private fun dispatchMediaKey(audioManager: AudioManager, keyCode: Int) {
+        audioManager.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
+        audioManager.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keyCode))
+        Log.d(TAG, "发送媒体键: ${if (keyCode == KeyEvent.KEYCODE_MEDIA_PAUSE) "PAUSE" else "PLAY"}")
     }
 
     /**
@@ -1022,6 +1032,8 @@ class FloatingButtonService : Service() {
         dismissQuickMenu()
         removeOverlayView()
         isShowingTranslation = false
+        // 服务销毁 / 重新授权时，别把视频留在暂停状态
+        resumeMedia()
 
         translationCoordinator?.release()
         translationCoordinator = null

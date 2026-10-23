@@ -46,7 +46,15 @@ class TranslationCoordinator(
      * 同样用回调：字幕与背景颜色接近时固定阈值会让文字消失，
      * 需要能在真机上切换对比，不必重启服务。
      */
-    private val preprocessMode: () -> OcrPreprocessMode = { OcrPreprocessMode.DEFAULT }
+    private val preprocessMode: () -> OcrPreprocessMode = { OcrPreprocessMode.DEFAULT },
+    /**
+     * 截图成功后的回调
+     *
+     * 视频暂停后部分 App（例如 YouTube）会显示进度条/播放按钮等暂停控件，
+     * 这些控件被截进图片会干扰 OCR。把「暂停」放在截图之后执行，
+     * 保证 OCR 用的截图里是干净的播放画面。
+     */
+    private val onScreenshotCaptured: () -> Unit = {}
 ) {
 
     companion object {
@@ -93,6 +101,9 @@ class TranslationCoordinator(
             Log.d(TAG, "开始截图")
             screenshot = screenCapture.captureScreen()
                 ?: return@withContext fail(TranslationError(AppError.CAPTURE_FAILED))
+
+            // 截图已经拿到，这时再暂停媒体：暂停控件不会出现在上面的截图里
+            onScreenshotCaptured()
 
             // 2. 裁剪字幕区域（底部 1/3）
             val cropped = cropSubtitleArea(screenshot)

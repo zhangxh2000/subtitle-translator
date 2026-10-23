@@ -270,6 +270,9 @@ python3 scripts/import_ecdict.py --csv ecdict.csv --lemma lemma.en.txt
 
 ## 最近更新
 
+- 优化截图时机：先截屏再暂停媒体，避免 YouTube 等 App 的暂停控件进入截图影响 OCR；
+  媒体控制改为带状态的暂停/恢复，只恢复由本应用暂停的媒体
+
 - 全应用文案资源化：默认英文，新增简体中文（`values-b+zh+Hans`）与繁体中文
   （`values-b+zh+Hant`）；翻译引擎报错改为错误码、由 UI 层本地化，调试记录兼容旧格式
 
