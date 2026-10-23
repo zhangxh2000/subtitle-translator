@@ -23,14 +23,14 @@
             android:scaleType="fitCenter"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_close"
-            android:contentDescription="返回" />
+            android:contentDescription="@string/action_back" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="16dp"
-            android:text="生词库"
+            android:text="@string/main_vocabulary"
             android:textAppearance="@style/TextAppearance.SubtitleTranslator.ScreenTitle" />
 
         <Button
@@ -38,7 +38,7 @@
             style="@style/Widget.SubtitleTranslator.Button.Outlined"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="清空" />
+            android:text="@string/action_clear" />
     </LinearLayout>
 
     <TextView
@@ -46,7 +46,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center"
-        android:text="暂无生词\n\n在翻译结果中点击书签图标即可收藏"
+        android:text="@string/vocabulary_empty"
         android:textSize="15sp"
         android:textColor="@color/text_secondary"
         android:lineSpacingMultiplier="1.3"

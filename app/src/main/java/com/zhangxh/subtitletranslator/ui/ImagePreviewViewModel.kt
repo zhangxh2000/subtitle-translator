@@ -6,7 +6,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.ui.common.Event
+import com.zhangxh.subtitletranslator.ui.common.UiText
 import com.zhangxh.subtitletranslator.util.DebugCaptureStore
 import kotlinx.coroutines.launch
 import java.io.File
@@ -26,13 +28,13 @@ class ImagePreviewViewModel @JvmOverloads constructor(
     private val _uiState = MutableLiveData(ImagePreviewUiState())
     val uiState: LiveData<ImagePreviewUiState> = _uiState
 
-    private val _messages = MutableLiveData<Event<String>>()
-    val messages: LiveData<Event<String>> = _messages
+    private val _messages = MutableLiveData<Event<UiText>>()
+    val messages: LiveData<Event<UiText>> = _messages
 
     /** 按屏幕宽度解码，保证 1:1 左右显示，能看清笔画细节 */
     fun load(sessionId: String, fileName: String, maxWidthPx: Int) {
         if (sessionId.isEmpty() || fileName.isEmpty()) {
-            _messages.value = Event("图片读取失败")
+            _messages.value = Event(UiText(R.string.preview_load_failed))
             return
         }
         viewModelScope.launch {
@@ -40,7 +42,7 @@ class ImagePreviewViewModel @JvmOverloads constructor(
             if (bitmap != null) {
                 _uiState.value = ImagePreviewUiState(bitmap)
             } else {
-                _messages.value = Event("图片读取失败")
+                _messages.value = Event(UiText(R.string.preview_load_failed))
             }
         }
     }

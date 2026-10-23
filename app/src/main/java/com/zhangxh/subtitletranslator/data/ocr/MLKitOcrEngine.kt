@@ -5,6 +5,8 @@ import android.util.Log
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import com.zhangxh.subtitletranslator.domain.error.AppError
+import com.zhangxh.subtitletranslator.domain.error.TranslationError
 import com.zhangxh.subtitletranslator.domain.ocr.BoundingBox
 import com.zhangxh.subtitletranslator.domain.ocr.IOcrEngine
 import com.zhangxh.subtitletranslator.domain.ocr.OcrResult
@@ -57,7 +59,7 @@ class MLKitOcrEngine : IOcrEngine {
                 Log.e(TAG, "OCR 识别失败", e)
                 OcrResult(
                     isSuccess = false,
-                    errorMessage = e.message ?: "未知错误"
+                    error = TranslationError(AppError.OCR_FAILED, e.message)
                 )
             }
         }

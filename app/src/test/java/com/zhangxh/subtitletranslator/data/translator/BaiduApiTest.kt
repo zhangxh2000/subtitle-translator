@@ -1,5 +1,7 @@
 package com.zhangxh.subtitletranslator.data.translator
 
+import com.zhangxh.subtitletranslator.domain.error.AppError
+import com.zhangxh.subtitletranslator.domain.error.TranslationException
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -102,26 +104,25 @@ class BaiduApiTest {
         assertEquals("第一行\n第二行", BaiduApi.parseResponse(json).getOrThrow())
     }
 
-    /** 错误码要翻译成能直接展示给用户的中文说明 */
+    /** 错误码要映射成应用错误码，由 UI 层翻译成当前语言 */
     @Test
-    fun `maps error code to a readable message`() {
+    fun `maps error code to an app error`() {
         val json = """{"error_code":"54001","error_msg":"Invalid Sign"}"""
 
         val error = BaiduApi.parseResponse(json).exceptionOrNull()
 
-        assertTrue("应带上错误码", error is BaiduTranslationException)
-        assertEquals("54001", (error as BaiduTranslationException).errorCode)
-        assertTrue("应提示检查密钥: ${error.message}", error.message!!.contains("密钥"))
+        assertTrue("应带上错误码", error is TranslationException)
+        assertEquals(AppError.BAIDU_SIGN_ERROR, (error as TranslationException).error.code)
     }
 
-    /** 额度耗尽是最常见的问题之一，提示要说清楚 */
+    /** 额度耗尽是最常见的问题之一，要能区分出来 */
     @Test
-    fun `explains quota exhausted`() {
+    fun `maps quota exhausted`() {
         val json = """{"error_code":"54004","error_msg":"Account balance is insufficient"}"""
 
-        val message = BaiduApi.parseResponse(json).exceptionOrNull()?.message.orEmpty()
+        val error = BaiduApi.parseResponse(json).exceptionOrNull() as TranslationException
 
-        assertTrue("应说明是额度问题: $message", message.contains("额度"))
+        assertEquals(AppError.BAIDU_QUOTA_EXCEEDED, error.error.code)
     }
 
     /**
@@ -136,19 +137,22 @@ class BaiduApiTest {
 
         val error = BaiduApi.parseResponse(json).exceptionOrNull()
 
-        assertTrue(error is BaiduTranslationException)
-        assertEquals("52003", (error as BaiduTranslationException).errorCode)
-        assertTrue("应提示检查 APP ID: ${error.message}", error.message!!.contains("APP ID"))
+        assertTrue(error is TranslationException)
+        assertEquals(AppError.BAIDU_UNAUTHORIZED, (error as TranslationException).error.code)
     }
 
-    /** 未收录的错误码退化为展示原始信息，不能吞掉 */
+    /** 未收录的错误码保留原始信息，不能吞掉 */
     @Test
     fun `falls back to raw message for unknown error code`() {
         val json = """{"error_code":"99999","error_msg":"Some new error"}"""
 
-        val message = BaiduApi.parseResponse(json).exceptionOrNull()?.message.orEmpty()
+        val error = BaiduApi.parseResponse(json).exceptionOrNull() as TranslationException
 
-        assertTrue(message.contains("Some new error"))
+        assertEquals(AppError.UNKNOWN, error.error.code)
+        assertTrue(
+            "应保留原始信息: ${error.error.detail}",
+            error.error.detail?.contains("Some new error") == true
+        )
     }
 
     /** 错误码在不同版本里可能是数字，也要能处理 */
@@ -158,8 +162,8 @@ class BaiduApiTest {
 
         val error = BaiduApi.parseResponse(json).exceptionOrNull()
 
-        assertTrue(error is BaiduTranslationException)
-        assertEquals("54001", (error as BaiduTranslationException).errorCode)
+        assertTrue(error is TranslationException)
+        assertEquals(AppError.BAIDU_SIGN_ERROR, (error as TranslationException).error.code)
     }
 
     @Test

@@ -270,6 +270,9 @@ python3 scripts/import_ecdict.py --csv ecdict.csv --lemma lemma.en.txt
 
 ## 最近更新
 
+- 全应用文案资源化：默认英文，新增简体中文（`values-b+zh+Hans`）与繁体中文
+  （`values-b+zh+Hant`）；翻译引擎报错改为错误码、由 UI 层本地化，调试记录兼容旧格式
+
 - 架构改造：全部界面切换为 MVVM —— Activity 只做渲染与系统交互，权限编排、设置持久化、
   数据读写全部移入 ViewModel；设置项抽到 `SettingsStore`，翻译历史抽到 `TranslationHistoryStore`；
   新增 `CLAUDE.md` 记录架构约束

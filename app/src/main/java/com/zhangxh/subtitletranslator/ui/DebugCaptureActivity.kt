@@ -9,10 +9,13 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.annotation.StringRes
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
+import com.zhangxh.subtitletranslator.ui.common.labelRes
+import com.zhangxh.subtitletranslator.ui.common.toUiText
 import com.zhangxh.subtitletranslator.util.CaptureRecord
 import com.zhangxh.subtitletranslator.util.DebugCaptureStore
 import java.text.SimpleDateFormat
@@ -59,25 +62,25 @@ class DebugCaptureActivity : BaseActivity() {
         }
         viewModel.messages.observe(this) { event ->
             event.getContentIfNotHandled()?.let { message ->
-                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, message.resolve(this), Toast.LENGTH_SHORT).show()
             }
         }
     }
 
     /** 打开单张图片的大图查看 */
-    private fun openPreview(record: CaptureRecord, fileName: String, label: String) {
+    private fun openPreview(record: CaptureRecord, fileName: String, @StringRes labelRes: Int) {
         startActivity(
             Intent(this, ImagePreviewActivity::class.java).apply {
                 putExtra(ImagePreviewActivity.EXTRA_SESSION_ID, record.id)
                 putExtra(ImagePreviewActivity.EXTRA_FILE_NAME, fileName)
-                putExtra(ImagePreviewActivity.EXTRA_LABEL, label)
+                putExtra(ImagePreviewActivity.EXTRA_LABEL_RES, labelRes)
             }
         )
     }
 
     private class CaptureAdapter(
         private val loadThumbnail: (String, String, (android.graphics.Bitmap?) -> Unit) -> Unit,
-        private val onOpenPreview: (CaptureRecord, String, String) -> Unit
+        private val onOpenPreview: (CaptureRecord, String, Int) -> Unit
     ) : RecyclerView.Adapter<CaptureAdapter.ViewHolder>() {
 
         private var items: List<CaptureRecord> = emptyList()
@@ -110,32 +113,52 @@ class DebugCaptureActivity : BaseActivity() {
             private val imgProcessed: ImageView = itemView.findViewById(R.id.imgProcessed)
 
             fun bind(record: CaptureRecord) {
+                val context = itemView.context
                 tvTime.text = formatHeader(record)
 
-                if (record.isFailed) {
+                val error = record.error
+                if (error != null) {
                     tvError.visibility = View.VISIBLE
-                    tvError.text = "识别失败：${record.errorMessage}"
+                    tvError.text = context.getString(
+                        R.string.debug_error_prefix,
+                        error.toUiText().resolve(context)
+                    )
                 } else {
                     tvError.visibility = View.GONE
                 }
 
                 tvCropInfo.text = formatCropInfo(record)
                 tvOcrText.text = if (record.ocrRawText.isBlank()) {
-                    "识别文本：（空）"
+                    context.getString(R.string.debug_ocr_text_empty)
                 } else {
-                    "识别文本：${record.ocrRawText}"
+                    context.getString(R.string.debug_ocr_text_prefix, record.ocrRawText)
                 }
 
-                bindImage(imgScreenshot, record, DebugCaptureStore.FILE_SCREENSHOT, "原始截图")
-                bindImage(imgSubtitle, record, DebugCaptureStore.FILE_SUBTITLE, "裁剪区域")
-                bindImage(imgProcessed, record, DebugCaptureStore.FILE_PROCESSED, "预处理图")
+                bindImage(
+                    imgScreenshot,
+                    record,
+                    DebugCaptureStore.FILE_SCREENSHOT,
+                    R.string.debug_caption_screenshot
+                )
+                bindImage(
+                    imgSubtitle,
+                    record,
+                    DebugCaptureStore.FILE_SUBTITLE,
+                    R.string.debug_caption_crop
+                )
+                bindImage(
+                    imgProcessed,
+                    record,
+                    DebugCaptureStore.FILE_PROCESSED,
+                    R.string.debug_caption_processed_full
+                )
             }
 
             private fun bindImage(
                 imageView: ImageView,
                 record: CaptureRecord,
                 fileName: String,
-                label: String
+                @StringRes labelRes: Int
             ) {
                 // 用「会话 + 文件名」作为标识，避免列表复用后旧图覆盖新图
                 val tag = "${record.id}/$fileName"
@@ -147,7 +170,7 @@ class DebugCaptureActivity : BaseActivity() {
                     return
                 }
 
-                imageView.setOnClickListener { onOpenPreview(record, fileName, label) }
+                imageView.setOnClickListener { onOpenPreview(record, fileName, labelRes) }
                 loadThumbnail(record.id, fileName) { bitmap ->
                     if (imageView.tag == tag) {
                         imageView.setImageBitmap(bitmap)
@@ -156,21 +179,48 @@ class DebugCaptureActivity : BaseActivity() {
             }
 
             private fun formatHeader(record: CaptureRecord): String {
+                val context = itemView.context
                 val time = SimpleDateFormat("MM-dd HH:mm:ss", Locale.getDefault())
                     .format(Date(record.timestamp))
                 val crop = record.cropInfo ?: return time
-                return "$time · ${crop.mode} ${crop.screenWidth}×${crop.screenHeight}"
+                return context.getString(
+                    R.string.debug_header,
+                    time,
+                    context.getString(crop.orientation.labelRes()),
+                    crop.screenWidth,
+                    crop.screenHeight
+                )
             }
 
             /** 把裁剪参数摊开写，方便判断字幕有没有落在裁剪框里 */
             private fun formatCropInfo(record: CaptureRecord): String {
+                val context = itemView.context
                 val crop = record.cropInfo
-                val mode = OcrPreprocessMode.fromName(record.preprocessMode).label
-                val preprocess = "缩放 ${record.scaleFactor}x · 预处理 $mode"
-                if (crop == null) return "裁剪参数缺失 · $preprocess"
+                val mode = context.getString(
+                    OcrPreprocessMode.fromName(record.preprocessMode).labelRes()
+                )
+                val preprocess = context.getString(
+                    R.string.debug_preprocess_info,
+                    record.scaleFactor,
+                    mode
+                )
+                if (crop == null) {
+                    return context.getString(R.string.debug_crop_missing, preprocess)
+                }
 
-                val estimate = if (crop.videoHeight > 0) " · 估算视频高 ${crop.videoHeight}" else ""
-                return "裁剪 y ${crop.top}~${crop.bottom}（高 ${crop.height}）$estimate · $preprocess"
+                val estimate = if (crop.videoHeight > 0) {
+                    context.getString(R.string.debug_video_height_estimate, crop.videoHeight)
+                } else {
+                    ""
+                }
+                return context.getString(
+                    R.string.debug_crop_range,
+                    crop.top,
+                    crop.bottom,
+                    crop.height,
+                    estimate,
+                    preprocess
+                )
             }
         }
     }

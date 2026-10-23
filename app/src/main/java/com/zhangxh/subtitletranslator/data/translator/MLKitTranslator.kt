@@ -6,6 +6,9 @@ import com.google.mlkit.common.model.DownloadConditions
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
+import com.zhangxh.subtitletranslator.domain.error.AppError
+import com.zhangxh.subtitletranslator.domain.error.TranslationError
+import com.zhangxh.subtitletranslator.domain.error.TranslationException
 import com.zhangxh.subtitletranslator.domain.translator.ITranslator
 import com.zhangxh.subtitletranslator.domain.translator.Language
 import kotlinx.coroutines.Dispatchers
@@ -61,7 +64,13 @@ class MLKitTranslator(private val context: Context) : ITranslator {
                 Result.success(Unit)
             } catch (e: Exception) {
                 Log.e(TAG, "准备翻译环境失败", e)
-                Result.failure(e)
+                Result.failure(
+                    e as? TranslationException
+                        ?: TranslationException(
+                            TranslationError(AppError.LANGUAGE_PACK_DOWNLOAD_FAILED, e.message),
+                            e
+                        )
+                )
             }
         }
 
@@ -74,9 +83,13 @@ class MLKitTranslator(private val context: Context) : ITranslator {
                 }
 
                 val result = translator?.translate(text)?.await()
-                    ?: throw IllegalStateException("Translator 未初始化")
+                    ?: throw TranslationException(
+                        TranslationError(AppError.TRANSLATOR_NOT_INITIALIZED)
+                    )
 
                 Result.success(result)
+            } catch (e: TranslationException) {
+                Result.failure(e)
             } catch (e: com.google.mlkit.common.MlKitException) {
                 // 如果是模型未找到错误，尝试重新下载
                 if (e.message?.contains("Translation model files not found") == true) {
@@ -88,19 +101,41 @@ class MLKitTranslator(private val context: Context) : ITranslator {
                         
                         // 再次尝试翻译
                         val result = translator?.translate(text)?.await()
-                            ?: throw IllegalStateException("Translator 未初始化")
+                            ?: throw TranslationException(
+                                TranslationError(AppError.TRANSLATOR_NOT_INITIALIZED)
+                            )
                         Result.success(result)
                     } catch (retryException: Exception) {
                         Log.e(TAG, "重试翻译失败: $text", retryException)
-                        Result.failure(retryException)
+                        Result.failure(
+                            retryException as? TranslationException
+                                ?: TranslationException(
+                                    TranslationError(
+                                        AppError.TRANSLATION_FAILED,
+                                        retryException.message
+                                    ),
+                                    retryException
+                                )
+                        )
                     }
                 } else {
                     Log.e(TAG, "翻译失败: $text", e)
-                    Result.failure(e)
+                    Result.failure(
+                        TranslationException(
+                            TranslationError(AppError.TRANSLATION_FAILED, e.message),
+                            e
+                        )
+                    )
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "翻译失败: $text", e)
-                Result.failure(e)
+                Result.failure(
+                    e as? TranslationException
+                        ?: TranslationException(
+                            TranslationError(AppError.TRANSLATION_FAILED, e.message),
+                            e
+                        )
+                )
             }
         }
 

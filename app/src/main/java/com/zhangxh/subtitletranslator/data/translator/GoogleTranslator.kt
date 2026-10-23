@@ -1,6 +1,9 @@
 package com.zhangxh.subtitletranslator.data.translator
 
 import android.util.Log
+import com.zhangxh.subtitletranslator.domain.error.AppError
+import com.zhangxh.subtitletranslator.domain.error.TranslationError
+import com.zhangxh.subtitletranslator.domain.error.TranslationException
 import com.zhangxh.subtitletranslator.domain.translator.ITranslator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -30,7 +33,9 @@ class GoogleTranslator : ITranslator {
             val toCode = GoogleApi.languageCode(to)
             if (fromCode == null || toCode == null) {
                 return@withContext Result.failure(
-                    IllegalStateException("Google 翻译不支持该语言方向：$from → $to")
+                    TranslationException(
+                        TranslationError(AppError.UNSUPPORTED_LANGUAGE_PAIR, "$from → $to")
+                    )
                 )
             }
 
@@ -40,7 +45,13 @@ class GoogleTranslator : ITranslator {
                 )
             } catch (e: Exception) {
                 Log.w(TAG, "Google 翻译失败: ${e.message}")
-                Result.failure(e)
+                Result.failure(
+                    e as? TranslationException
+                        ?: TranslationException(
+                            TranslationError(AppError.NETWORK_ERROR, e.message),
+                            e
+                        )
+                )
             }
         }
 

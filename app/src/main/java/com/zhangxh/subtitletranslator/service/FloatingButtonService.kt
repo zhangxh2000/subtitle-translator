@@ -42,7 +42,8 @@ import com.zhangxh.subtitletranslator.data.wordextractor.LocalWordExtractor
 import com.zhangxh.subtitletranslator.domain.TranslationCoordinator
 import com.zhangxh.subtitletranslator.domain.TranslationResult
 import com.zhangxh.subtitletranslator.domain.speech.IPronouncer
-import com.zhangxh.subtitletranslator.domain.speech.PronouncerError
+import com.zhangxh.subtitletranslator.ui.common.messageRes
+import com.zhangxh.subtitletranslator.ui.common.toUiText
 import com.zhangxh.subtitletranslator.domain.wordextractor.EnglishDifficultyAssessor
 import com.zhangxh.subtitletranslator.domain.wordextractor.NoOpWordExtractor
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordEntry
@@ -269,12 +270,12 @@ class FloatingButtonService : Service() {
 
             // 生词朗读：系统 TTS，引擎到用户第一次点喇叭时才真正创建
             pronouncer = AndroidTtsPronouncer(this) { error ->
-                val message = when (error) {
-                    PronouncerError.ENGINE_UNAVAILABLE -> "语音引擎不可用"
-                    PronouncerError.ENGLISH_VOICE_UNAVAILABLE -> "缺少英语语音数据，请在系统设置中下载"
-                }
                 Log.e(TAG, "朗读失败: $error")
-                Toast.makeText(this@FloatingButtonService, message, Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this@FloatingButtonService,
+                    getString(error.messageRes()),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
 
             val sourceLang = settingsStore.sourceLang
@@ -285,7 +286,7 @@ class FloatingButtonService : Service() {
             dictionaryProvider = provider
             // 生词筛选强度由用户在设置里选择，决定「重点词汇」显示多少词
             val difficultyFilter = settingsStore.difficultyFilter
-            Log.d(TAG, "生词筛选强度: ${difficultyFilter.label}")
+            Log.d(TAG, "生词筛选强度: ${difficultyFilter.name}")
             val wordExtractor = provider.repository(sourceLang)
                 ?.let { repository ->
                     LocalWordExtractor(
@@ -605,7 +606,7 @@ class FloatingButtonService : Service() {
         // 检查是否初始化成功
         if (translationCoordinator == null) {
             Log.e(TAG, "翻译协调器未初始化，无法执行翻译")
-            Toast.makeText(this, "翻译服务未就绪，请重新启动", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.service_not_ready, Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -630,14 +631,21 @@ class FloatingButtonService : Service() {
                     showTranslationOverlay(result)
                     isShowingTranslation = true
                 } else {
-                    Log.e(TAG, "翻译失败: ${result?.errorMessage}")
-                    Toast.makeText(this@FloatingButtonService, result?.errorMessage ?: "翻译失败", Toast.LENGTH_SHORT).show()
+                    Log.e(TAG, "翻译失败: ${result?.error}")
+                    val message = result?.error?.toUiText()
+                        ?.resolve(this@FloatingButtonService)
+                        ?: getString(R.string.service_translation_failed)
+                    Toast.makeText(this@FloatingButtonService, message, Toast.LENGTH_SHORT).show()
                     // 恢复播放
                     toggleMediaPlayback()
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "显示翻译失败", e)
-                Toast.makeText(this@FloatingButtonService, "翻译出错: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this@FloatingButtonService,
+                    getString(R.string.service_translation_error, e.message),
+                    Toast.LENGTH_SHORT
+                ).show()
                 toggleMediaPlayback()
             } finally {
                 isTranslating = false
@@ -811,11 +819,17 @@ class FloatingButtonService : Service() {
             val result = repository.toggle(entry)
             if (!result.success) {
                 Log.e(TAG, "保存生词失败: ${entry.word}")
-                Toast.makeText(this@FloatingButtonService, "保存失败，请稍后重试", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this@FloatingButtonService,
+                    R.string.service_save_word_failed,
+                    Toast.LENGTH_SHORT
+                ).show()
                 return@launch
             }
             overlayView?.setWordSaved(entry.word, result.saved)
-            val message = if (result.saved) "已加入生词库" else "已从生词库移除"
+            val message = getString(
+                if (result.saved) R.string.service_word_saved else R.string.service_word_removed
+            )
             Toast.makeText(this@FloatingButtonService, message, Toast.LENGTH_SHORT).show()
         }
     }
@@ -841,9 +855,9 @@ class FloatingButtonService : Service() {
      */
     private fun copyToClipboard(text: String) {
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val clip = ClipData.newPlainText("翻译结果", text)
+        val clip = ClipData.newPlainText(getString(R.string.clipboard_label_translation), text)
         clipboard.setPrimaryClip(clip)
-        Toast.makeText(this, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, R.string.toast_copied, Toast.LENGTH_SHORT).show()
     }
 
     /**
@@ -912,10 +926,10 @@ class FloatingButtonService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "字幕翻译服务",
+                getString(R.string.notification_channel_name),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "保持字幕翻译悬浮窗运行"
+                description = getString(R.string.notification_channel_description)
             }
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
@@ -945,12 +959,16 @@ class FloatingButtonService : Service() {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("字幕翻译助手")
-            .setContentText("悬浮窗运行中，点击打开应用")
+            .setContentTitle(getString(R.string.app_name))
+            .setContentText(getString(R.string.notification_text))
             .setSmallIcon(R.drawable.ic_translate)
             .setContentIntent(contentPendingIntent)
             .setOngoing(true)
-            .addAction(R.drawable.ic_close, "停止服务", stopPendingIntent)
+            .addAction(
+                R.drawable.ic_close,
+                getString(R.string.notification_stop_action),
+                stopPendingIntent
+            )
             .build()
     }
 

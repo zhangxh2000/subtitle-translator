@@ -27,7 +27,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="字幕翻译"
+            android:text="@string/overlay_title"
             android:textAppearance="@style/TextAppearance.SubtitleTranslator.ScreenTitle" />
 
         <ImageButton
@@ -38,7 +38,7 @@
             android:scaleType="fitCenter"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_close"
-            android:contentDescription="关闭" />
+            android:contentDescription="@string/action_close" />
     </LinearLayout>
 
     <ScrollView
@@ -57,7 +57,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="译文"
+                android:text="@string/overlay_translated_label"
                 android:textAppearance="@style/TextAppearance.SubtitleTranslator.SectionLabel" />
 
             <TextView
@@ -72,7 +72,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="原文对照"
+                android:text="@string/overlay_original_label"
                 android:textAppearance="@style/TextAppearance.SubtitleTranslator.SectionLabel" />
 
             <TextView
@@ -101,7 +101,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="重点词汇"
+                    android:text="@string/overlay_key_words"
                     android:textAppearance="@style/TextAppearance.SubtitleTranslator.SectionLabel" />
 
                 <TextView

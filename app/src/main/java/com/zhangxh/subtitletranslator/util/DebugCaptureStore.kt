@@ -4,6 +4,8 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
+import com.zhangxh.subtitletranslator.domain.error.AppError
+import com.zhangxh.subtitletranslator.domain.error.TranslationError
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -160,7 +162,7 @@ class DebugCaptureStore(private val context: Context) {
         json.put("scaleFactor", capture.scaleFactor.toDouble())
         json.put("preprocessMode", capture.preprocessMode)
         capture.cropInfo?.let { crop ->
-            json.put("mode", crop.mode)
+            json.put("orientation", crop.orientation.name)
             json.put("screenWidth", crop.screenWidth)
             json.put("screenHeight", crop.screenHeight)
             json.put("top", crop.top)
@@ -172,7 +174,10 @@ class DebugCaptureStore(private val context: Context) {
         json.put("ocrRawText", capture.ocrRawText)
         json.put("cleanedText", capture.cleanedText)
         json.put("translatedText", capture.translatedText)
-        json.put("errorMessage", capture.errorMessage.orEmpty())
+        capture.error?.let { error ->
+            json.put("errorCode", error.code.name)
+            error.detail?.let { json.put("errorDetail", it) }
+        }
         return json.toString(2)
     }
 
@@ -185,9 +190,9 @@ class DebugCaptureStore(private val context: Context) {
             CaptureRecord(
                 id = sessionDir.name,
                 timestamp = json.optLong("timestamp", sessionDir.lastModified()),
-                cropInfo = if (json.has("mode")) {
+                cropInfo = if (json.has("orientation") || json.has("mode")) {
                     CropInfo(
-                        mode = json.getString("mode"),
+                        orientation = parseOrientation(json),
                         screenWidth = json.optInt("screenWidth"),
                         screenHeight = json.optInt("screenHeight"),
                         top = json.optInt("top"),
@@ -202,7 +207,7 @@ class DebugCaptureStore(private val context: Context) {
                 ocrRawText = json.optString("ocrRawText"),
                 cleanedText = json.optString("cleanedText"),
                 translatedText = json.optString("translatedText"),
-                errorMessage = json.optString("errorMessage").ifBlank { null },
+                error = parseError(json),
                 imageFiles = listOf(FILE_SCREENSHOT, FILE_SUBTITLE, FILE_PROCESSED)
                     .filter { File(sessionDir, it).exists() }
             )
@@ -210,6 +215,33 @@ class DebugCaptureStore(private val context: Context) {
             Log.e(TAG, "读取调试记录失败: ${sessionDir.name}", e)
             null
         }
+    }
+
+    /** 读取屏幕方向，兼容旧记录里的「横屏 / 竖屏」 */
+    private fun parseOrientation(json: JSONObject): CaptureOrientation {
+        val name = json.optString("orientation")
+        if (name.isNotBlank()) {
+            return runCatching { CaptureOrientation.valueOf(name) }
+                .getOrDefault(CaptureOrientation.UNKNOWN)
+        }
+        return when (json.optString("mode")) {
+            "横屏" -> CaptureOrientation.LANDSCAPE
+            "竖屏" -> CaptureOrientation.PORTRAIT
+            else -> CaptureOrientation.UNKNOWN
+        }
+    }
+
+    /** 读取错误码，兼容旧记录里只有 errorMessage 的情况 */
+    private fun parseError(json: JSONObject): TranslationError? {
+        val code = json.optString("errorCode")
+        if (code.isNotBlank()) {
+            val appError = runCatching { AppError.valueOf(code) }
+                .getOrDefault(AppError.UNKNOWN)
+            return TranslationError(appError, json.optString("errorDetail").ifBlank { null })
+        }
+
+        val legacyMessage = json.optString("errorMessage").ifBlank { null } ?: return null
+        return TranslationError(AppError.UNKNOWN, legacyMessage)
     }
 
     /** 跳过已回收的 Bitmap，避免写文件时抛异常 */

@@ -6,7 +6,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.ui.common.Event
+import com.zhangxh.subtitletranslator.ui.common.UiText
 import com.zhangxh.subtitletranslator.util.CaptureRecord
 import com.zhangxh.subtitletranslator.util.DebugCaptureStore
 import kotlinx.coroutines.launch
@@ -27,8 +29,8 @@ class DebugCaptureViewModel @JvmOverloads constructor(
     private val _uiState = MutableLiveData(DebugCaptureUiState())
     val uiState: LiveData<DebugCaptureUiState> = _uiState
 
-    private val _messages = MutableLiveData<Event<String>>()
-    val messages: LiveData<Event<String>> = _messages
+    private val _messages = MutableLiveData<Event<UiText>>()
+    val messages: LiveData<Event<UiText>> = _messages
 
     init {
         refresh()
@@ -45,7 +47,7 @@ class DebugCaptureViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             store.clearAll()
             refresh()
-            _messages.value = Event("已清空")
+            _messages.value = Event(UiText(R.string.debug_cleared))
         }
     }
 

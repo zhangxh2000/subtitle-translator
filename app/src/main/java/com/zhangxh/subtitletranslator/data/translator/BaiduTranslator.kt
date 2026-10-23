@@ -1,6 +1,9 @@
 package com.zhangxh.subtitletranslator.data.translator
 
 import android.util.Log
+import com.zhangxh.subtitletranslator.domain.error.AppError
+import com.zhangxh.subtitletranslator.domain.error.TranslationError
+import com.zhangxh.subtitletranslator.domain.error.TranslationException
 import com.zhangxh.subtitletranslator.domain.translator.BaiduCredentials
 import com.zhangxh.subtitletranslator.domain.translator.ITranslator
 import kotlinx.coroutines.Dispatchers
@@ -35,7 +38,7 @@ class BaiduTranslator(
             val current = credentials()
             if (current == null || !current.isComplete) {
                 return@withContext Result.failure(
-                    IllegalStateException("尚未配置百度翻译的 APP ID 与密钥，请在设置中填写")
+                    TranslationException(TranslationError(AppError.BAIDU_NOT_CONFIGURED))
                 )
             }
 
@@ -43,7 +46,9 @@ class BaiduTranslator(
             val toCode = BaiduApi.languageCode(to)
             if (fromCode == null || toCode == null) {
                 return@withContext Result.failure(
-                    IllegalStateException("百度翻译不支持该语言方向：$from → $to")
+                    TranslationException(
+                        TranslationError(AppError.UNSUPPORTED_LANGUAGE_PAIR, "$from → $to")
+                    )
                 )
             }
 
@@ -63,7 +68,13 @@ class BaiduTranslator(
                 BaiduApi.parseResponse(json)
             } catch (e: Exception) {
                 Log.w(TAG, "百度翻译失败: ${e.message}")
-                Result.failure(e)
+                Result.failure(
+                    e as? TranslationException
+                        ?: TranslationException(
+                            TranslationError(AppError.NETWORK_ERROR, e.message),
+                            e
+                        )
+                )
             }
         }
 

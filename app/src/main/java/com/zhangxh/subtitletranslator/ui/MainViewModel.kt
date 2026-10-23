@@ -10,8 +10,10 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.service.FloatingButtonService
 import com.zhangxh.subtitletranslator.ui.common.Event
+import com.zhangxh.subtitletranslator.ui.common.UiText
 
 /**
  * 主界面的权限/服务编排
@@ -23,7 +25,7 @@ sealed class MainEvent {
     data class RequestPermissions(val permissions: Array<String>) : MainEvent()
     data object OpenOverlaySettings : MainEvent()
     data object RequestMediaProjection : MainEvent()
-    data class ShowMessage(val text: String) : MainEvent()
+    data class ShowMessage(val text: UiText) : MainEvent()
 }
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -75,7 +77,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (granted) {
             checkOverlayPermission()
         } else {
-            emitMessage("需要相关权限才能使用")
+            emitMessage(R.string.main_permissions_required)
         }
     }
 
@@ -83,7 +85,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (resultCode == Activity.RESULT_OK && data != null) {
             startService(resultCode, data)
         } else {
-            emitMessage("需要屏幕录制权限才能截图翻译")
+            emitMessage(R.string.main_projection_required)
         }
     }
 
@@ -117,7 +119,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             putExtra(FloatingButtonService.EXTRA_DATA, data)
         }
         ContextCompat.startForegroundService(context, intent)
-        emitMessage("字幕翻译助手已启动")
+        emitMessage(R.string.main_service_started)
     }
 
     private fun stopService() {
@@ -127,10 +129,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 action = FloatingButtonService.ACTION_STOP
             }
         )
-        emitMessage("字幕翻译已停止")
+        emitMessage(R.string.main_service_stopped)
     }
 
-    private fun emitMessage(text: String) = emit(MainEvent.ShowMessage(text))
+    private fun emitMessage(@androidx.annotation.StringRes resId: Int) =
+        emit(MainEvent.ShowMessage(UiText(resId)))
 
     private fun emit(event: MainEvent) {
         _events.value = Event(event)

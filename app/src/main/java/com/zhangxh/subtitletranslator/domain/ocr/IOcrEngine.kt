@@ -1,6 +1,7 @@
 package com.zhangxh.subtitletranslator.domain.ocr
 
 import android.graphics.Bitmap
+import com.zhangxh.subtitletranslator.domain.error.TranslationError
 
 /**
  * OCR 引擎接口
@@ -26,7 +27,7 @@ data class OcrResult(
     val text: String = "",
     val blocks: List<TextBlock> = emptyList(),
     val isSuccess: Boolean = false,
-    val errorMessage: String = ""
+    val error: TranslationError? = null
 ) {
     /**
      * 获取字幕区域文字（通常在屏幕底部）

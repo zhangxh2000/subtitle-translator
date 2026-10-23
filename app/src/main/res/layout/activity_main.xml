@@ -31,7 +31,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:text="看视频时，一键翻译字幕"
+            android:text="@string/main_tagline"
             android:textSize="15sp"
             android:textColor="@color/text_secondary" />
 
@@ -47,14 +47,14 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="使用说明"
+                android:text="@string/main_instructions_title"
                 android:textAppearance="@style/TextAppearance.SubtitleTranslator.SectionLabel" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="1. 点击启动按钮\n2. 授予屏幕录制权限\n3. 在任意视频界面点击悬浮按钮\n4. 查看翻译结果和重点词汇\n5. 长按悬浮按钮可打开菜单"
+                android:text="@string/main_instructions"
                 android:textAppearance="@style/TextAppearance.SubtitleTranslator.Body"
                 android:lineSpacingMultiplier="1.5" />
         </LinearLayout>
@@ -79,7 +79,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="●"
+                    android:text="@string/decorative_bullet"
                     android:textColor="@color/accent"
                     android:textSize="12sp" />
 
@@ -88,7 +88,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
-                    android:text="字幕翻译运行中"
+                    android:text="@string/main_status_running"
                     android:textColor="@color/accent"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -98,7 +98,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:text="点击悬浮球翻译字幕，长按打开菜单"
+                android:text="@string/main_status_hint"
                 android:textColor="@color/text_secondary"
                 android:textSize="13sp" />
         </LinearLayout>
@@ -109,7 +109,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="启动字幕翻译" />
+            android:text="@string/main_start_service" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -125,7 +125,7 @@
                 android:layout_weight="1"
                 android:layout_marginEnd="4dp"
                 android:minWidth="0dp"
-                android:text="翻译历史" />
+                android:text="@string/main_history" />
 
             <Button
                 android:id="@+id/btnVocabulary"
@@ -136,7 +136,7 @@
                 android:layout_marginStart="4dp"
                 android:layout_marginEnd="4dp"
                 android:minWidth="0dp"
-                android:text="生词库" />
+                android:text="@string/main_vocabulary" />
 
             <Button
                 android:id="@+id/btnSettings"
@@ -146,7 +146,7 @@
                 android:layout_weight="1"
                 android:layout_marginStart="4dp"
                 android:minWidth="0dp"
-                android:text="设置" />
+                android:text="@string/main_settings" />
         </LinearLayout>
 
     </LinearLayout>

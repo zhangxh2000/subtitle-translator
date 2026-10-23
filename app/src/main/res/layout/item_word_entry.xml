@@ -74,7 +74,7 @@
                 android:scaleType="fitCenter"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_volume_up"
-                android:contentDescription="朗读" />
+                android:contentDescription="@string/action_pronounce" />
 
             <ImageButton
                 android:id="@+id/btnSaveWord"
@@ -84,7 +84,7 @@
                 android:scaleType="fitCenter"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_bookmark_border"
-                android:contentDescription="收藏" />
+                android:contentDescription="@string/action_save_word" />
         </LinearLayout>
 
         <TextView

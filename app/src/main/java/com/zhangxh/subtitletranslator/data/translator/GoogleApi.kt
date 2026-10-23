@@ -1,5 +1,8 @@
 package com.zhangxh.subtitletranslator.data.translator
 
+import com.zhangxh.subtitletranslator.domain.error.AppError
+import com.zhangxh.subtitletranslator.domain.error.TranslationError
+import com.zhangxh.subtitletranslator.domain.error.TranslationException
 import org.json.JSONArray
 import java.net.URLEncoder
 import java.util.Locale
@@ -51,7 +54,9 @@ object GoogleApi {
         return try {
             val root = JSONArray(json)
             val segments = root.optJSONArray(0)
-                ?: return Result.failure(IllegalStateException("Google 返回内容缺少译文段"))
+                ?: return Result.failure(
+                    TranslationException(TranslationError(AppError.INVALID_RESPONSE))
+                )
 
             val builder = StringBuilder()
             for (index in 0 until segments.length()) {
@@ -61,12 +66,19 @@ object GoogleApi {
 
             val translated = builder.toString()
             if (translated.isBlank()) {
-                Result.failure(IllegalStateException("Google 返回的译文为空"))
+                Result.failure(
+                    TranslationException(TranslationError(AppError.EMPTY_TRANSLATION))
+                )
             } else {
                 Result.success(translated)
             }
         } catch (e: Exception) {
-            Result.failure(IllegalStateException("解析 Google 翻译结果失败: ${e.message}", e))
+            Result.failure(
+                TranslationException(
+                    TranslationError(AppError.INVALID_RESPONSE, e.message),
+                    e
+                )
+            )
         }
     }
 }

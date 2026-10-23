@@ -23,7 +23,7 @@ class ImagePreviewActivity : BaseActivity() {
 
         const val EXTRA_SESSION_ID = "extra_session_id"
         const val EXTRA_FILE_NAME = "extra_file_name"
-        const val EXTRA_LABEL = "extra_label"
+        const val EXTRA_LABEL_RES = "extra_label_res"
     }
 
     private val viewModel: ImagePreviewViewModel by viewModels()
@@ -39,7 +39,10 @@ class ImagePreviewActivity : BaseActivity() {
         fileName = intent.getStringExtra(EXTRA_FILE_NAME).orEmpty()
 
         val imageView = findViewById<ImageView>(R.id.imageView)
-        findViewById<TextView>(R.id.tvLabel)?.text = intent.getStringExtra(EXTRA_LABEL).orEmpty()
+        val labelRes = intent.getIntExtra(EXTRA_LABEL_RES, 0)
+        if (labelRes != 0) {
+            findViewById<TextView>(R.id.tvLabel)?.text = getString(labelRes)
+        }
         findViewById<View>(R.id.btnBack)?.setOnClickListener { finish() }
         findViewById<View>(R.id.btnShare)?.setOnClickListener { shareImage() }
 
@@ -48,7 +51,7 @@ class ImagePreviewActivity : BaseActivity() {
         }
         viewModel.messages.observe(this) { event ->
             event.getContentIfNotHandled()?.let { message ->
-                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, message.resolve(this), Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -58,7 +61,7 @@ class ImagePreviewActivity : BaseActivity() {
     private fun shareImage() {
         val file = viewModel.sessionFile(sessionId, fileName)
         if (!file.exists()) {
-            Toast.makeText(this, "图片不存在", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.preview_image_missing, Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -69,10 +72,14 @@ class ImagePreviewActivity : BaseActivity() {
                 putExtra(Intent.EXTRA_STREAM, uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            startActivity(Intent.createChooser(intent, "分享截图"))
+            startActivity(Intent.createChooser(intent, getString(R.string.preview_share_chooser)))
         } catch (e: Exception) {
             Log.e(TAG, "分享截图失败", e)
-            Toast.makeText(this, "分享失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                getString(R.string.preview_share_failed, e.message),
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 }

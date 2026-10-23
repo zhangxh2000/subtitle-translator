@@ -1,6 +1,18 @@
 package com.zhangxh.subtitletranslator.util
 
 import android.graphics.Bitmap
+import com.zhangxh.subtitletranslator.domain.error.TranslationError
+
+/**
+ * 屏幕方向
+ *
+ * 持久化时存枚举名；读取时兼容旧记录里的「横屏 / 竖屏」。
+ */
+enum class CaptureOrientation {
+    LANDSCAPE,
+    PORTRAIT,
+    UNKNOWN
+}
 
 /**
  * 一次字幕识别的现场记录（待保存）
@@ -21,8 +33,8 @@ data class DebugCapture(
     val cleanedText: String,
     /** 译文 */
     val translatedText: String,
-    /** 失败时的错误信息 */
-    val errorMessage: String?,
+    /** 失败时的错误码 */
+    val error: TranslationError?,
     /** 裁剪参数 */
     val cropInfo: CropInfo?,
     /** 预处理时的放大倍数（当前为 1.0，即关闭放大） */
@@ -34,11 +46,10 @@ data class DebugCapture(
 /**
  * 字幕区域裁剪参数
  *
- * 裁剪逻辑分横屏/竖屏两条分支，[mode] 记录走的哪条 —— 判断"切对没切对"时这是关键信息。
+ * 裁剪逻辑分横屏/竖屏两条分支，[orientation] 记录走的哪条 —— 判断"切对没切对"时这是关键信息。
  */
 data class CropInfo(
-    /** "横屏" 或 "竖屏" */
-    val mode: String,
+    val orientation: CaptureOrientation,
     val screenWidth: Int,
     val screenHeight: Int,
     /** 裁剪区域在原图中的纵向范围 */
@@ -63,9 +74,9 @@ data class CaptureRecord(
     val ocrRawText: String,
     val cleanedText: String,
     val translatedText: String,
-    val errorMessage: String?,
+    val error: TranslationError?,
     /** 实际存在的图片文件名，按 截图 / 裁剪 / 预处理 的顺序 */
     val imageFiles: List<String>
 ) {
-    val isFailed: Boolean get() = !errorMessage.isNullOrBlank()
+    val isFailed: Boolean get() = error != null
 }

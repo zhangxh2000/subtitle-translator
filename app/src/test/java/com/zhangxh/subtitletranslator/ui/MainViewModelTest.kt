@@ -6,6 +6,7 @@ import android.app.Application
 import android.content.Intent
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
+import com.zhangxh.subtitletranslator.R
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -94,7 +95,10 @@ class MainViewModelTest {
     fun `successful projection result starts the service`() {
         viewModel.onMediaProjectionResult(Activity.RESULT_OK, Intent())
 
-        assertEquals("字幕翻译助手已启动", (lastEvent() as? MainEvent.ShowMessage)?.text)
+        assertEquals(
+            R.string.main_service_started,
+            (lastEvent() as? MainEvent.ShowMessage)?.text?.resId
+        )
     }
 
     @Test
@@ -102,8 +106,8 @@ class MainViewModelTest {
         viewModel.onMediaProjectionResult(Activity.RESULT_CANCELED, null)
 
         assertEquals(
-            "需要屏幕录制权限才能截图翻译",
-            (lastEvent() as? MainEvent.ShowMessage)?.text
+            R.string.main_projection_required,
+            (lastEvent() as? MainEvent.ShowMessage)?.text?.resId
         )
     }
 

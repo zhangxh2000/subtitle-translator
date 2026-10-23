@@ -348,15 +348,18 @@ class TranslationOverlayViewTest {
         overlay.setTranslationResult(longResult(wordCount = 2))
         val button = saveButton(rows(overlay).getChildAt(0))
 
-        assertEquals("收藏", button.contentDescription)
+        assertEquals(overlay.context.getString(R.string.action_save_word), button.contentDescription)
         assertFalse(button.isSelected)
 
         overlay.setWordSaved("word1", true)
-        assertEquals("取消收藏", button.contentDescription)
+        assertEquals(
+            overlay.context.getString(R.string.action_unsave_word),
+            button.contentDescription
+        )
         assertTrue(button.isSelected)
 
         overlay.setWordSaved("WORD1", false)
-        assertEquals("收藏", button.contentDescription)
+        assertEquals(overlay.context.getString(R.string.action_save_word), button.contentDescription)
         assertFalse(button.isSelected)
     }
 
@@ -370,7 +373,7 @@ class TranslationOverlayViewTest {
         overlay.setTranslationResult(longResult(wordCount = 2))
 
         val button = saveButton(rows(overlay).getChildAt(0))
-        assertEquals("收藏", button.contentDescription)
+        assertEquals(overlay.context.getString(R.string.action_save_word), button.contentDescription)
         assertFalse(button.isSelected)
     }
 
@@ -425,7 +428,10 @@ class TranslationOverlayViewTest {
 
         val count = requireNotNull(overlay.findViewById<TextView>(R.id.tvWordCount))
         assertEquals(View.VISIBLE, count.visibility)
-        assertEquals("3 个词", count.text.toString())
+        assertEquals(
+            overlay.resources.getQuantityString(R.plurals.overlay_word_count, 3, 3),
+            count.text.toString()
+        )
 
         overlay.setTranslationResult(longResult(wordCount = 0))
         assertEquals(View.GONE, count.visibility)

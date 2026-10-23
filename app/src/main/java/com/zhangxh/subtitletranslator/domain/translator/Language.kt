@@ -5,17 +5,16 @@ package com.zhangxh.subtitletranslator.domain.translator
  */
 data class Language(
     val code: String,
-    val name: String,
-    val localName: String
+    val name: String
 ) {
     companion object {
-        val ENGLISH = Language("en", "English", "英语")
-        val CHINESE = Language("zh", "Chinese", "中文")
-        val JAPANESE = Language("ja", "Japanese", "日语")
-        val KOREAN = Language("ko", "Korean", "韩语")
-        val FRENCH = Language("fr", "French", "法语")
-        val GERMAN = Language("de", "German", "德语")
-        val SPANISH = Language("es", "Spanish", "西班牙语")
+        val ENGLISH = Language("en", "English")
+        val CHINESE = Language("zh", "Chinese")
+        val JAPANESE = Language("ja", "Japanese")
+        val KOREAN = Language("ko", "Korean")
+        val FRENCH = Language("fr", "French")
+        val GERMAN = Language("de", "German")
+        val SPANISH = Language("es", "Spanish")
 
         val SUPPORTED = listOf(ENGLISH, CHINESE, JAPANESE, KOREAN, FRENCH, GERMAN, SPANISH)
 

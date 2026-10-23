@@ -19,7 +19,7 @@
         android:background="?attr/selectableItemBackground"
         android:gravity="center_vertical"
         android:paddingHorizontal="16dp"
-        android:text="翻译历史"
+        android:text="@string/main_history"
         android:textColor="@color/text_primary"
         android:textSize="15sp" />
 
@@ -30,7 +30,7 @@
         android:background="?attr/selectableItemBackground"
         android:gravity="center_vertical"
         android:paddingHorizontal="16dp"
-        android:text="设置"
+        android:text="@string/main_settings"
         android:textColor="@color/text_primary"
         android:textSize="15sp" />
 
@@ -42,7 +42,7 @@
         android:background="?attr/selectableItemBackground"
         android:gravity="center_vertical"
         android:paddingHorizontal="16dp"
-        android:text="识别截图"
+        android:text="@string/debug_title"
         android:textColor="@color/text_primary"
         android:textSize="15sp"
         android:visibility="gone" />
@@ -60,7 +60,7 @@
         android:background="?attr/selectableItemBackground"
         android:gravity="center_vertical"
         android:paddingHorizontal="16dp"
-        android:text="停止字幕翻译"
+        android:text="@string/main_stop_service"
         android:textColor="@color/difficulty_hard_text"
         android:textSize="15sp" />
 

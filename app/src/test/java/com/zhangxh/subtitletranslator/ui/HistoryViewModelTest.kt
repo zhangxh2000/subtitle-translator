@@ -1,5 +1,6 @@
 package com.zhangxh.subtitletranslator.ui
 
+import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.data.history.TranslationHistoryStore
 import com.zhangxh.subtitletranslator.domain.TranslationResult
 import org.junit.After
@@ -46,6 +47,9 @@ class HistoryViewModelTest {
         viewModel.clear()
 
         assertTrue(requireNotNull(viewModel.uiState.value).isEmpty)
-        assertEquals("历史记录已清空", viewModel.messages.value?.peekContent())
+        assertEquals(
+            R.string.history_cleared,
+            viewModel.messages.value?.peekContent()?.resId
+        )
     }
 }

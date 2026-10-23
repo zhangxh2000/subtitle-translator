@@ -2,6 +2,8 @@ package com.zhangxh.subtitletranslator.util
 
 import android.content.Context
 import android.graphics.Bitmap
+import com.zhangxh.subtitletranslator.domain.error.AppError
+import com.zhangxh.subtitletranslator.domain.error.TranslationError
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -43,9 +45,9 @@ class DebugCaptureStoreTest {
 
     private fun capture(
         ocrText: String = "They dont need to be burden",
-        errorMessage: String? = null,
+        error: TranslationError? = null,
         cropInfo: CropInfo? = CropInfo(
-            mode = "竖屏",
+            orientation = CaptureOrientation.PORTRAIT,
             screenWidth = 1080,
             screenHeight = 2400,
             top = 0,
@@ -61,7 +63,7 @@ class DebugCaptureStoreTest {
         ocrRawText = ocrText,
         cleanedText = ocrText,
         translatedText = "他们不需要成为负担",
-        errorMessage = errorMessage,
+        error = error,
         cropInfo = cropInfo,
         scaleFactor = 1.0f,
         preprocessMode = OcrPreprocessMode.GRAYSCALE.name
@@ -93,7 +95,7 @@ class DebugCaptureStoreTest {
 
         val record = records.first()
         assertEquals("The mitochondrial DNA evidence", record.ocrRawText)
-        assertEquals("竖屏", record.cropInfo?.mode)
+        assertEquals(CaptureOrientation.PORTRAIT, record.cropInfo?.orientation)
         assertEquals(608, record.cropInfo?.height)
         assertEquals(1215, record.cropInfo?.videoHeight)
         assertEquals(1.0f, record.scaleFactor, 0.001f)
@@ -112,11 +114,11 @@ class DebugCaptureStoreTest {
     /** 失败记录也要能保存和读回：OCR 失败时最需要看截图 */
     @Test
     fun `keeps failed capture with error message`() = runBlocking {
-        store.save(capture(ocrText = "", errorMessage = "未识别到字幕文字"))
+        store.save(capture(ocrText = "", error = TranslationError(AppError.NO_SUBTITLE_TEXT)))
 
         val record = store.listCaptures().single()
         assertTrue(record.isFailed)
-        assertEquals("未识别到字幕文字", record.errorMessage)
+        assertEquals(AppError.NO_SUBTITLE_TEXT, record.error?.code)
     }
 
     /** 部分阶段失败时（例如截图后就失败），缺失的图跳过，其余照常保存 */
@@ -177,5 +179,39 @@ class DebugCaptureStoreTest {
 
         assertEquals(3, savedDirs().size)
         assertEquals(3, store.listCaptures().size)
+    }
+
+    /** 旧版本记录只有 errorMessage 和中文 mode，升级后仍要能读出来 */
+    @Test
+    fun `reads legacy meta with old error and mode fields`() = runBlocking {
+        val session = File(captureDir, "20260101_000000_000").apply { mkdirs() }
+        File(session, "meta.json").writeText(
+            """
+            {
+              "id": "${session.name}",
+              "timestamp": 1,
+              "scaleFactor": 1.0,
+              "preprocessMode": "GRAYSCALE",
+              "mode": "竖屏",
+              "screenWidth": 1080,
+              "screenHeight": 2400,
+              "top": 0,
+              "bottom": 608,
+              "width": 1080,
+              "height": 608,
+              "videoHeight": 1215,
+              "ocrRawText": "",
+              "cleanedText": "",
+              "translatedText": "",
+              "errorMessage": "未识别到字幕文字"
+            }
+            """.trimIndent()
+        )
+
+        val record = store.listCaptures().single()
+        assertEquals(CaptureOrientation.PORTRAIT, record.cropInfo?.orientation)
+        assertEquals(AppError.UNKNOWN, record.error?.code)
+        assertEquals("未识别到字幕文字", record.error?.detail)
+        assertTrue(record.isFailed)
     }
 }

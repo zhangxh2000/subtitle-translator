@@ -3,6 +3,8 @@ package com.zhangxh.subtitletranslator.ui
 import android.app.Application
 import android.graphics.Bitmap
 import android.os.Looper
+import com.zhangxh.subtitletranslator.R
+import com.zhangxh.subtitletranslator.ui.common.UiText
 import com.zhangxh.subtitletranslator.util.DebugCaptureStore
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -40,7 +42,7 @@ class DebugCaptureViewModelTest {
     @Test
     fun `clear empties the list and emits a message`() {
         val viewModel = DebugCaptureViewModel(application, store)
-        val messages = mutableListOf<String>()
+        val messages = mutableListOf<UiText>()
         val latch = CountDownLatch(1)
         viewModel.messages.observeForever { event ->
             event.getContentIfNotHandled()?.let {
@@ -52,7 +54,7 @@ class DebugCaptureViewModelTest {
         viewModel.clear()
         await(latch)
 
-        assertTrue(messages.contains("已清空"))
+        assertTrue(messages.any { it.resId == R.string.debug_cleared })
         assertTrue(requireNotNull(viewModel.uiState.value).isEmpty)
     }
 

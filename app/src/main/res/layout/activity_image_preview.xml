@@ -22,7 +22,7 @@
             android:scaleType="fitCenter"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_close"
-            android:contentDescription="返回" />
+            android:contentDescription="@string/action_back" />
 
         <TextView
             android:id="@+id/tvLabel"
@@ -37,7 +37,7 @@
             style="@style/Widget.SubtitleTranslator.Button.Outlined"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="分享" />
+            android:text="@string/action_share" />
     </LinearLayout>
 
     <ImageView
@@ -45,7 +45,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:contentDescription="识别截图"
+        android:contentDescription="@string/preview_image_description"
         android:scaleType="fitCenter" />
 
 </LinearLayout>

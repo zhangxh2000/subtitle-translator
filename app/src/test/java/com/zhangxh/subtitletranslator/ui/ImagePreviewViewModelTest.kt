@@ -1,5 +1,6 @@
 package com.zhangxh.subtitletranslator.ui
 
+import com.zhangxh.subtitletranslator.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -20,7 +21,10 @@ class ImagePreviewViewModelTest {
 
         viewModel.load("", "", 100)
 
-        assertEquals("图片读取失败", viewModel.messages.value?.peekContent())
+        assertEquals(
+            R.string.preview_load_failed,
+            viewModel.messages.value?.peekContent()?.resId
+        )
         assertNull(viewModel.uiState.value?.bitmap)
     }
 

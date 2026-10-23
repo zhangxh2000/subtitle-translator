@@ -1,4 +1,183 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">字幕翻译助手</string>
+    <!-- General -->
+    <string name="app_name">Subtitle Translator</string>
+    <string name="action_back">Back</string>
+    <string name="action_close">Close</string>
+    <string name="action_share">Share</string>
+    <string name="action_clear">Clear</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_pronounce">Pronounce</string>
+    <string name="action_save_word">Save word</string>
+    <string name="action_unsave_word">Remove from vocabulary</string>
+    <string name="decorative_bullet" translatable="false">●</string>
+
+    <!-- Main screen -->
+    <string name="main_tagline">Translate subtitles with one tap while watching videos</string>
+    <string name="main_instructions_title">How to use</string>
+    <string name="main_instructions">1. Tap Start\n2. Grant screen recording permission\n3. Tap the floating button over any video\n4. Read the translation and key words\n5. Long-press the floating button to open the menu</string>
+    <string name="main_status_running">Subtitle translation is running</string>
+    <string name="main_status_hint">Tap the floating ball to translate, long-press to open the menu</string>
+    <string name="main_start_service">Start subtitle translation</string>
+    <string name="main_stop_service">Stop subtitle translation</string>
+    <string name="main_history">Translation history</string>
+    <string name="main_vocabulary">Vocabulary</string>
+    <string name="main_settings">Settings</string>
+    <string name="main_restart_hint">Screen recording permission expired. Please authorize again.</string>
+    <string name="main_overlay_permission_hint">Please allow display over other apps</string>
+    <string name="main_permissions_required">Permissions are required to use this feature</string>
+    <string name="main_projection_required">Screen recording permission is required to translate subtitles</string>
+    <string name="main_service_started">Subtitle translator started</string>
+    <string name="main_service_stopped">Subtitle translation stopped</string>
+
+    <!-- Translation overlay -->
+    <string name="overlay_title">Subtitle Translation</string>
+    <string name="overlay_translated_label">Translation</string>
+    <string name="overlay_original_label">Original</string>
+    <string name="overlay_key_words">Key words</string>
+    <string name="overlay_no_difficult_words">No difficult words found</string>
+    <plurals name="overlay_word_count">
+        <item quantity="one">%1$d word</item>
+        <item quantity="other">%1$d words</item>
+    </plurals>
+    <string name="difficulty_hard">Hard</string>
+    <string name="difficulty_medium">Medium</string>
+    <string name="difficulty_easy">Easy</string>
+
+    <!-- Settings -->
+    <string name="settings_source_language">Source language</string>
+    <string name="settings_target_language">Target language</string>
+    <string name="settings_translation_engine">Translation engine</string>
+    <string name="settings_baidu_app_id">Baidu APP ID</string>
+    <string name="settings_baidu_app_id_hint">e.g. 2025010100000001</string>
+    <string name="settings_baidu_secret">Baidu secret key</string>
+    <string name="settings_baidu_secret_hint">Shown in the Baidu console</string>
+    <string name="settings_baidu_help">Register a developer account and create an app at fanyi-api.baidu.com. Your free quota is tied to your account; the key is stored only on this device.</string>
+    <string name="settings_difficulty_filter">Vocabulary filter</string>
+    <string name="settings_difficulty_help">Controls how many words appear under Key words. Loose shows more; Strict shows only difficult words. If you often see no words, try Loose.</string>
+    <string name="settings_preprocess">OCR preprocessing</string>
+    <string name="settings_debug_capture">Debug captures</string>
+    <string name="settings_debug_capture_switch">Save recognition screenshots</string>
+    <string name="settings_view_debug_captures">View recent captures</string>
+    <string name="settings_debug_capture_help">When enabled, saves the original screenshot, cropped area, preprocessed image and OCR text of each recognition to help diagnose capture, crop, preprocessing or OCR issues. Keeps the latest 5 captures (about 6 MB) in app-private storage; never appears in your gallery.</string>
+    <string name="settings_note">Note: language and vocabulary filter changes take effect the next time the translation service starts; the debug capture switch takes effect immediately.</string>
+    <string name="settings_error_same_language">Source and target languages cannot be the same</string>
+
+    <!-- Translation engines -->
+    <string name="engine_mlkit">ML Kit offline (no setup)</string>
+    <string name="engine_baidu">Baidu Translate (requires key)</string>
+    <string name="engine_google">Google Translate (no key)</string>
+    <string name="engine_hint_mlkit">Fully offline and needs no setup, but quality is modest and colloquial subtitles may be translated too literally.</string>
+    <string name="engine_hint_baidu">Fast in mainland China and good quality. Enter your own APP ID and secret (free quota is per account).</string>
+    <string name="engine_hint_google">No setup and good quality. May be unreachable in mainland China; falls back to the offline engine on failure.</string>
+
+    <!-- Vocabulary filter levels -->
+    <string name="difficulty_filter_loose">Loose (show more)</string>
+    <string name="difficulty_filter_normal">Balanced</string>
+    <string name="difficulty_filter_strict">Strict (difficult only)</string>
+
+    <!-- OCR preprocessing modes -->
+    <string name="preprocess_grayscale">Grayscale (recommended)</string>
+    <string name="preprocess_adaptive">Adaptive threshold</string>
+    <string name="preprocess_fixed">Fixed threshold</string>
+    <string name="preprocess_grayscale_desc">Converts to grayscale without thresholding, preserving the brightness levels of the image. Use this when subtitles and background have similar colors.</string>
+    <string name="preprocess_adaptive_desc">Uses a local threshold based on nearby brightness, which handles uneven lighting. May still fail when local contrast is very low.</string>
+    <string name="preprocess_fixed_desc">Uses one threshold for the whole image. When subtitles and background have similar brightness, both may become the same color and the text disappears.</string>
+
+    <!-- Languages -->
+    <string name="language_en">English</string>
+    <string name="language_zh">Chinese</string>
+    <string name="language_ja">Japanese</string>
+    <string name="language_ko">Korean</string>
+    <string name="language_fr">French</string>
+    <string name="language_de">German</string>
+    <string name="language_es">Spanish</string>
+    <string name="language_option">%1$s</string>
+
+    <!-- History -->
+    <string name="history_empty">No translation history yet</string>
+    <string name="history_cleared">History cleared</string>
+
+    <!-- Vocabulary -->
+    <string name="vocabulary_empty">No saved words yet\n\nTap the bookmark icon on a translation result to save words</string>
+    <string name="vocabulary_added_at">Saved %1$s</string>
+    <string name="vocabulary_deleted">Deleted “%1$s”</string>
+    <string name="vocabulary_delete_failed">Delete failed. Please try again.</string>
+    <string name="vocabulary_cleared">Vocabulary cleared</string>
+    <string name="vocabulary_clear_failed">Clear failed. Please try again.</string>
+
+    <!-- Debug captures -->
+    <string name="debug_title">Recognition captures</string>
+    <string name="debug_empty">No captures yet\n\nEnable “Save recognition screenshots” in Settings; each recognition will then record a screenshot.</string>
+    <string name="debug_caption_screenshot">Original screenshot</string>
+    <string name="debug_caption_crop">Cropped area</string>
+    <string name="debug_caption_processed">Preprocessed</string>
+    <string name="debug_caption_processed_full">Preprocessed image</string>
+    <string name="debug_error_prefix">Recognition failed: %1$s</string>
+    <string name="debug_ocr_text_prefix">OCR text: %1$s</string>
+    <string name="debug_ocr_text_empty">OCR text: (empty)</string>
+    <string name="debug_preprocess_info">Scale %1$.1fx · %2$s</string>
+    <string name="debug_crop_missing">Crop parameters missing · %1$s</string>
+    <string name="debug_crop_range">Crop y %1$d~%2$d (height %3$d)%4$s · %5$s</string>
+    <string name="debug_video_height_estimate"> · estimated video height %1$d</string>
+    <string name="debug_header">%1$s · %2$s %3$d×%4$d</string>
+    <string name="debug_cleared">Cleared</string>
+
+    <!-- Image preview -->
+    <string name="preview_image_missing">Image not found</string>
+    <string name="preview_share_chooser">Share screenshot</string>
+    <string name="preview_share_failed">Share failed: %1$s</string>
+    <string name="preview_load_failed">Failed to load image</string>
+    <string name="preview_image_description">Recognition screenshot</string>
+
+    <!-- Screen orientation (debug capture metadata) -->
+    <string name="orientation_landscape">Landscape</string>
+    <string name="orientation_portrait">Portrait</string>
+    <string name="orientation_unknown">Unknown</string>
+
+    <!-- Service, notifications and clipboard -->
+    <string name="service_not_ready">Translation service is not ready. Please restart.</string>
+    <string name="service_translation_failed">Translation failed</string>
+    <string name="service_translation_error">Translation error: %1$s</string>
+    <string name="service_save_word_failed">Save failed. Please try again.</string>
+    <string name="service_word_saved">Added to vocabulary</string>
+    <string name="service_word_removed">Removed from vocabulary</string>
+    <string name="clipboard_label_translation">Translation result</string>
+    <string name="toast_copied">Copied to clipboard</string>
+    <string name="notification_channel_name">Subtitle translation service</string>
+    <string name="notification_channel_description">Keeps the subtitle translation overlay running</string>
+    <string name="notification_text">Overlay is running. Tap to open the app.</string>
+    <string name="notification_stop_action">Stop service</string>
+
+    <!-- Pronunciation errors -->
+    <string name="pronouncer_engine_unavailable">Speech engine unavailable</string>
+    <string name="pronouncer_english_voice_unavailable">English voice data is missing. Download it in system settings.</string>
+
+    <!-- Translation / OCR errors -->
+    <string name="error_capture_failed">Failed to capture the screen</string>
+    <string name="error_crop_failed">Failed to crop the subtitle area</string>
+    <string name="error_ocr_failed">OCR failed</string>
+    <string name="error_no_subtitle_text">No subtitle text recognized</string>
+    <string name="error_translation_failed">Translation failed</string>
+    <string name="error_translator_not_initialized">Translator is not initialized</string>
+    <string name="error_language_pack_download_failed">Failed to download the language pack</string>
+    <string name="error_baidu_not_configured">Baidu Translate is not configured. Enter your APP ID and secret in Settings.</string>
+    <string name="error_unsupported_language_pair">This language pair is not supported</string>
+    <string name="error_network">Network error. Please check your connection.</string>
+    <string name="error_baidu_timeout">Baidu request timed out. Please retry.</string>
+    <string name="error_baidu_service">Baidu service error. Please retry.</string>
+    <string name="error_baidu_unauthorized">Unauthorized: check your APP ID and whether the translation service is enabled</string>
+    <string name="error_baidu_empty_param">A required parameter is empty</string>
+    <string name="error_baidu_sign">Signature error: check your secret key</string>
+    <string name="error_baidu_rate_limited">Rate limit reached. Please try later.</string>
+    <string name="error_baidu_quota">Insufficient balance: the free quota may be used up</string>
+    <string name="error_baidu_too_frequent">Too many requests. Please try later.</string>
+    <string name="error_baidu_ip_invalid">Invalid client IP</string>
+    <string name="error_baidu_unsupported_direction">This translation direction is not supported</string>
+    <string name="error_baidu_service_closed">Translation service is disabled</string>
+    <string name="error_baidu_auth_not_effective">Authentication failed or not yet effective</string>
+    <string name="error_empty_translation">The translation is empty</string>
+    <string name="error_invalid_response">Unexpected response from the translation service</string>
+    <string name="error_unknown">Unknown error</string>
+    <string name="error_unknown_with_detail">Unknown error: %1$s</string>
 </resources>

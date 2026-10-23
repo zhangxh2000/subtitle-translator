@@ -1,5 +1,8 @@
 package com.zhangxh.subtitletranslator.data.translator
 
+import com.zhangxh.subtitletranslator.domain.error.AppError
+import com.zhangxh.subtitletranslator.domain.error.TranslationError
+import com.zhangxh.subtitletranslator.domain.error.TranslationException
 import org.json.JSONObject
 import java.security.MessageDigest
 import java.util.Locale
@@ -33,21 +36,22 @@ object BaiduApi {
         "pt" to "pt"
     )
 
-    /** 错误码对应的中文说明，直接展示给用户，能省掉大量排查成本 */
-    private val ERROR_MESSAGES = mapOf(
-        "52001" to "请求超时，请重试",
-        "52002" to "百度服务异常，请重试",
-        "52003" to "未授权：请检查 APP ID 是否正确、通用翻译服务是否已开通",
-        "54000" to "必填参数为空",
-        "54001" to "签名错误：请检查密钥是否填写正确",
-        "54003" to "访问频率受限，请稍后再试",
-        "54004" to "账户余额不足：免费额度可能已用完",
-        "54005" to "请求过于频繁，请稍后再试",
-        "58000" to "客户端 IP 非法",
-        "58001" to "不支持该语言方向",
-        "58002" to "翻译服务已关闭",
-        "90107" to "认证未通过或未生效"
-    )
+    /** 百度业务错误码 → 应用错误码；文案由 UI 层按语言映射 */
+    fun errorFor(code: String): AppError = when (code) {
+        "52001" -> AppError.BAIDU_TIMEOUT
+        "52002" -> AppError.BAIDU_SERVICE_ERROR
+        "52003" -> AppError.BAIDU_UNAUTHORIZED
+        "54000" -> AppError.BAIDU_EMPTY_PARAM
+        "54001" -> AppError.BAIDU_SIGN_ERROR
+        "54003" -> AppError.BAIDU_RATE_LIMITED
+        "54004" -> AppError.BAIDU_QUOTA_EXCEEDED
+        "54005" -> AppError.BAIDU_TOO_FREQUENT
+        "58000" -> AppError.BAIDU_IP_INVALID
+        "58001" -> AppError.BAIDU_UNSUPPORTED_DIRECTION
+        "58002" -> AppError.BAIDU_SERVICE_CLOSED
+        "90107" -> AppError.BAIDU_AUTH_NOT_EFFECTIVE
+        else -> AppError.UNKNOWN
+    }
 
     /** 语言代码转换，不支持时返回 null */
     fun languageCode(code: String): String? = LANGUAGE_CODES[code.lowercase(Locale.ROOT)]
@@ -66,7 +70,7 @@ object BaiduApi {
      * 成功：`{"trans_result":[{"src":"...","dst":"..."}]}`，多行文本会有多条结果，按顺序拼回
      * 失败：`{"error_code":"54001","error_msg":"Invalid Sign"}`
      *
-     * @return 成功为译文；失败为一个带中文说明的异常
+     * @return 成功为译文；失败为一个带错误码的异常
      */
     fun parseResponse(json: String): Result<String> {
         return try {
@@ -75,25 +79,38 @@ object BaiduApi {
             if (root.has("error_code")) {
                 // 错误码在不同版本里可能是字符串也可能是数字，统一按字符串处理
                 val code = root.opt("error_code")?.toString().orEmpty()
-                val rawMessage = root.optString("error_msg")
-                val friendly = ERROR_MESSAGES[code]
+                val appError = errorFor(code)
+                val detail = if (appError == AppError.UNKNOWN) {
+                    root.optString("error_msg").ifBlank { code }
+                } else {
+                    null
+                }
                 return Result.failure(
-                    BaiduTranslationException(code, friendly ?: rawMessage.ifBlank { "未知错误" })
+                    TranslationException(TranslationError(appError, detail))
                 )
             }
 
             val results = root.optJSONArray("trans_result")
-                ?: return Result.failure(IllegalStateException("百度返回内容缺少 trans_result 字段"))
+                ?: return Result.failure(
+                    TranslationException(TranslationError(AppError.INVALID_RESPONSE))
+                )
 
             val lines = (0 until results.length()).mapNotNull { index ->
                 results.optJSONObject(index)?.optString("dst")?.takeIf { it.isNotEmpty() }
             }
             if (lines.isEmpty()) {
-                return Result.failure(IllegalStateException("百度返回的译文为空"))
+                return Result.failure(
+                    TranslationException(TranslationError(AppError.EMPTY_TRANSLATION))
+                )
             }
             Result.success(lines.joinToString("\n"))
         } catch (e: Exception) {
-            Result.failure(IllegalStateException("解析百度翻译结果失败: ${e.message}", e))
+            Result.failure(
+                TranslationException(
+                    TranslationError(AppError.INVALID_RESPONSE, e.message),
+                    e
+                )
+            )
         }
     }
 
@@ -102,9 +119,3 @@ object BaiduApi {
             .digest(input.toByteArray(Charsets.UTF_8))
             .joinToString("") { "%02x".format(it) }
 }
-
-/** 百度返回的业务错误，message 已是可直接展示的中文说明 */
-class BaiduTranslationException(
-    val errorCode: String,
-    message: String
-) : Exception(message)

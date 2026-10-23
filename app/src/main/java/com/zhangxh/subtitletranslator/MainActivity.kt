@@ -71,7 +71,7 @@ class MainActivity : BaseActivity() {
 
         // 服务因录屏授权失效而打开本界面：提示并自动重新发起授权
         if (intent.getBooleanExtra(EXTRA_RESTART_SERVICE, false)) {
-            Toast.makeText(this, "录屏权限已失效，请重新授权", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, R.string.main_restart_hint, Toast.LENGTH_LONG).show()
             viewModel.onRestartRequested()
         }
     }
@@ -85,7 +85,7 @@ class MainActivity : BaseActivity() {
         super.onNewIntent(intent)
         if (intent?.getBooleanExtra(EXTRA_RESTART_SERVICE, false) == true) {
             setIntent(intent)
-            Toast.makeText(this, "录屏权限已失效，请重新授权", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, R.string.main_restart_hint, Toast.LENGTH_LONG).show()
             viewModel.onRestartRequested()
         }
     }
@@ -99,7 +99,8 @@ class MainActivity : BaseActivity() {
                 is MainEvent.RequestPermissions -> permissionLauncher.launch(action.permissions)
                 MainEvent.OpenOverlaySettings -> openOverlaySettings()
                 MainEvent.RequestMediaProjection -> requestMediaProjection()
-                is MainEvent.ShowMessage -> Toast.makeText(this, action.text, Toast.LENGTH_SHORT).show()
+                is MainEvent.ShowMessage ->
+                    Toast.makeText(this, action.text.resolve(this), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -110,7 +111,7 @@ class MainActivity : BaseActivity() {
     }
 
     private fun openOverlaySettings() {
-        Toast.makeText(this, "请开启悬浮窗权限", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, R.string.main_overlay_permission_hint, Toast.LENGTH_LONG).show()
         startActivity(
             Intent(
                 Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -124,7 +125,9 @@ class MainActivity : BaseActivity() {
      */
     private fun updateServiceState(running: Boolean) {
         statusContainer?.visibility = if (running) View.VISIBLE else View.GONE
-        btnStartService.text = if (running) "停止字幕翻译" else "启动字幕翻译"
+        btnStartService.text = getString(
+            if (running) R.string.main_stop_service else R.string.main_start_service
+        )
         btnStartService.backgroundTintList = if (running) {
             ColorStateList.valueOf(ContextCompat.getColor(this, R.color.stop_button))
         } else {

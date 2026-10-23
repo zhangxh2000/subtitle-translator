@@ -2,6 +2,7 @@ package com.zhangxh.subtitletranslator.ui
 
 import android.app.Application
 import android.content.Context
+import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.data.settings.SettingsStore
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
 import com.zhangxh.subtitletranslator.domain.translator.Language
@@ -51,8 +52,8 @@ class SettingsViewModelTest {
         assertEquals(Language.ENGLISH, state.sourceLang)
         assertEquals("en", store.sourceLang)
         assertEquals(
-            "源语言和目标语言不能相同",
-            viewModel.messages.value?.peekContent()
+            R.string.settings_error_same_language,
+            viewModel.messages.value?.peekContent()?.resId
         )
     }
 
@@ -71,7 +72,7 @@ class SettingsViewModelTest {
         val state = requireNotNull(viewModel.uiState.value)
         assertEquals(TranslationEngine.BAIDU, store.translationEngine)
         assertTrue(state.showBaiduConfig)
-        assertTrue(state.engineHint.contains("APP ID"))
+        assertEquals(R.string.engine_hint_baidu, state.engineHintRes)
 
         viewModel.setTranslationEngine(TranslationEngine.ML_KIT)
         assertFalse(requireNotNull(viewModel.uiState.value).showBaiduConfig)
@@ -99,6 +100,6 @@ class SettingsViewModelTest {
 
         val state = requireNotNull(viewModel.uiState.value)
         assertEquals(OcrPreprocessMode.ADAPTIVE, state.preprocessMode)
-        assertEquals(OcrPreprocessMode.ADAPTIVE.description, state.preprocessHint)
+        assertEquals(R.string.preprocess_adaptive_desc, state.preprocessHintRes)
     }
 }

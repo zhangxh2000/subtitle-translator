@@ -47,7 +47,7 @@ class HistoryActivity : BaseActivity() {
         }
         viewModel.messages.observe(this) { event ->
             event.getContentIfNotHandled()?.let { message ->
-                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, message.resolve(this), Toast.LENGTH_SHORT).show()
             }
         }
     }

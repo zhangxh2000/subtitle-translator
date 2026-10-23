@@ -23,14 +23,14 @@
             android:scaleType="fitCenter"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_close"
-            android:contentDescription="返回" />
+            android:contentDescription="@string/action_back" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="16dp"
-            android:text="设置"
+            android:text="@string/main_settings"
             android:textAppearance="@style/TextAppearance.SubtitleTranslator.ScreenTitle" />
     </LinearLayout>
 
@@ -49,7 +49,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="源语言"
+            android:text="@string/settings_source_language"
             android:textSize="14sp"
             android:textColor="@color/text_secondary" />
 
@@ -65,7 +65,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="目标语言"
+            android:text="@string/settings_target_language"
             android:textSize="14sp"
             android:textColor="@color/text_secondary" />
 
@@ -81,7 +81,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="翻译引擎"
+            android:text="@string/settings_translation_engine"
             android:textSize="14sp"
             android:textColor="@color/text_secondary" />
 
@@ -114,7 +114,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="百度 APP ID"
+                android:text="@string/settings_baidu_app_id"
                 android:textSize="14sp"
                 android:textColor="@color/text_secondary" />
 
@@ -124,7 +124,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:background="@drawable/bg_card"
-                android:hint="例如 2025010100000001"
+                android:hint="@string/settings_baidu_app_id_hint"
                 android:importantForAutofill="no"
                 android:inputType="text"
                 android:paddingHorizontal="12dp"
@@ -137,7 +137,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:text="百度密钥"
+                android:text="@string/settings_baidu_secret"
                 android:textSize="14sp"
                 android:textColor="@color/text_secondary" />
 
@@ -147,7 +147,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:background="@drawable/bg_card"
-                android:hint="在控制台查看"
+                android:hint="@string/settings_baidu_secret_hint"
                 android:importantForAutofill="no"
                 android:inputType="textPassword"
                 android:paddingHorizontal="12dp"
@@ -160,7 +160,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="在 fanyi-api.baidu.com 注册开发者并创建应用即可获得。免费额度按你的账号计算，填在这里只存在本机。"
+                android:text="@string/settings_baidu_help"
                 android:textSize="12sp"
                 android:textColor="@color/text_secondary"
                 android:lineSpacingMultiplier="1.2" />
@@ -170,7 +170,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="生词筛选"
+            android:text="@string/settings_difficulty_filter"
             android:textSize="14sp"
             android:textColor="@color/text_secondary" />
 
@@ -186,7 +186,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="决定「重点词汇」里显示多少词：宽松会多显示一些，严格只显示难词。若译文下常常没有词汇，可调宽松一些。"
+            android:text="@string/settings_difficulty_help"
             android:textSize="12sp"
             android:textColor="@color/text_secondary"
             android:lineSpacingMultiplier="1.2" />
@@ -195,7 +195,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="OCR 预处理"
+            android:text="@string/settings_preprocess"
             android:textSize="14sp"
             android:textColor="@color/text_secondary" />
 
@@ -220,7 +220,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="调试截图"
+            android:text="@string/settings_debug_capture"
             android:textSize="14sp"
             android:textColor="@color/text_secondary" />
 
@@ -229,7 +229,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="保存识别过程截图"
+            android:text="@string/settings_debug_capture_switch"
             android:textColor="@color/text_primary"
             android:textSize="15sp" />
 
@@ -239,13 +239,13 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="查看最近记录" />
+            android:text="@string/settings_view_debug_captures" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="开启后每次识别会保存「原始截图 / 裁剪区域 / 预处理图」和当次 OCR 文本，用于判断是截图、裁剪、预处理还是 OCR 的问题。只保留最近 5 次（约 6MB），存在应用私有目录，不会出现在相册里。"
+            android:text="@string/settings_debug_capture_help"
             android:textSize="12sp"
             android:textColor="@color/text_secondary"
             android:lineSpacingMultiplier="1.2" />
@@ -254,7 +254,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="提示：语言与生词筛选设置在下次启动翻译服务时生效；调试截图开关立即生效"
+            android:text="@string/settings_note"
             android:textSize="12sp"
             android:textColor="@color/text_secondary" />
         </LinearLayout>

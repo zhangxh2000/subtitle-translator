@@ -25,7 +25,7 @@ class TranslatorProvider(private val context: Context) {
         engine: TranslationEngine,
         credentials: () -> BaiduCredentials? = { null }
     ): ITranslator {
-        Log.d(TAG, "翻译引擎: ${engine.label}")
+        Log.d(TAG, "翻译引擎: ${engine.name}")
         return when (engine) {
             TranslationEngine.ML_KIT -> MLKitTranslator(context)
             TranslationEngine.BAIDU ->

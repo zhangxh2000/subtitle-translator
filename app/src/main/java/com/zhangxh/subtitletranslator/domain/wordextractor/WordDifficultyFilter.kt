@@ -22,19 +22,17 @@ package com.zhangxh.subtitletranslator.domain.wordextractor
  * 同时保留 0.58 那一簇（consequence、career、entire 等确实值得学的词）。
  */
 enum class WordDifficultyFilter(
-    /** 设置界面展示的名称 */
-    val label: String,
     /** 判定为简单词的分数上界 */
     val easyThreshold: Double
 ) {
     /** 宽松：多显示一些词，适合想多积累词汇的用户 */
-    LOOSE("宽松（多显示一些词）", 0.55),
+    LOOSE(0.55),
 
     /** 适中：过滤掉常见基础词 */
-    NORMAL("适中", 1.0),
+    NORMAL(1.0),
 
     /** 严格：只保留难度分很高的词 */
-    STRICT("严格（只显示难词）", 3.0);
+    STRICT(3.0);
 
     companion object {
         /** 默认档位：默认偏宽松，避免译文下经常没有词汇可看 */

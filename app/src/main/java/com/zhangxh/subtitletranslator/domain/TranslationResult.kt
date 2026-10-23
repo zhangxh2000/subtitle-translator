@@ -1,5 +1,6 @@
 package com.zhangxh.subtitletranslator.domain
 
+import com.zhangxh.subtitletranslator.domain.error.TranslationError
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordEntry
 
 /**
@@ -11,6 +12,6 @@ data class TranslationResult(
     val translatedText: String = "",
     val difficultWords: List<WordEntry> = emptyList(),
     val isSuccess: Boolean = false,
-    val errorMessage: String = "",
+    val error: TranslationError? = null,
     val timestamp: Long = System.currentTimeMillis()
 )

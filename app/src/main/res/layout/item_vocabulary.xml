@@ -62,7 +62,7 @@
                 android:scaleType="fitCenter"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_volume_up"
-                android:contentDescription="朗读" />
+                android:contentDescription="@string/action_pronounce" />
 
             <ImageButton
                 android:id="@+id/btnDelete"
@@ -72,7 +72,7 @@
                 android:scaleType="fitCenter"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_delete"
-                android:contentDescription="删除" />
+                android:contentDescription="@string/action_delete" />
         </LinearLayout>
 
         <TextView

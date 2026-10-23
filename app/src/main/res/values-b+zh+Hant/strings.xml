@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 通用 -->
+    <string name="app_name">字幕翻譯助手</string>
+    <string name="action_back">返回</string>
+    <string name="action_close">關閉</string>
+    <string name="action_share">分享</string>
+    <string name="action_clear">清空</string>
+    <string name="action_delete">刪除</string>
+    <string name="action_pronounce">朗讀</string>
+    <string name="action_save_word">收藏</string>
+    <string name="action_unsave_word">取消收藏</string>
+    <string name="decorative_bullet" translatable="false">●</string>
+
+    <!-- 主畫面 -->
+    <string name="main_tagline">看影片時，一鍵翻譯字幕</string>
+    <string name="main_instructions_title">使用說明</string>
+    <string name="main_instructions">1. 點擊啟動按鈕\n2. 授予螢幕錄製權限\n3. 在任意影片畫面點擊懸浮按鈕\n4. 查看翻譯結果和重點詞彙\n5. 長按懸浮按鈕可開啟選單</string>
+    <string name="main_status_running">字幕翻譯執行中</string>
+    <string name="main_status_hint">點擊懸浮球翻譯字幕，長按開啟選單</string>
+    <string name="main_start_service">啟動字幕翻譯</string>
+    <string name="main_stop_service">停止字幕翻譯</string>
+    <string name="main_history">翻譯歷史</string>
+    <string name="main_vocabulary">生詞庫</string>
+    <string name="main_settings">設定</string>
+    <string name="main_restart_hint">螢幕錄製權限已失效，請重新授權</string>
+    <string name="main_overlay_permission_hint">請開啟懸浮視窗權限</string>
+    <string name="main_permissions_required">需要相關權限才能使用</string>
+    <string name="main_projection_required">需要螢幕錄製權限才能截圖翻譯</string>
+    <string name="main_service_started">字幕翻譯助手已啟動</string>
+    <string name="main_service_stopped">字幕翻譯已停止</string>
+
+    <!-- 翻譯懸浮視窗 -->
+    <string name="overlay_title">字幕翻譯</string>
+    <string name="overlay_translated_label">譯文</string>
+    <string name="overlay_original_label">原文對照</string>
+    <string name="overlay_key_words">重點詞彙</string>
+    <string name="overlay_no_difficult_words">未偵測到難詞</string>
+    <plurals name="overlay_word_count">
+        <item quantity="one">%1$d 個詞</item>
+        <item quantity="other">%1$d 個詞</item>
+    </plurals>
+    <string name="difficulty_hard">難</string>
+    <string name="difficulty_medium">中</string>
+    <string name="difficulty_easy">易</string>
+
+    <!-- 設定 -->
+    <string name="settings_source_language">來源語言</string>
+    <string name="settings_target_language">目標語言</string>
+    <string name="settings_translation_engine">翻譯引擎</string>
+    <string name="settings_baidu_app_id">百度 APP ID</string>
+    <string name="settings_baidu_app_id_hint">例如 2025010100000001</string>
+    <string name="settings_baidu_secret">百度密鑰</string>
+    <string name="settings_baidu_secret_hint">在主控台查看</string>
+    <string name="settings_baidu_help">在 fanyi-api.baidu.com 註冊開發者並建立應用程式即可取得。免費額度依你的帳號計算，填在這裡只存在本機。</string>
+    <string name="settings_difficulty_filter">生詞篩選</string>
+    <string name="settings_difficulty_help">決定「重點詞彙」中顯示多少詞：寬鬆會多顯示一些，嚴格只顯示難詞。若譯文下常常沒有詞彙，可調寬鬆一些。</string>
+    <string name="settings_preprocess">OCR 前處理</string>
+    <string name="settings_debug_capture">偵錯截圖</string>
+    <string name="settings_debug_capture_switch">儲存辨識過程截圖</string>
+    <string name="settings_view_debug_captures">查看最近紀錄</string>
+    <string name="settings_debug_capture_help">開啟後每次辨識會儲存「原始截圖 / 裁切區域 / 前處理影像」和當次 OCR 文字，用於判斷是截圖、裁切、前處理還是 OCR 的問題。只保留最近 5 次（約 6MB），存在應用程式私有目錄，不會出現在相簿裡。</string>
+    <string name="settings_note">提示：語言與生詞篩選設定在下次啟動翻譯服務時生效；偵錯截圖開關立即生效</string>
+    <string name="settings_error_same_language">來源語言和目標語言不能相同</string>
+
+    <!-- 翻譯引擎 -->
+    <string name="engine_mlkit">ML Kit 離線（無需設定）</string>
+    <string name="engine_baidu">百度翻譯（需填密鑰）</string>
+    <string name="engine_google">Google 翻譯（無需密鑰）</string>
+    <string name="engine_hint_mlkit">完全離線、無需任何設定，但品質一般，字幕口語化時容易直譯。</string>
+    <string name="engine_hint_baidu">國內存取快、品質好，需要填自己的 APP ID 與密鑰（免費額度依帳號計算）。</string>
+    <string name="engine_hint_google">無需設定、品質好；國內網路可能無法存取，失敗時會自動回退到離線引擎。</string>
+
+    <!-- 生詞篩選強度 -->
+    <string name="difficulty_filter_loose">寬鬆（多顯示一些詞）</string>
+    <string name="difficulty_filter_normal">適中</string>
+    <string name="difficulty_filter_strict">嚴格（只顯示難詞）</string>
+
+    <!-- OCR 前處理方式 -->
+    <string name="preprocess_grayscale">灰階（推薦）</string>
+    <string name="preprocess_adaptive">自適應二值化</string>
+    <string name="preprocess_fixed">固定閾值二值化</string>
+    <string name="preprocess_grayscale_desc">只轉灰階、不做二值化，保留原圖的明暗層次。字幕與背景顏色接近時用這個。</string>
+    <string name="preprocess_adaptive_desc">依局部亮度分別取閾值，適應畫面明暗不均。文字與背景局部對比很低時仍可能失效。</string>
+    <string name="preprocess_fixed_desc">全圖用同一個閾值，字幕與背景亮度接近時會把兩者處理成同色、文字消失。</string>
+
+    <!-- 語言 -->
+    <string name="language_en">英語</string>
+    <string name="language_zh">中文</string>
+    <string name="language_ja">日語</string>
+    <string name="language_ko">韓語</string>
+    <string name="language_fr">法語</string>
+    <string name="language_de">德語</string>
+    <string name="language_es">西班牙語</string>
+    <string name="language_option">%1$s (%2$s)</string>
+
+    <!-- 歷史 -->
+    <string name="history_empty">暫無翻譯紀錄</string>
+    <string name="history_cleared">歷史紀錄已清空</string>
+
+    <!-- 生詞庫 -->
+    <string name="vocabulary_empty">暫無生詞\n\n在翻譯結果中點擊書籤圖示即可收藏</string>
+    <string name="vocabulary_added_at">收藏於 %1$s</string>
+    <string name="vocabulary_deleted">已刪除「%1$s」</string>
+    <string name="vocabulary_delete_failed">刪除失敗，請稍後重試</string>
+    <string name="vocabulary_cleared">生詞庫已清空</string>
+    <string name="vocabulary_clear_failed">清空失敗，請稍後重試</string>
+
+    <!-- 辨識截圖 -->
+    <string name="debug_title">辨識截圖</string>
+    <string name="debug_empty">暫無辨識紀錄\n\n在設定中開啟「儲存辨識過程截圖」，\n之後每次辨識都會記錄一張截圖</string>
+    <string name="debug_caption_screenshot">原始截圖</string>
+    <string name="debug_caption_crop">裁切區域</string>
+    <string name="debug_caption_processed">前處理</string>
+    <string name="debug_caption_processed_full">前處理影像</string>
+    <string name="debug_error_prefix">辨識失敗：%1$s</string>
+    <string name="debug_ocr_text_prefix">辨識文字：%1$s</string>
+    <string name="debug_ocr_text_empty">辨識文字：（空）</string>
+    <string name="debug_preprocess_info">縮放 %1$.1fx · 前處理 %2$s</string>
+    <string name="debug_crop_missing">裁切參數缺失 · %1$s</string>
+    <string name="debug_crop_range">裁切 y %1$d~%2$d（高 %3$d）%4$s · %5$s</string>
+    <string name="debug_video_height_estimate"> · 估算影片高 %1$d</string>
+    <string name="debug_header">%1$s · %2$s %3$d×%4$d</string>
+    <string name="debug_cleared">已清空</string>
+
+    <!-- 圖片預覽 -->
+    <string name="preview_image_missing">圖片不存在</string>
+    <string name="preview_share_chooser">分享截圖</string>
+    <string name="preview_share_failed">分享失敗: %1$s</string>
+    <string name="preview_load_failed">圖片讀取失敗</string>
+    <string name="preview_image_description">辨識截圖</string>
+
+    <!-- 螢幕方向（偵錯中繼資料） -->
+    <string name="orientation_landscape">橫屏</string>
+    <string name="orientation_portrait">直式</string>
+    <string name="orientation_unknown">未知</string>
+
+    <!-- 服務、通知與剪貼簿 -->
+    <string name="service_not_ready">翻譯服務尚未就緒，請重新啟動</string>
+    <string name="service_translation_failed">翻譯失敗</string>
+    <string name="service_translation_error">翻譯發生錯誤: %1$s</string>
+    <string name="service_save_word_failed">儲存失敗，請稍後重試</string>
+    <string name="service_word_saved">已加入生詞庫</string>
+    <string name="service_word_removed">已從生詞庫移除</string>
+    <string name="clipboard_label_translation">翻譯結果</string>
+    <string name="toast_copied">已複製到剪貼簿</string>
+    <string name="notification_channel_name">字幕翻譯服務</string>
+    <string name="notification_channel_description">保持字幕翻譯懸浮視窗執行</string>
+    <string name="notification_text">懸浮視窗執行中，點擊開啟應用程式</string>
+    <string name="notification_stop_action">停止服務</string>
+
+    <!-- 發音錯誤 -->
+    <string name="pronouncer_engine_unavailable">語音引擎無法使用</string>
+    <string name="pronouncer_english_voice_unavailable">缺少英語語音資料，請在系統設定中下載</string>
+
+    <!-- 翻譯 / OCR 錯誤 -->
+    <string name="error_capture_failed">截圖失敗</string>
+    <string name="error_crop_failed">字幕區域裁切失敗</string>
+    <string name="error_ocr_failed">OCR 辨識失敗</string>
+    <string name="error_no_subtitle_text">未辨識到字幕文字</string>
+    <string name="error_translation_failed">翻譯失敗</string>
+    <string name="error_translator_not_initialized">翻譯器尚未初始化</string>
+    <string name="error_language_pack_download_failed">下載語言包失敗</string>
+    <string name="error_baidu_not_configured">尚未設定百度翻譯的 APP ID 與密鑰，請在設定中填寫</string>
+    <string name="error_unsupported_language_pair">不支援此語言方向</string>
+    <string name="error_network">網路錯誤，請檢查網路連線</string>
+    <string name="error_baidu_timeout">請求逾時，請重試</string>
+    <string name="error_baidu_service">百度服務異常，請重試</string>
+    <string name="error_baidu_unauthorized">未授權：請檢查 APP ID 是否正確、通用翻譯服務是否已開通</string>
+    <string name="error_baidu_empty_param">必填參數為空</string>
+    <string name="error_baidu_sign">簽名錯誤：請檢查密鑰是否填寫正確</string>
+    <string name="error_baidu_rate_limited">存取頻率受限，請稍後再試</string>
+    <string name="error_baidu_quota">帳戶餘額不足：免費額度可能已用完</string>
+    <string name="error_baidu_too_frequent">請求過於頻繁，請稍後再試</string>
+    <string name="error_baidu_ip_invalid">用戶端 IP 無效</string>
+    <string name="error_baidu_unsupported_direction">不支援此語言方向</string>
+    <string name="error_baidu_service_closed">翻譯服務已關閉</string>
+    <string name="error_baidu_auth_not_effective">驗證未通過或尚未生效</string>
+    <string name="error_empty_translation">譯文為空</string>
+    <string name="error_invalid_response">翻譯服務傳回內容異常</string>
+    <string name="error_unknown">未知錯誤</string>
+    <string name="error_unknown_with_detail">未知錯誤：%1$s</string>
+</resources>

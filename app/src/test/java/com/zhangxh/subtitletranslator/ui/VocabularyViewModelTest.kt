@@ -1,5 +1,6 @@
 package com.zhangxh.subtitletranslator.ui
 
+import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.domain.vocabulary.IVocabularyRepository
 import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWord
 import com.zhangxh.subtitletranslator.domain.vocabulary.ToggleResult
@@ -69,7 +70,9 @@ class VocabularyViewModelTest {
             listOf("beta"),
             requireNotNull(viewModel.uiState.value).items.map { it.word }
         )
-        assertEquals("已删除“alpha”", viewModel.messages.value?.peekContent())
+        val message = viewModel.messages.value?.peekContent()
+        assertEquals(R.string.vocabulary_deleted, message?.resId)
+        assertEquals(listOf("alpha"), message?.args)
     }
 
     @Test
@@ -81,6 +84,9 @@ class VocabularyViewModelTest {
 
         assertTrue(repository.clearCalled)
         assertTrue(requireNotNull(viewModel.uiState.value).isEmpty)
-        assertEquals("生词库已清空", viewModel.messages.value?.peekContent())
+        assertEquals(
+            R.string.vocabulary_cleared,
+            viewModel.messages.value?.peekContent()?.resId
+        )
     }
 }

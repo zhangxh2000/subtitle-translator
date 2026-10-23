@@ -13,6 +13,7 @@ import android.widget.TextView
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.domain.TranslationResult
 import com.zhangxh.subtitletranslator.domain.vocabulary.VocabularyKey
+import com.zhangxh.subtitletranslator.ui.common.labelRes
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficulty
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordEntry
 
@@ -70,8 +71,9 @@ class TranslationOverlayView @JvmOverloads constructor(
 
         // 词数：没有生词时不显示
         findViewById<TextView>(R.id.tvWordCount)?.apply {
-            text = "${result.difficultWords.size} 个词"
-            visibility = if (result.difficultWords.isEmpty()) View.GONE else View.VISIBLE
+            val count = result.difficultWords.size
+            text = resources.getQuantityString(R.plurals.overlay_word_count, count, count)
+            visibility = if (count == 0) View.GONE else View.VISIBLE
         }
 
         // 难词列表
@@ -85,7 +87,7 @@ class TranslationOverlayView @JvmOverloads constructor(
             }
         } else {
             val noWordsView = TextView(context).apply {
-                text = "未检测到难词"
+                text = context.getString(R.string.overlay_no_difficult_words)
                 textSize = 14f
                 gravity = android.view.Gravity.CENTER
                 setTextColor(context.getColor(R.color.text_secondary))
@@ -145,7 +147,9 @@ class TranslationOverlayView @JvmOverloads constructor(
 
     private fun bindSavedState(button: android.widget.ImageButton, saved: Boolean) {
         button.setImageResource(if (saved) R.drawable.ic_bookmark else R.drawable.ic_bookmark_border)
-        button.contentDescription = if (saved) "取消收藏" else "收藏"
+        button.contentDescription = context.getString(
+            if (saved) R.string.action_unsave_word else R.string.action_save_word
+        )
         button.isSelected = saved
     }
 
@@ -206,18 +210,16 @@ class TranslationOverlayView @JvmOverloads constructor(
 
             // 难度标签：低饱和底色 + 同色系文字
             val difficultyView = findViewById<TextView>(R.id.tvDifficulty)
-            val (backgroundRes, textRes, label) = when (wordEntry.difficulty) {
-                WordDifficulty.HARD -> Triple(
-                    R.color.difficulty_hard_bg, R.color.difficulty_hard_text, "难"
-                )
-                WordDifficulty.MEDIUM -> Triple(
-                    R.color.difficulty_medium_bg, R.color.difficulty_medium_text, "中"
-                )
-                else -> Triple(
-                    R.color.difficulty_easy_bg, R.color.difficulty_easy_text, "易"
-                )
+            val difficulty = wordEntry.difficulty
+            val (backgroundRes, textRes) = when (difficulty) {
+                WordDifficulty.HARD ->
+                    R.color.difficulty_hard_bg to R.color.difficulty_hard_text
+                WordDifficulty.MEDIUM ->
+                    R.color.difficulty_medium_bg to R.color.difficulty_medium_text
+                else ->
+                    R.color.difficulty_easy_bg to R.color.difficulty_easy_text
             }
-            difficultyView?.text = label
+            difficultyView?.text = context.getString(difficulty.labelRes())
             difficultyView?.backgroundTintList =
                 ColorStateList.valueOf(context.getColor(backgroundRes))
             difficultyView?.setTextColor(context.getColor(textRes))

@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWord
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficulty
+import com.zhangxh.subtitletranslator.ui.common.labelRes
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -54,7 +55,7 @@ class VocabularyActivity : BaseActivity() {
         }
         viewModel.messages.observe(this) { event ->
             event.getContentIfNotHandled()?.let { message ->
-                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, message.resolve(this), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -119,24 +120,25 @@ class VocabularyActivity : BaseActivity() {
                 tvMeanings.visibility = if (meaningsText.isEmpty()) View.GONE else View.VISIBLE
 
                 // 难度标签：低饱和底色 + 同色系文字
-                val (backgroundRes, textRes, label) = when (item.difficulty) {
-                    WordDifficulty.HARD -> Triple(
-                        R.color.difficulty_hard_bg, R.color.difficulty_hard_text, "难"
-                    )
-                    WordDifficulty.MEDIUM -> Triple(
-                        R.color.difficulty_medium_bg, R.color.difficulty_medium_text, "中"
-                    )
-                    else -> Triple(
-                        R.color.difficulty_easy_bg, R.color.difficulty_easy_text, "易"
-                    )
+                val difficulty = item.difficulty
+                val (backgroundRes, textRes) = when (difficulty) {
+                    WordDifficulty.HARD ->
+                        R.color.difficulty_hard_bg to R.color.difficulty_hard_text
+                    WordDifficulty.MEDIUM ->
+                        R.color.difficulty_medium_bg to R.color.difficulty_medium_text
+                    else ->
+                        R.color.difficulty_easy_bg to R.color.difficulty_easy_text
                 }
-                tvDifficulty.text = label
+                tvDifficulty.text = tvDifficulty.context.getString(difficulty.labelRes())
                 tvDifficulty.backgroundTintList = ColorStateList.valueOf(
                     tvDifficulty.context.getColor(backgroundRes)
                 )
                 tvDifficulty.setTextColor(tvDifficulty.context.getColor(textRes))
 
-                tvAddedAt.text = "收藏于 ${dateFormat.format(Date(item.createdAt))}"
+                tvAddedAt.text = tvAddedAt.context.getString(
+                    R.string.vocabulary_added_at,
+                    dateFormat.format(Date(item.createdAt))
+                )
 
                 btnPronounce.setOnClickListener { onSpeak(item.word) }
                 btnDelete.setOnClickListener { onDelete(item.word) }

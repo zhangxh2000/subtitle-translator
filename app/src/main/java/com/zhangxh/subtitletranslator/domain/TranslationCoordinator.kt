@@ -4,6 +4,9 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.util.Log
+import com.zhangxh.subtitletranslator.domain.error.AppError
+import com.zhangxh.subtitletranslator.domain.error.TranslationError
+import com.zhangxh.subtitletranslator.domain.error.TranslationException
 import com.zhangxh.subtitletranslator.domain.ocr.IOcrEngine
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessor
@@ -11,6 +14,7 @@ import com.zhangxh.subtitletranslator.domain.ocr.OcrTextCleaner
 import com.zhangxh.subtitletranslator.domain.screenshot.IScreenCaptureManager
 import com.zhangxh.subtitletranslator.domain.translator.ITranslator
 import com.zhangxh.subtitletranslator.domain.wordextractor.IWordExtractor
+import com.zhangxh.subtitletranslator.util.CaptureOrientation
 import com.zhangxh.subtitletranslator.util.CropInfo
 import com.zhangxh.subtitletranslator.util.DebugCapture
 import com.zhangxh.subtitletranslator.util.DebugCaptureStore
@@ -75,22 +79,24 @@ class TranslationCoordinator(
         var rawText = ""
         var cleanedText = ""
         var translatedText = ""
-        var errorMessage: String? = null
+        var errorInfo: TranslationError? = null
         var usedPreprocessMode = OcrPreprocessMode.DEFAULT
 
         /** 记录失败原因后返回失败结果，保证 finally 里的调试记录能带上原因 */
-        fun fail(message: String): TranslationResult {
-            errorMessage = message
-            return TranslationResult(isSuccess = false, errorMessage = message)
+        fun fail(error: TranslationError): TranslationResult {
+            errorInfo = error
+            return TranslationResult(isSuccess = false, error = error)
         }
 
         try {
             // 1. 截图
             Log.d(TAG, "开始截图")
-            screenshot = screenCapture.captureScreen() ?: return@withContext fail("截图失败")
+            screenshot = screenCapture.captureScreen()
+                ?: return@withContext fail(TranslationError(AppError.CAPTURE_FAILED))
 
             // 2. 裁剪字幕区域（底部 1/3）
-            val cropped = cropSubtitleArea(screenshot) ?: return@withContext fail("字幕区域裁剪失败")
+            val cropped = cropSubtitleArea(screenshot)
+                ?: return@withContext fail(TranslationError(AppError.CROP_FAILED))
             subtitleBitmap = cropped.bitmap
             cropInfo = cropped.info
 
@@ -103,7 +109,9 @@ class TranslationCoordinator(
             val ocrResult = ocrEngine.recognizeText(processedBitmap)
 
             if (!ocrResult.isSuccess) {
-                return@withContext fail("OCR 识别失败: ${ocrResult.errorMessage}")
+                return@withContext fail(
+                    ocrResult.error ?: TranslationError(AppError.OCR_FAILED)
+                )
             }
 
             // 5. 获取字幕文字并清洗
@@ -111,7 +119,7 @@ class TranslationCoordinator(
             cleanedText = OcrTextCleaner.clean(rawText)
 
             if (cleanedText.isBlank()) {
-                return@withContext fail("未识别到字幕文字")
+                return@withContext fail(TranslationError(AppError.NO_SUBTITLE_TEXT))
             }
 
             Log.d(TAG, "OCR原始结果: $rawText")
@@ -121,7 +129,7 @@ class TranslationCoordinator(
             Log.d(TAG, "开始翻译")
             val translationResult = translator.translate(cleanedText, sourceLang, targetLang)
             translatedText = translationResult.getOrElse {
-                return@withContext fail("翻译失败: ${it.message}")
+                return@withContext fail(it.toTranslationError())
             }
 
             // 7. 提取难词
@@ -137,7 +145,7 @@ class TranslationCoordinator(
 
         } catch (e: Exception) {
             Log.e(TAG, "翻译流程失败", e)
-            fail("翻译失败: ${e.message}")
+            fail(e.toTranslationError())
         } finally {
             // 落盘必须在 recycle() 之前，否则写入的是已回收的 Bitmap
             if (isDebugCaptureEnabled()) {
@@ -149,7 +157,7 @@ class TranslationCoordinator(
                         ocrRawText = rawText,
                         cleanedText = cleanedText,
                         translatedText = translatedText,
-                        errorMessage = errorMessage,
+                        error = errorInfo,
                         cropInfo = cropInfo,
                         scaleFactor = OcrPreprocessor.SCALE_FACTOR,
                         preprocessMode = usedPreprocessMode.name
@@ -191,7 +199,7 @@ class TranslationCoordinator(
 
                 Log.d(TAG, "横屏裁剪字幕区域: top=$top, bottom=$bottom, width=${bitmap.width}, height=$height")
                 val info = CropInfo(
-                    mode = "横屏",
+                    orientation = CaptureOrientation.LANDSCAPE,
                     screenWidth = bitmap.width,
                     screenHeight = bitmap.height,
                     top = top,
@@ -215,7 +223,7 @@ class TranslationCoordinator(
 
                 Log.d(TAG, "竖屏裁剪字幕区域: top=$top, bottom=$bottom, width=${bitmap.width}, height=$height")
                 val info = CropInfo(
-                    mode = "竖屏",
+                    orientation = CaptureOrientation.PORTRAIT,
                     screenWidth = bitmap.width,
                     screenHeight = bitmap.height,
                     top = top,
@@ -232,6 +240,11 @@ class TranslationCoordinator(
         }
     }
 
+
+    /** 把底层异常收敛成错误码，保留原始信息作为补充 */
+    private fun Throwable.toTranslationError(): TranslationError =
+        (this as? TranslationException)?.error
+            ?: TranslationError(AppError.TRANSLATION_FAILED, message)
 
     /**
      * 预加载翻译环境

@@ -17,6 +17,8 @@ import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
 import com.zhangxh.subtitletranslator.domain.translator.Language
 import com.zhangxh.subtitletranslator.domain.translator.TranslationEngine
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficultyFilter
+import com.zhangxh.subtitletranslator.ui.common.displayNameRes
+import com.zhangxh.subtitletranslator.ui.common.labelRes
 
 /**
  * 设置界面
@@ -58,7 +60,7 @@ class SettingsActivity : BaseActivity() {
         viewModel.uiState.observe(this) { state -> render(state) }
         viewModel.messages.observe(this) { event ->
             event.getContentIfNotHandled()?.let { message ->
-                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, message.resolve(this), Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -86,16 +88,26 @@ class SettingsActivity : BaseActivity() {
         val languageAdapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_item,
-            languages.map { "${it.localName} (${it.name})" }
+            languages.map { language ->
+                getString(
+                    R.string.language_option,
+                    getString(language.displayNameRes()),
+                    language.name
+                )
+            }
         ).apply {
             setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
         spinnerSource.adapter = languageAdapter
         spinnerTarget.adapter = languageAdapter
 
-        spinnerDifficulty.adapter = spinnerAdapter(difficultyFilters.map { it.label })
-        spinnerEngine.adapter = spinnerAdapter(engines.map { it.label })
-        spinnerPreprocess.adapter = spinnerAdapter(preprocessModes.map { it.label })
+        spinnerDifficulty.adapter = spinnerAdapter(
+            difficultyFilters.map { getString(it.labelRes()) }
+        )
+        spinnerEngine.adapter = spinnerAdapter(engines.map { getString(it.labelRes()) })
+        spinnerPreprocess.adapter = spinnerAdapter(
+            preprocessModes.map { getString(it.labelRes()) }
+        )
     }
 
     private fun spinnerAdapter(labels: List<String>) = ArrayAdapter(
@@ -185,9 +197,9 @@ class SettingsActivity : BaseActivity() {
             etBaiduSecret.setTextIfChanged(state.baiduCredentials.secret)
             switchDebugCapture.isChecked = state.debugCaptureEnabled
 
-            tvEngineHint.text = state.engineHint
+            tvEngineHint.text = getString(state.engineHintRes)
             baiduConfigGroup.visibility = if (state.showBaiduConfig) View.VISIBLE else View.GONE
-            tvPreprocessHint.text = state.preprocessHint
+            tvPreprocessHint.text = getString(state.preprocessHintRes)
         } finally {
             isBinding = false
         }
