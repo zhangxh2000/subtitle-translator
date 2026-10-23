@@ -16,4 +16,12 @@
     <!-- 控件尺寸 -->
     <dimen name="touch_target">48dp</dimen>
     <dimen name="icon_button_padding">14dp</dimen>
+
+    <!-- 翻译浮窗（values-sw600dp 下会覆盖为更大尺寸） -->
+    <dimen name="overlay_padding_horizontal">20dp</dimen>
+    <dimen name="word_card_padding">16dp</dimen>
+    <dimen name="word_card_spacing">12dp</dimen>
+    <!-- 词卡内图标：40dp 点击区 + 8dp padding = 24dp 图标 -->
+    <dimen name="word_icon_size">40dp</dimen>
+    <dimen name="word_icon_padding">8dp</dimen>
 </resources>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- MD3 风格图标按钮：48dp 触摸区内的 40dp 圆形底色 + 圆形水波纹 -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="?attr/colorControlHighlight">
+    <item>
+        <inset android:inset="4dp">
+            <shape android:shape="oval">
+                <solid android:color="@color/surface_variant" />
+            </shape>
+        </inset>
+    </item>
+</ripple>

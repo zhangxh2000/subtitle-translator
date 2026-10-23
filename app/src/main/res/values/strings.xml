@@ -32,6 +32,8 @@
 
     <!-- Translation overlay -->
     <string name="overlay_title">Subtitle Translation</string>
+    <string name="overlay_subtitle">SUBTITLE TRANSLATION</string>
+    <string name="overlay_collapse_hint">Collapse and keep watching</string>
     <string name="overlay_translated_label">Translation</string>
     <string name="overlay_original_label">Original</string>
     <string name="overlay_key_words">Key words</string>

@@ -6,8 +6,10 @@
     -->
     <color name="screen_bg">#FF101114</color>
     <color name="panel_bg">#FF101114</color>
-    <color name="card_bg">#FF202126</color>
-    <color name="card_bg_pressed">#FF2A2C33</color>
+    <color name="card_bg">#FF24252B</color>
+    <color name="card_bg_pressed">#FF2E3038</color>
+    <!-- 图标按钮的圆形底色（MD3 tonal icon button） -->
+    <color name="surface_variant">#FF2A2C33</color>
 
     <color name="text_primary">#FFF5F5F7</color>
     <color name="text_secondary">#FFA5A7B0</color>

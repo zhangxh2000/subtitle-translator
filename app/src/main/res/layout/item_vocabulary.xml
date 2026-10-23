@@ -3,16 +3,16 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:padding="16dp"
-    android:layout_marginTop="12dp"
+    android:padding="@dimen/word_card_padding"
+    android:layout_marginTop="@dimen/word_card_spacing"
     android:background="@drawable/bg_card">
 
-    <!-- 与 item_word_entry 相同的对齐约定：单词行被 48dp 按钮撑高，标签下移 (48-24)/2 = 12dp -->
+    <!-- 与 item_word_entry 相同的对齐约定：单词行被 40dp 按钮撑高，标签下移 (40-24)/2 = 8dp -->
     <TextView
         android:id="@+id/tvDifficulty"
         android:layout_width="wrap_content"
         android:layout_height="24dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="8dp"
         android:minWidth="32dp"
         android:paddingHorizontal="8dp"
         android:gravity="center"
@@ -55,10 +55,9 @@
 
             <ImageButton
                 android:id="@+id/btnPronounce"
-                android:layout_width="@dimen/touch_target"
-                android:layout_height="@dimen/touch_target"
-                android:layout_marginStart="4dp"
-                android:padding="@dimen/icon_button_padding"
+                android:layout_width="@dimen/word_icon_size"
+                android:layout_height="@dimen/word_icon_size"
+                android:padding="@dimen/word_icon_padding"
                 android:scaleType="fitCenter"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_volume_up"
@@ -66,9 +65,9 @@
 
             <ImageButton
                 android:id="@+id/btnDelete"
-                android:layout_width="@dimen/touch_target"
-                android:layout_height="@dimen/touch_target"
-                android:padding="@dimen/icon_button_padding"
+                android:layout_width="@dimen/word_icon_size"
+                android:layout_height="@dimen/word_icon_size"
+                android:padding="@dimen/word_icon_padding"
                 android:scaleType="fitCenter"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_delete"

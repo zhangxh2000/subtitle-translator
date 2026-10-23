@@ -32,6 +32,8 @@
 
     <!-- 翻譯懸浮視窗 -->
     <string name="overlay_title">字幕翻譯</string>
+    <string name="overlay_subtitle">即時字幕翻譯</string>
+    <string name="overlay_collapse_hint">收合面板後繼續觀看</string>
     <string name="overlay_translated_label">譯文</string>
     <string name="overlay_original_label">原文對照</string>
     <string name="overlay_key_words">重點詞彙</string>

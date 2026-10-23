@@ -56,6 +56,7 @@ class TranslationOverlayView @JvmOverloads constructor(
         orientation = VERTICAL
         LayoutInflater.from(context).inflate(R.layout.overlay_translation, this, true)
         setupCloseButton()
+        setupCollapseButton()
         setupCopyButtons()
     }
 
@@ -77,13 +78,12 @@ class TranslationOverlayView @JvmOverloads constructor(
         }
 
         // 难词列表
-        val wordsContainer = findViewById<LinearLayout>(R.id.wordsContainer)
-        wordsContainer?.removeAllViews()
+        val wordsContainer = findViewById<LinearLayout>(R.id.wordsContainer) ?: return
+        wordsContainer.removeAllViews()
 
         if (result.difficultWords.isNotEmpty()) {
             result.difficultWords.forEach { wordEntry ->
-                val wordView = createWordView(wordEntry)
-                wordsContainer?.addView(wordView)
+                wordsContainer.addView(createWordView(wordEntry, wordsContainer))
             }
         } else {
             val noWordsView = TextView(context).apply {
@@ -94,7 +94,7 @@ class TranslationOverlayView @JvmOverloads constructor(
                 val vertical = (24 * resources.displayMetrics.density).toInt()
                 setPadding(0, vertical, 0, vertical)
             }
-            wordsContainer?.addView(noWordsView)
+            wordsContainer.addView(noWordsView)
         }
     }
 
@@ -163,6 +163,15 @@ class TranslationOverlayView @JvmOverloads constructor(
     }
 
     /**
+     * 底部「收起面板后继续观看」与关闭按钮行为一致
+     */
+    private fun setupCollapseButton() {
+        findViewById<View>(R.id.btnCollapse)?.setOnClickListener {
+            onCloseListener?.invoke()
+        }
+    }
+
+    /**
      * 设置复制按钮
      */
     private fun setupCopyButtons() {
@@ -184,66 +193,72 @@ class TranslationOverlayView @JvmOverloads constructor(
 
     /**
      * 创建单词释义视图
+     *
+     * 必须带上 [parent] 且 attachToRoot=false 地解析布局：
+     * 传 null 根节点会让 inflater 丢掉根布局的 layout_* 参数（包括卡片间距和 match_parent），
+     * 词卡就会挤在一起、宽度也撑不满。
      */
-    private fun createWordView(wordEntry: WordEntry): View {
-        return LayoutInflater.from(context).inflate(R.layout.item_word_entry, null).apply {
-            findViewById<TextView>(R.id.tvWord)?.text = wordEntry.word
-            findViewById<TextView>(R.id.tvPhonetic)?.text = wordEntry.phonetic
+    private fun createWordView(wordEntry: WordEntry, parent: LinearLayout): View {
+        return LayoutInflater.from(context)
+            .inflate(R.layout.item_word_entry, parent, false)
+            .apply {
+                findViewById<TextView>(R.id.tvWord)?.text = wordEntry.word
+                findViewById<TextView>(R.id.tvPhonetic)?.text = wordEntry.phonetic
 
-            // 释义：词性用强调色，释义本身保持中性色
-            val meaningsText = SpannableStringBuilder()
-            wordEntry.meanings.forEachIndexed { index, meaning ->
-                if (index > 0) meaningsText.append("\n")
-                if (meaning.partOfSpeech.isNotEmpty()) {
-                    val start = meaningsText.length
-                    meaningsText.append("[${meaning.partOfSpeech}] ")
-                    meaningsText.setSpan(
-                        ForegroundColorSpan(context.getColor(R.color.accent)),
-                        start,
-                        meaningsText.length,
-                        Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                    )
+                // 释义：词性用强调色，释义本身保持中性色
+                val meaningsText = SpannableStringBuilder()
+                wordEntry.meanings.forEachIndexed { index, meaning ->
+                    if (index > 0) meaningsText.append("\n")
+                    if (meaning.partOfSpeech.isNotEmpty()) {
+                        val start = meaningsText.length
+                        meaningsText.append("[${meaning.partOfSpeech}] ")
+                        meaningsText.setSpan(
+                            ForegroundColorSpan(context.getColor(R.color.accent)),
+                            start,
+                            meaningsText.length,
+                            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                    }
+                    meaningsText.append(meaning.chineseDefinition)
                 }
-                meaningsText.append(meaning.chineseDefinition)
-            }
-            findViewById<TextView>(R.id.tvMeanings)?.text = meaningsText
+                findViewById<TextView>(R.id.tvMeanings)?.text = meaningsText
 
-            // 难度标签：低饱和底色 + 同色系文字
-            val difficultyView = findViewById<TextView>(R.id.tvDifficulty)
-            val difficulty = wordEntry.difficulty
-            val (backgroundRes, textRes) = when (difficulty) {
-                WordDifficulty.HARD ->
-                    R.color.difficulty_hard_bg to R.color.difficulty_hard_text
-                WordDifficulty.MEDIUM ->
-                    R.color.difficulty_medium_bg to R.color.difficulty_medium_text
-                else ->
-                    R.color.difficulty_easy_bg to R.color.difficulty_easy_text
-            }
-            difficultyView?.text = context.getString(difficulty.labelRes())
-            difficultyView?.backgroundTintList =
-                ColorStateList.valueOf(context.getColor(backgroundRes))
-            difficultyView?.setTextColor(context.getColor(textRes))
+                // 难度标签：低饱和底色 + 同色系文字
+                val difficultyView = findViewById<TextView>(R.id.tvDifficulty)
+                val difficulty = wordEntry.difficulty
+                val (backgroundRes, textRes) = when (difficulty) {
+                    WordDifficulty.HARD ->
+                        R.color.difficulty_hard_bg to R.color.difficulty_hard_text
+                    WordDifficulty.MEDIUM ->
+                        R.color.difficulty_medium_bg to R.color.difficulty_medium_text
+                    else ->
+                        R.color.difficulty_easy_bg to R.color.difficulty_easy_text
+                }
+                difficultyView?.text = context.getString(difficulty.labelRes())
+                difficultyView?.backgroundTintList =
+                    ColorStateList.valueOf(context.getColor(backgroundRes))
+                difficultyView?.setTextColor(context.getColor(textRes))
 
-            // 点喇叭朗读单词。图标可点之后会吃掉自己的按下事件，
-            // 所以图标区域内长按不再冒泡到下面那个复制监听 —— 属预期行为。
-            findViewById<android.widget.ImageButton>(R.id.btnPronounce)?.setOnClickListener {
-                onPronounceListener?.invoke(wordEntry.word)
-            }
+                // 点喇叭朗读单词。图标可点之后会吃掉自己的按下事件，
+                // 所以图标区域内长按不再冒泡到下面那个复制监听 —— 属预期行为。
+                findViewById<android.widget.ImageButton>(R.id.btnPronounce)?.setOnClickListener {
+                    onPronounceListener?.invoke(wordEntry.word)
+                }
 
-            // 收藏到生词库：tag 存归一化后的词键，服务异步查回收藏状态时按它匹配行
-            findViewById<android.widget.ImageButton>(R.id.btnSaveWord)?.apply {
-                tag = VocabularyKey.of(wordEntry.word)
-                bindSavedState(this, false)
-                setOnClickListener {
-                    onSaveToggleListener?.invoke(wordEntry)
+                // 收藏到生词库：tag 存归一化后的词键，服务异步查回收藏状态时按它匹配行
+                findViewById<android.widget.ImageButton>(R.id.btnSaveWord)?.apply {
+                    tag = VocabularyKey.of(wordEntry.word)
+                    bindSavedState(this, false)
+                    setOnClickListener {
+                        onSaveToggleListener?.invoke(wordEntry)
+                    }
+                }
+
+                // 长按复制单词
+                setOnLongClickListener {
+                    onCopyListener?.invoke(wordEntry.word)
+                    true
                 }
             }
-
-            // 长按复制单词
-            setOnLongClickListener {
-                onCopyListener?.invoke(wordEntry.word)
-                true
-            }
-        }
     }
 }

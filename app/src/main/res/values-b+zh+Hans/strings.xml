@@ -32,6 +32,8 @@
 
     <!-- 翻译浮窗 -->
     <string name="overlay_title">字幕翻译</string>
+    <string name="overlay_subtitle">实时字幕翻译</string>
+    <string name="overlay_collapse_hint">收起面板后继续观看</string>
     <string name="overlay_translated_label">译文</string>
     <string name="overlay_original_label">原文对照</string>
     <string name="overlay_key_words">重点词汇</string>

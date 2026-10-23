@@ -19,6 +19,13 @@
         <item name="android:letterSpacing">0.08</item>
     </style>
 
+    <!-- 标题下方的小号全大写副标题 -->
+    <style name="TextAppearance.SubtitleTranslator.Overline" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textSize">10sp</item>
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:letterSpacing">0.12</item>
+    </style>
+
     <!-- 译文：浮窗的第一视觉焦点 -->
     <style name="TextAppearance.SubtitleTranslator.Translation" parent="TextAppearance.MaterialComponents.Headline5">
         <item name="android:textSize">24sp</item>

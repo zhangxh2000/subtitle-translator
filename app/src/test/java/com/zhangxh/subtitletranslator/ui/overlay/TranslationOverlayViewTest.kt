@@ -1,6 +1,7 @@
 package com.zhangxh.subtitletranslator.ui.overlay
 
 import android.view.View
+import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -186,6 +187,56 @@ class TranslationOverlayViewTest {
 
     private fun pronounceButton(row: View): ImageButton =
         requireNotNull(row.findViewById(R.id.btnPronounce)) { "该行没有朗读按钮" }
+
+    /**
+     * 词卡之间必须有间距。
+     *
+     * 行布局必须以 wordsContainer 为 parent 解析：传 null 根节点时 inflater 会丢掉
+     * XML 里的 layout_marginTop/match_parent，卡片就会紧贴在一起且宽度撑不满。
+     */
+    @Test
+    fun `word cards keep spacing and full width`() {
+        val overlay = overlay()
+        overlay.setTranslationResult(longResult(wordCount = 3))
+
+        val container = rows(overlay)
+        repeat(container.childCount) { index ->
+            val params = container.getChildAt(index).layoutParams
+            assertTrue("词卡缺少 LayoutParams", params is ViewGroup.MarginLayoutParams)
+            params as ViewGroup.MarginLayoutParams
+            assertTrue("第 $index 张词卡没有顶部间距", params.topMargin > 0)
+            assertEquals(
+                "第 $index 张词卡必须撑满宽度",
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                params.width
+            )
+        }
+    }
+
+    /** 右上角关闭按钮：48dp 触摸区 + 圆形 tonal 底色 */
+    @Test
+    fun `close button has a circular background and a 48dp touch target`() {
+        val overlay = overlay()
+        val close = requireNotNull(overlay.findViewById<ImageButton>(R.id.btnClose))
+        val density = overlay.resources.displayMetrics.density
+
+        assertEquals(48f, close.layoutParams.width / density, 0.5f)
+        assertNotNull("关闭按钮需要圆形底色", close.background)
+    }
+
+    /** 底部「收起面板」与关闭按钮行为一致 */
+    @Test
+    fun `collapse footer closes the overlay`() {
+        val overlay = overlay()
+        var closed = 0
+        overlay.setOnCloseListener { closed++ }
+
+        val collapse = requireNotNull(overlay.findViewById<View>(R.id.btnCollapse))
+        assertFalse("收起提示不能位于滚动区内", hasAncestor<ScrollView>(collapse))
+        collapse.performClick()
+
+        assertEquals(1, closed)
+    }
 
     /** 每个生词后面都要有喇叭，且点击区明显大于图标本身 */
     @Test
