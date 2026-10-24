@@ -551,6 +551,28 @@ class TranslationOverlayViewTest {
         assertEquals(View.GONE, count.visibility)
     }
 
+    /**
+     * 面板左右留白必须对称
+     *
+     * 窗口自身由 WindowManager 的 CENTER_HORIZONTAL 居中；这里固定面板内部
+     * 12dp 外边距也是对称的，避免以后调整 padding 时把面板挤偏。
+     */
+    @Test
+    fun `panel keeps symmetric horizontal margins`() {
+        val overlay = overlay()
+        overlay.setTranslationResult(longResult(wordCount = 2))
+        val width = 1080
+        overlay.measure(
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        overlay.layout(0, 0, width, overlay.measuredHeight)
+
+        val panel = overlay.getChildAt(0)
+        assertEquals("面板左边距应与右边距相同", panel.left, width - panel.right)
+        assertEquals("面板中心应与窗口中心重合", width / 2, (panel.left + panel.right) / 2)
+    }
+
     private inline fun <reified T : View> hasAncestor(view: View): Boolean {
         var parent = view.parent
         while (parent != null) {

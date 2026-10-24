@@ -25,6 +25,7 @@ import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
+import android.view.WindowInsets
 import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
@@ -274,20 +275,27 @@ class FloatingButtonService : Service() {
                 .onFailure { Log.w(TAG, "旋转后更新快捷菜单位置失败", it) }
         }
 
-        // 翻译面板：按新屏幕重新测量并更新窗口宽高
+        // 翻译面板：按新屏幕的可用区域重新测量并更新窗口宽高
         overlayView?.let { view ->
             val params = view.layoutParams as? WindowManager.LayoutParams ?: return@let
             overlayAnimator?.cancel()
             overlayAnimator = null
             view.alpha = 1f
 
-            val overlayWidth = minOf(screenWidth, (OVERLAY_MAX_WIDTH_DP * density).toInt())
+            val overlayMetrics = usableOverlayMetrics()
+            val overlayWidth = minOf(
+                overlayMetrics.widthPixels,
+                (OVERLAY_MAX_WIDTH_DP * density).toInt()
+            )
             view.measure(
                 View.MeasureSpec.makeMeasureSpec(overlayWidth, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
             )
             params.width = overlayWidth
-            params.height = TranslationOverlayView.windowHeightFor(view.measuredHeight, screenHeight)
+            params.height = TranslationOverlayView.windowHeightFor(
+                view.measuredHeight,
+                overlayMetrics.heightPixels
+            )
             params.y = (OVERLAY_BOTTOM_MARGIN_DP * density).toInt()
             runCatching { windowManager?.updateViewLayout(view, params) }
                 .onFailure { Log.w(TAG, "旋转后更新翻译面板失败", it) }
@@ -662,6 +670,35 @@ class FloatingButtonService : Service() {
         return DisplayMetrics().also { wm.defaultDisplay.getRealMetrics(it) }
     }
 
+    /**
+     * 覆盖层可用的窗口区域
+     *
+     * [realDisplayMetrics] 返回的是整块屏幕的尺寸，但系统会给窗口让出侧边导航栏、
+     * 刘海等区域。覆盖层如果按整屏宽度布局，横屏或被系统栏裁切时看起来就会左右不对称。
+     * API 30+ 从 WindowMetrics 里扣掉系统栏和刘海，旧系统保持原来的行为。
+     */
+    private fun usableOverlayMetrics(): DisplayMetrics {
+        val fallback = realDisplayMetrics()
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return fallback
+        val wm = windowManager ?: return fallback
+        return runCatching {
+            val windowMetrics = wm.currentWindowMetrics
+            val bounds = windowMetrics.bounds
+            val insets = windowMetrics.windowInsets
+            val bars = insets.getInsets(WindowInsets.Type.systemBars())
+            val cutout = insets.getInsets(WindowInsets.Type.displayCutout())
+            val horizontal = maxOf(bars.left, cutout.left) + maxOf(bars.right, cutout.right)
+            val vertical = maxOf(bars.top, cutout.top) + maxOf(bars.bottom, cutout.bottom)
+            fallback.apply {
+                widthPixels = (bounds.width() - horizontal).coerceAtLeast(1)
+                heightPixels = (bounds.height() - vertical).coerceAtLeast(1)
+            }
+        }.getOrElse {
+            Log.w(TAG, "读取窗口可用区域失败，回退到真实屏幕尺寸", it)
+            fallback
+        }
+    }
+
     /** 跳转到 App 内的界面；服务启动 Activity 需要 NEW_TASK */
     private fun openAppScreen(activityClass: Class<*>) {
         try {
@@ -818,15 +855,15 @@ class FloatingButtonService : Service() {
             }
         }
 
-        // 单词释义多时面板会很高：这里按屏幕高度给窗口封顶，
+        // 单词释义多时面板会很高：这里按可用窗口高度给窗口封顶，
         // 超出部分靠面板内的滚动查看，否则窗口会超出屏幕、顶部内容被裁掉
-        val metrics = realDisplayMetrics()
-        val screenWidth = metrics.widthPixels
-        val screenHeight = metrics.heightPixels
+        val metrics = usableOverlayMetrics()
+        val availableWidth = metrics.widthPixels
+        val availableHeight = metrics.heightPixels
         val density = metrics.density
 
         // 横屏/平板上面板不铺满整块屏幕，限制最大阅读宽度并居中
-        val overlayWidth = minOf(screenWidth, (OVERLAY_MAX_WIDTH_DP * density).toInt())
+        val overlayWidth = minOf(availableWidth, (OVERLAY_MAX_WIDTH_DP * density).toInt())
 
         overlayView?.measure(
             View.MeasureSpec.makeMeasureSpec(overlayWidth, View.MeasureSpec.EXACTLY),
@@ -839,12 +876,14 @@ class FloatingButtonService : Service() {
 
         val params = WindowManager.LayoutParams(
             overlayWidth,
-            TranslationOverlayView.windowHeightFor(contentHeight, screenHeight),
+            TranslationOverlayView.windowHeightFor(contentHeight, availableHeight),
             OVERLAY_WINDOW_TYPE,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
         ).apply {
+            // 水平方向始终居中：和视频字幕、系统底部面板的阅读位置一致。
+            // 不做左右偏移，避免横屏/平板上看起来偏心。
             gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
             // 从略低于最终位置的地方滑入
             y = baseY - slidePx
