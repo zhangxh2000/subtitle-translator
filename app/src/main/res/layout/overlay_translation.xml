@@ -62,10 +62,16 @@
         android:layout_marginTop="12dp"
         android:background="@color/divider" />
 
+    <!--
+      0dp + weight=1：窗口高度封顶后，滚动区只占「标题栏 / 底部收起入口」之外
+      的剩余空间。写成 wrap_content 会先按内容撑满，把底部收起入口顶出窗口。
+      自然内容高度由 TranslationOverlayView.measureNaturalHeight() 单独测量。
+    -->
     <ScrollView
         android:id="@+id/contentScroll"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:scrollbars="vertical">
 
         <LinearLayout

@@ -111,11 +111,7 @@ class TranslationOverlayViewTest {
         val overlay = overlay()
         overlay.setTranslationResult(longResult(wordCount = 30))
 
-        overlay.measure(
-            View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-        )
-        val natural = overlay.measuredHeight
+        val natural = overlay.measureNaturalHeight(1080)
         // 用一块小屏幕，保证内容一定超过封顶高度
         val capped = TranslationOverlayView.windowHeightFor(natural, screenHeight = 800)
         assertTrue("内容高度 $natural 应超过封顶高度 $capped", natural > capped)
@@ -133,6 +129,17 @@ class TranslationOverlayViewTest {
             "滚动区内容(${content.height})应高于可视区(${scroll.height})，否则滚动不起来",
             content.height > scroll.height
         )
+
+        // 内容再高，底部收起入口也必须留在面板内，不能被挤出窗口
+        val footer = requireNotNull(overlay.findViewById<View>(R.id.btnCollapse))
+        val panelRoot = overlay.getChildAt(0)
+        assertTrue(
+            "底部收起入口被挤出面板：footer=${footer.top}..${footer.bottom}, panel=$capped, " +
+                "overlay=${overlay.measuredHeight}, panelRoot=${panelRoot.measuredHeight}, " +
+                "scroll=${scroll.top}..${scroll.bottom}/${scroll.measuredHeight}",
+            footer.bottom <= capped
+        )
+        assertTrue("底部收起入口应与滚动区不重叠", footer.top >= scroll.bottom)
     }
 
     // ---------------------------------------------------------------------
@@ -571,6 +578,18 @@ class TranslationOverlayViewTest {
         val panel = overlay.getChildAt(0)
         assertEquals("面板左边距应与右边距相同", panel.left, width - panel.right)
         assertEquals("面板中心应与窗口中心重合", width / 2, (panel.left + panel.right) / 2)
+    }
+
+    /**
+     * 横屏时刘海/侧边导航栏只占一侧，系统居中基准会偏离屏幕中心；
+     * 偏移量应等于两侧 inset 差的一半，面板才真正居中。
+     */
+    @Test
+    fun `window offset compensates asymmetric system insets`() {
+        assertEquals(-50, TranslationOverlayView.horizontalOffsetFor(600, 900, 100, 0))
+        assertEquals(50, TranslationOverlayView.horizontalOffsetFor(600, 900, 0, 100))
+        assertEquals(0, TranslationOverlayView.horizontalOffsetFor(600, 900, 100, 100))
+        assertEquals("面板占满可用宽度时不应再偏移", 0, TranslationOverlayView.horizontalOffsetFor(900, 900, 100, 0))
     }
 
     private inline fun <reified T : View> hasAncestor(view: View): Boolean {

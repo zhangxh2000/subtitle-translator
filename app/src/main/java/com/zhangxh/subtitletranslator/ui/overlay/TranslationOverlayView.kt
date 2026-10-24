@@ -8,7 +8,9 @@ import android.text.style.ForegroundColorSpan
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.domain.TranslationResult
@@ -45,6 +47,27 @@ class TranslationOverlayView @JvmOverloads constructor(
          */
         fun windowHeightFor(contentHeight: Int, screenHeight: Int): Int =
             minOf(contentHeight, (screenHeight * MAX_HEIGHT_RATIO).toInt())
+
+        /**
+         * 窗口水平偏移量
+         *
+         * 系统会先扣掉刘海、侧边导航栏等区域再给窗口分配可布局区域，
+         * `Gravity.CENTER_HORIZONTAL` 居中的是这个区域的中心，而不是整块屏幕的中心。
+         * 横屏时两侧 inset 常常不对称，面板看起来就会偏右（或偏左）。
+         * 按两侧 inset 的差值补偿，面板才会相对屏幕真正居中。
+         *
+         * 面板已经占满可用宽度时返回 0：这时再平移会压到系统栏。
+         */
+        fun horizontalOffsetFor(
+            overlayWidthPx: Int,
+            availableWidthPx: Int,
+            leftInsetPx: Int,
+            rightInsetPx: Int
+        ): Int = if (overlayWidthPx < availableWidthPx) {
+            (rightInsetPx - leftInsetPx) / 2
+        } else {
+            0
+        }
     }
 
     private var onCloseListener: (() -> Unit)? = null
@@ -58,6 +81,35 @@ class TranslationOverlayView @JvmOverloads constructor(
         setupCloseButton()
         setupCollapseButton()
         setupCopyButtons()
+    }
+
+    /**
+     * 按自然内容高度测量（不受窗口封顶影响）
+     *
+     * 布局里的 ScrollView 使用 0dp + weight=1，保证窗口封顶后底部收起入口
+     * 始终留在窗口内；但「内容不多时窗口该多高」仍要按内容本身计算。
+     * 这里临时把 ScrollView 还原成 wrap_content 测量一次，测完立即恢复，
+     * 之后 WindowManager 按本方法返回的高度布局时，weight 会重新分配空间。
+     */
+    fun measureNaturalHeight(widthPx: Int): Int {
+        val scroll = findViewById<ScrollView>(R.id.contentScroll) ?: return 0
+        val lp = scroll.layoutParams as? LinearLayout.LayoutParams ?: return 0
+        val savedHeight = lp.height
+        val savedWeight = lp.weight
+        lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+        lp.weight = 0f
+        scroll.layoutParams = lp
+
+        measure(
+            View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        val naturalHeight = measuredHeight
+
+        lp.height = savedHeight
+        lp.weight = savedWeight
+        scroll.layoutParams = lp
+        return naturalHeight
     }
 
     /**

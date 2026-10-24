@@ -284,17 +284,19 @@ class FloatingButtonService : Service() {
 
             val overlayMetrics = usableOverlayMetrics()
             val overlayWidth = minOf(
-                overlayMetrics.widthPixels,
+                overlayMetrics.widthPx,
                 (OVERLAY_MAX_WIDTH_DP * density).toInt()
-            )
-            view.measure(
-                View.MeasureSpec.makeMeasureSpec(overlayWidth, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
             )
             params.width = overlayWidth
             params.height = TranslationOverlayView.windowHeightFor(
-                view.measuredHeight,
-                overlayMetrics.heightPixels
+                view.measureNaturalHeight(overlayWidth),
+                overlayMetrics.heightPx
+            )
+            params.x = TranslationOverlayView.horizontalOffsetFor(
+                overlayWidthPx = overlayWidth,
+                availableWidthPx = overlayMetrics.widthPx,
+                leftInsetPx = overlayMetrics.leftInsetPx,
+                rightInsetPx = overlayMetrics.rightInsetPx
             )
             params.y = (OVERLAY_BOTTOM_MARGIN_DP * density).toInt()
             runCatching { windowManager?.updateViewLayout(view, params) }
@@ -670,6 +672,15 @@ class FloatingButtonService : Service() {
         return DisplayMetrics().also { wm.defaultDisplay.getRealMetrics(it) }
     }
 
+    /** 覆盖层可用的窗口区域，以及需要补偿的左右 inset */
+    private data class OverlayWindowMetrics(
+        val widthPx: Int,
+        val heightPx: Int,
+        val density: Float,
+        val leftInsetPx: Int,
+        val rightInsetPx: Int
+    )
+
     /**
      * 覆盖层可用的窗口区域
      *
@@ -677,8 +688,15 @@ class FloatingButtonService : Service() {
      * 刘海等区域。覆盖层如果按整屏宽度布局，横屏或被系统栏裁切时看起来就会左右不对称。
      * API 30+ 从 WindowMetrics 里扣掉系统栏和刘海，旧系统保持原来的行为。
      */
-    private fun usableOverlayMetrics(): DisplayMetrics {
-        val fallback = realDisplayMetrics()
+    private fun usableOverlayMetrics(): OverlayWindowMetrics {
+        val fallbackMetrics = realDisplayMetrics()
+        val fallback = OverlayWindowMetrics(
+            widthPx = fallbackMetrics.widthPixels,
+            heightPx = fallbackMetrics.heightPixels,
+            density = fallbackMetrics.density,
+            leftInsetPx = 0,
+            rightInsetPx = 0
+        )
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return fallback
         val wm = windowManager ?: return fallback
         return runCatching {
@@ -687,12 +705,17 @@ class FloatingButtonService : Service() {
             val insets = windowMetrics.windowInsets
             val bars = insets.getInsets(WindowInsets.Type.systemBars())
             val cutout = insets.getInsets(WindowInsets.Type.displayCutout())
-            val horizontal = maxOf(bars.left, cutout.left) + maxOf(bars.right, cutout.right)
-            val vertical = maxOf(bars.top, cutout.top) + maxOf(bars.bottom, cutout.bottom)
-            fallback.apply {
-                widthPixels = (bounds.width() - horizontal).coerceAtLeast(1)
-                heightPixels = (bounds.height() - vertical).coerceAtLeast(1)
-            }
+            val left = maxOf(bars.left, cutout.left)
+            val right = maxOf(bars.right, cutout.right)
+            val top = maxOf(bars.top, cutout.top)
+            val bottom = maxOf(bars.bottom, cutout.bottom)
+            OverlayWindowMetrics(
+                widthPx = (bounds.width() - left - right).coerceAtLeast(1),
+                heightPx = (bounds.height() - top - bottom).coerceAtLeast(1),
+                density = fallbackMetrics.density,
+                leftInsetPx = left,
+                rightInsetPx = right
+            )
         }.getOrElse {
             Log.w(TAG, "读取窗口可用区域失败，回退到真实屏幕尺寸", it)
             fallback
@@ -858,18 +881,25 @@ class FloatingButtonService : Service() {
         // 单词释义多时面板会很高：这里按可用窗口高度给窗口封顶，
         // 超出部分靠面板内的滚动查看，否则窗口会超出屏幕、顶部内容被裁掉
         val metrics = usableOverlayMetrics()
-        val availableWidth = metrics.widthPixels
-        val availableHeight = metrics.heightPixels
+        val availableWidth = metrics.widthPx
+        val availableHeight = metrics.heightPx
         val density = metrics.density
 
         // 横屏/平板上面板不铺满整块屏幕，限制最大阅读宽度并居中
         val overlayWidth = minOf(availableWidth, (OVERLAY_MAX_WIDTH_DP * density).toInt())
-
-        overlayView?.measure(
-            View.MeasureSpec.makeMeasureSpec(overlayWidth, View.MeasureSpec.EXACTLY),
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        val centerOffset = TranslationOverlayView.horizontalOffsetFor(
+            overlayWidthPx = overlayWidth,
+            availableWidthPx = availableWidth,
+            leftInsetPx = metrics.leftInsetPx,
+            rightInsetPx = metrics.rightInsetPx
         )
-        val contentHeight = overlayView?.measuredHeight ?: 0
+        Log.d(
+            TAG,
+            "overlay width=$overlayWidth/$availableWidth, " +
+                "insets=${metrics.leftInsetPx}/${metrics.rightInsetPx}, x=$centerOffset"
+        )
+
+        val contentHeight = overlayView?.measureNaturalHeight(overlayWidth) ?: 0
 
         val baseY = (OVERLAY_BOTTOM_MARGIN_DP * density).toInt()
         val slidePx = (OVERLAY_SLIDE_DP * density).toInt()
@@ -883,8 +913,10 @@ class FloatingButtonService : Service() {
             PixelFormat.TRANSLUCENT
         ).apply {
             // 水平方向始终居中：和视频字幕、系统底部面板的阅读位置一致。
-            // 不做左右偏移，避免横屏/平板上看起来偏心。
+            // 系统居中基准是扣除刘海/系统栏后的区域，两侧 inset 不对称时会偏离
+            // 屏幕中心，这里按差值补偿回来。
             gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            x = centerOffset
             // 从略低于最终位置的地方滑入
             y = baseY - slidePx
         }
