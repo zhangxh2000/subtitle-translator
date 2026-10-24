@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 主界面背景：顶部一层很淡的品牌色光晕，向下过渡到近黑，避免大面积纯色显得单调 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:centerColor="#FF101216"
+                android:endColor="#FF0C0D10"
+                android:startColor="#FF14171B" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:centerX="0.5"
+                android:centerY="0.02"
+                android:endColor="#00B9E64B"
+                android:gradientRadius="300dp"
+                android:startColor="#1CB9E64B"
+                android:type="radial" />
+        </shape>
+    </item>
+</layer-list>

@@ -15,7 +15,11 @@
     <!-- 主畫面 -->
     <string name="main_tagline">看影片時，一鍵翻譯字幕</string>
     <string name="main_instructions_title">使用說明</string>
-    <string name="main_instructions">1. 點擊啟動按鈕\n2. 授予螢幕錄製權限\n3. 在任意影片畫面點擊懸浮按鈕\n4. 查看翻譯結果和重點詞彙\n5. 長按懸浮按鈕可開啟選單</string>
+    <string name="main_step_1">點擊啟動字幕翻譯</string>
+    <string name="main_step_2">授予螢幕錄製和懸浮視窗權限</string>
+    <string name="main_step_3">開啟任意影片，點擊懸浮按鈕</string>
+    <string name="main_step_4">查看譯文和重點詞彙</string>
+    <string name="main_step_5">長按懸浮按鈕開啟選單</string>
     <string name="main_status_running">字幕翻譯執行中</string>
     <string name="main_status_hint">點擊懸浮球翻譯字幕，長按開啟選單</string>
     <string name="main_start_service">啟動字幕翻譯</string>
@@ -23,6 +27,9 @@
     <string name="main_history">翻譯歷史</string>
     <string name="main_vocabulary">生詞庫</string>
     <string name="main_settings">設定</string>
+    <string name="main_history_short">翻譯歷史</string>
+    <string name="main_vocabulary_short">生詞庫</string>
+    <string name="main_settings_short">設定</string>
     <string name="main_restart_hint">螢幕錄製權限已失效，請重新授權</string>
     <string name="main_overlay_permission_hint">請開啟懸浮視窗權限</string>
     <string name="main_permissions_required">需要相關權限才能使用</string>

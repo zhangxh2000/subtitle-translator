@@ -13,9 +13,18 @@
     <string name="decorative_bullet" translatable="false">●</string>
 
     <!-- Main screen -->
-    <string name="main_tagline">Translate subtitles with one tap while watching videos</string>
+    <string name="main_tagline">Translate subtitles with one tap</string>
     <string name="main_instructions_title">How to use</string>
-    <string name="main_instructions">1. Tap Start\n2. Grant screen recording permission\n3. Tap the floating button over any video\n4. Read the translation and key words\n5. Long-press the floating button to open the menu</string>
+    <string name="main_step_1">Tap Start subtitle translation</string>
+    <string name="main_step_2">Allow screen recording and floating window access</string>
+    <string name="main_step_3">Open any video and tap the floating button</string>
+    <string name="main_step_4">Read the translation and key words</string>
+    <string name="main_step_5">Long-press the floating button to open the menu</string>
+    <string name="main_step_number_1" translatable="false">1</string>
+    <string name="main_step_number_2" translatable="false">2</string>
+    <string name="main_step_number_3" translatable="false">3</string>
+    <string name="main_step_number_4" translatable="false">4</string>
+    <string name="main_step_number_5" translatable="false">5</string>
     <string name="main_status_running">Subtitle translation is running</string>
     <string name="main_status_hint">Tap the floating ball to translate, long-press to open the menu</string>
     <string name="main_start_service">Start subtitle translation</string>
@@ -23,6 +32,9 @@
     <string name="main_history">Translation history</string>
     <string name="main_vocabulary">Vocabulary</string>
     <string name="main_settings">Settings</string>
+    <string name="main_history_short">History</string>
+    <string name="main_vocabulary_short">Vocabulary</string>
+    <string name="main_settings_short">Settings</string>
     <string name="main_restart_hint">Screen recording permission expired. Please authorize again.</string>
     <string name="main_overlay_permission_hint">Please allow display over other apps</string>
     <string name="main_permissions_required">Permissions are required to use this feature</string>

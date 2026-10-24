@@ -55,15 +55,15 @@ class MainActivity : BaseActivity() {
         btnStartService = findViewById(R.id.btnStartService)
         btnStartService.setOnClickListener { viewModel.onStartStopClicked() }
 
-        findViewById<Button>(R.id.btnHistory)?.setOnClickListener {
+        findViewById<View>(R.id.btnHistory)?.setOnClickListener {
             startActivity(Intent(this, HistoryActivity::class.java))
         }
 
-        findViewById<Button>(R.id.btnVocabulary)?.setOnClickListener {
+        findViewById<View>(R.id.btnVocabulary)?.setOnClickListener {
             startActivity(Intent(this, VocabularyActivity::class.java))
         }
 
-        findViewById<Button>(R.id.btnSettings)?.setOnClickListener {
+        findViewById<View>(R.id.btnSettings)?.setOnClickListener {
             startActivity(Intent(this, com.zhangxh.subtitletranslator.ui.SettingsActivity::class.java))
         }
 
@@ -128,12 +128,14 @@ class MainActivity : BaseActivity() {
         btnStartService.text = getString(
             if (running) R.string.main_stop_service else R.string.main_start_service
         )
-        btnStartService.backgroundTintList = if (running) {
-            ColorStateList.valueOf(ContextCompat.getColor(this, R.color.stop_button))
-        } else {
-            // 置空即恢复主题默认配色
-            null
-        }
+        // 注意：不能把 backgroundTintList 置空来「恢复默认色」。MaterialButton
+        // 置空后会丢掉填充色，按钮变成与背景同色的黑色，深色文字几乎看不见。
+        btnStartService.backgroundTintList = ColorStateList.valueOf(
+            ContextCompat.getColor(
+                this,
+                if (running) R.color.stop_button else R.color.accent
+            )
+        )
         // 停止态是红底，配浅色文字；启动态是 accent 底，配深色文字
         btnStartService.setTextColor(
             ContextCompat.getColor(

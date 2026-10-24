@@ -1,153 +1,396 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  首页布局
+
+  结构：可滚动的品牌区 + 使用说明 / 服务状态；主操作按钮和三个快捷入口固定在底部，
+  不随内容滚动，保证任何屏幕高度下「启动字幕翻译」都在一屏内可见。
+  根布局的 24dp 内边距由 WindowInsetsTest 固定，系统栏 insets 会叠加在这之上。
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true"
+    android:orientation="vertical"
     android:padding="24dp"
-    android:background="@color/screen_bg">
+    android:background="@drawable/bg_main">
 
-    <LinearLayout
+    <ScrollView
+        android:id="@+id/mainScroll"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center">
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:overScrollMode="never"
+        android:scrollbars="none">
 
-        <ImageView
-            android:layout_width="88dp"
-            android:layout_height="88dp"
-            android:src="@drawable/ic_translate"
-            android:contentDescription="@string/app_name" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/app_name"
-            android:textSize="26sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_primary" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:text="@string/main_tagline"
-            android:textSize="15sp"
-            android:textColor="@color/text_secondary" />
-
-        <!-- 使用说明卡片 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
             android:orientation="vertical"
-            android:padding="16dp"
-            android:background="@drawable/bg_card">
+            android:gravity="center_horizontal"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp">
+
+            <!-- 品牌区 -->
+            <ImageView
+                android:layout_width="84dp"
+                android:layout_height="84dp"
+                android:padding="20dp"
+                android:background="@drawable/bg_logo_badge"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_translate_dark"
+                android:contentDescription="@string/app_name" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/main_instructions_title"
-                android:textAppearance="@style/TextAppearance.SubtitleTranslator.SectionLabel" />
+                android:layout_marginTop="20dp"
+                android:maxLines="1"
+                android:text="@string/app_name"
+                android:textColor="@color/text_primary"
+                android:textSize="26sp"
+                android:textStyle="bold" />
 
             <TextView
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="@string/main_instructions"
-                android:textAppearance="@style/TextAppearance.SubtitleTranslator.Body"
-                android:lineSpacingMultiplier="1.5" />
-        </LinearLayout>
+                android:gravity="center"
+                android:lineSpacingMultiplier="1.3"
+                android:text="@string/main_tagline"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
 
-        <!-- 服务运行中的状态提示，未运行时整体隐藏 -->
-        <LinearLayout
-            android:id="@+id/statusContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:orientation="vertical"
-            android:padding="16dp"
-            android:background="@drawable/bg_card"
-            android:visibility="gone">
+            <View
+                android:layout_width="36dp"
+                android:layout_height="3dp"
+                android:layout_marginTop="20dp"
+                android:background="@drawable/bg_accent_bar" />
 
+            <!-- 服务运行中的状态卡，未运行时整体隐藏 -->
+            <LinearLayout
+                android:id="@+id/statusContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:background="@drawable/bg_status_card"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <View
+                        android:layout_width="10dp"
+                        android:layout_height="10dp"
+                        android:background="@drawable/bg_status_dot" />
+
+                    <TextView
+                        android:id="@+id/tvServiceStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:text="@string/main_status_running"
+                        android:textColor="@color/accent"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:lineSpacingMultiplier="1.3"
+                    android:text="@string/main_status_hint"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- 使用说明标题 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/decorative_bullet"
-                    android:textColor="@color/accent"
-                    android:textSize="12sp" />
+                <View
+                    android:layout_width="3dp"
+                    android:layout_height="14dp"
+                    android:background="@drawable/bg_accent_bar" />
 
                 <TextView
-                    android:id="@+id/tvServiceStatus"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
-                    android:text="@string/main_status_running"
-                    android:textColor="@color/accent"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
+                    android:letterSpacing="0.12"
+                    android:text="@string/main_instructions_title"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
             </LinearLayout>
+
+            <!-- 使用说明：编号步骤，比整段文字更容易扫读 -->
+            <LinearLayout
+                android:id="@+id/instructionCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:orientation="vertical"
+                android:padding="18dp"
+                android:background="@drawable/bg_main_card">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="top">
+
+                    <TextView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:background="@drawable/bg_step_badge"
+                        android:fontFamily="sans-serif-medium"
+                        android:gravity="center"
+                        android:text="@string/main_step_number_1"
+                        android:textColor="@color/accent_dim"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="12dp"
+                        android:paddingTop="2dp"
+                        android:lineSpacingMultiplier="1.3"
+                        android:text="@string/main_step_1"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:orientation="horizontal"
+                    android:gravity="top">
+
+                    <TextView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:background="@drawable/bg_step_badge"
+                        android:fontFamily="sans-serif-medium"
+                        android:gravity="center"
+                        android:text="@string/main_step_number_2"
+                        android:textColor="@color/accent_dim"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="12dp"
+                        android:paddingTop="2dp"
+                        android:lineSpacingMultiplier="1.3"
+                        android:text="@string/main_step_2"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:orientation="horizontal"
+                    android:gravity="top">
+
+                    <TextView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:background="@drawable/bg_step_badge"
+                        android:fontFamily="sans-serif-medium"
+                        android:gravity="center"
+                        android:text="@string/main_step_number_3"
+                        android:textColor="@color/accent_dim"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="12dp"
+                        android:paddingTop="2dp"
+                        android:lineSpacingMultiplier="1.3"
+                        android:text="@string/main_step_3"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:orientation="horizontal"
+                    android:gravity="top">
+
+                    <TextView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:background="@drawable/bg_step_badge"
+                        android:fontFamily="sans-serif-medium"
+                        android:gravity="center"
+                        android:text="@string/main_step_number_4"
+                        android:textColor="@color/accent_dim"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="12dp"
+                        android:paddingTop="2dp"
+                        android:lineSpacingMultiplier="1.3"
+                        android:text="@string/main_step_4"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:orientation="horizontal"
+                    android:gravity="top">
+
+                    <TextView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:background="@drawable/bg_step_badge"
+                        android:fontFamily="sans-serif-medium"
+                        android:gravity="center"
+                        android:text="@string/main_step_number_5"
+                        android:textColor="@color/accent_dim"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="12dp"
+                        android:paddingTop="2dp"
+                        android:lineSpacingMultiplier="1.3"
+                        android:text="@string/main_step_5"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- 主操作：始终固定在底部 -->
+    <Button
+        android:id="@+id/btnStartService"
+        style="@style/Widget.SubtitleTranslator.Button.Primary"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_marginTop="16dp"
+        android:text="@string/main_start_service" />
+
+    <!-- 快捷入口 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:id="@+id/btnHistory"
+            android:layout_width="0dp"
+            android:layout_height="72dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:minHeight="72dp"
+            android:padding="8dp"
+            android:background="@drawable/bg_action_tile"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_history"
+                android:contentDescription="@null" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:text="@string/main_status_hint"
-                android:textColor="@color/text_secondary"
-                android:textSize="13sp" />
+                android:layout_marginTop="4dp"
+                android:maxLines="1"
+                android:text="@string/main_history_short"
+                android:textColor="@color/text_primary"
+                android:textSize="12sp" />
         </LinearLayout>
-
-        <Button
-            android:id="@+id/btnStartService"
-            style="@style/Widget.SubtitleTranslator.Button.Primary"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/main_start_service" />
 
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:orientation="horizontal">
+            android:id="@+id/btnVocabulary"
+            android:layout_width="0dp"
+            android:layout_height="72dp"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:minHeight="72dp"
+            android:padding="8dp"
+            android:background="@drawable/bg_action_tile"
+            android:clickable="true"
+            android:focusable="true">
 
-            <Button
-                android:id="@+id/btnHistory"
-                style="@style/Widget.SubtitleTranslator.Button.Outlined"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginEnd="4dp"
-                android:minWidth="0dp"
-                android:text="@string/main_history" />
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_bookmark"
+                android:contentDescription="@null" />
 
-            <Button
-                android:id="@+id/btnVocabulary"
-                style="@style/Widget.SubtitleTranslator.Button.Outlined"
-                android:layout_width="0dp"
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="4dp"
-                android:minWidth="0dp"
-                android:text="@string/main_vocabulary" />
-
-            <Button
-                android:id="@+id/btnSettings"
-                style="@style/Widget.SubtitleTranslator.Button.Outlined"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:minWidth="0dp"
-                android:text="@string/main_settings" />
+                android:layout_marginTop="4dp"
+                android:maxLines="1"
+                android:text="@string/main_vocabulary_short"
+                android:textColor="@color/text_primary"
+                android:textSize="12sp" />
         </LinearLayout>
 
+        <LinearLayout
+            android:id="@+id/btnSettings"
+            android:layout_width="0dp"
+            android:layout_height="72dp"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:minHeight="72dp"
+            android:padding="8dp"
+            android:background="@drawable/bg_action_tile"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_settings"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:maxLines="1"
+                android:text="@string/main_settings_short"
+                android:textColor="@color/text_primary"
+                android:textSize="12sp" />
+        </LinearLayout>
     </LinearLayout>
-</ScrollView>
+</LinearLayout>

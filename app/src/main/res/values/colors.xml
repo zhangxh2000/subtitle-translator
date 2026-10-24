@@ -16,6 +16,12 @@
     <color name="divider">#FF34353B</color>
     <color name="button_outline">#FF34353B</color>
 
+    <!-- 主界面：卡片描边、快捷入口底色、运行状态卡 -->
+    <color name="card_stroke">#FF2E3138</color>
+    <color name="surface_tile">#FF1B1D23</color>
+    <color name="status_bg">#FF16200F</color>
+    <color name="status_stroke">#FF334C25</color>
+
     <color name="accent">#FFB9E64B</color>
     <!-- 大字号译文用低饱和版本，避免长时间观看刺眼 -->
     <color name="accent_dim">#FFCBE97F</color>

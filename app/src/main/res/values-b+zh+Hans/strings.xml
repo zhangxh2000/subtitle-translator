@@ -15,7 +15,11 @@
     <!-- 主界面 -->
     <string name="main_tagline">看视频时，一键翻译字幕</string>
     <string name="main_instructions_title">使用说明</string>
-    <string name="main_instructions">1. 点击启动按钮\n2. 授予屏幕录制权限\n3. 在任意视频界面点击悬浮按钮\n4. 查看翻译结果和重点词汇\n5. 长按悬浮按钮可打开菜单</string>
+    <string name="main_step_1">点击启动字幕翻译</string>
+    <string name="main_step_2">授予录屏和悬浮窗权限</string>
+    <string name="main_step_3">打开任意视频，点击悬浮按钮</string>
+    <string name="main_step_4">查看译文和重点词汇</string>
+    <string name="main_step_5">长按悬浮按钮打开菜单</string>
     <string name="main_status_running">字幕翻译运行中</string>
     <string name="main_status_hint">点击悬浮球翻译字幕，长按打开菜单</string>
     <string name="main_start_service">启动字幕翻译</string>
@@ -23,6 +27,9 @@
     <string name="main_history">翻译历史</string>
     <string name="main_vocabulary">生词库</string>
     <string name="main_settings">设置</string>
+    <string name="main_history_short">翻译历史</string>
+    <string name="main_vocabulary_short">生词库</string>
+    <string name="main_settings_short">设置</string>
     <string name="main_restart_hint">录屏权限已失效，请重新授权</string>
     <string name="main_overlay_permission_hint">请开启悬浮窗权限</string>
     <string name="main_permissions_required">需要相关权限才能使用</string>

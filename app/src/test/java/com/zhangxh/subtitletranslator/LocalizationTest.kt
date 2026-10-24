@@ -3,6 +3,7 @@ package com.zhangxh.subtitletranslator
 import android.content.Context
 import android.content.res.Configuration
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -47,6 +48,32 @@ class LocalizationTest {
         assertEquals("Settings", contextFor("en").getString(R.string.main_settings))
         assertEquals("生词库", contextFor("zh-Hans").getString(R.string.main_vocabulary))
         assertEquals("Vocabulary", contextFor("en").getString(R.string.main_vocabulary))
+    }
+
+    @Test
+    fun `main screen steps and shortcut labels are translated`() {
+        val keys = listOf(
+            R.string.main_step_1,
+            R.string.main_step_2,
+            R.string.main_step_3,
+            R.string.main_step_4,
+            R.string.main_step_5,
+            R.string.main_history_short,
+            R.string.main_vocabulary_short,
+            R.string.main_settings_short
+        )
+        val english = contextFor("en")
+        listOf("zh-Hans", "zh-Hant").forEach { tag ->
+            val localized = contextFor(tag)
+            keys.forEach { id ->
+                val name = english.resources.getResourceEntryName(id)
+                assertNotEquals(
+                    "$tag 的 $name 回退成了英文，说明缺少翻译",
+                    english.getString(id),
+                    localized.getString(id)
+                )
+            }
+        }
     }
 
     @Test
