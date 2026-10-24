@@ -10,6 +10,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.media.AudioManager
 import android.media.projection.MediaProjection
@@ -17,6 +18,7 @@ import android.media.projection.MediaProjectionManager
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
+import android.util.DisplayMetrics
 import android.util.Log
 import android.view.Gravity
 import android.view.KeyEvent
@@ -229,6 +231,67 @@ class FloatingButtonService : Service() {
         setRunning(true)
 
         return START_STICKY
+    }
+
+    /**
+     * 屏幕旋转 / 尺寸变化
+     *
+     * 浮窗是手动 addView 到 WindowManager 的，不会像 Activity 一样重建。
+     * 不重新计算的话，窗口会保留旧方向的宽高：横屏创建、竖屏查看时就会横向伸出屏幕。
+     */
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        relayoutOverlays()
+    }
+
+    private fun relayoutOverlays() {
+        val metrics = realDisplayMetrics()
+        val density = metrics.density
+        val screenWidth = metrics.widthPixels
+        val screenHeight = metrics.heightPixels
+
+        // 悬浮球：贴边的坐标在新方向上可能已经在屏幕外，先夹回可视范围
+        floatingView?.let { ball ->
+            val params = ball.layoutParams as? WindowManager.LayoutParams ?: return@let
+            val ballWidth = ball.width.takeIf { it > 0 } ?: (FLOATING_BUTTON_SIZE_DP * density).toInt()
+            val ballHeight = ball.height.takeIf { it > 0 } ?: (FLOATING_BUTTON_SIZE_DP * density).toInt()
+            params.x = params.x.coerceIn(0, (screenWidth - ballWidth).coerceAtLeast(0))
+            params.y = params.y.coerceIn(0, (screenHeight - ballHeight).coerceAtLeast(0))
+            lastX = params.x
+            lastY = params.y
+            runCatching { windowManager?.updateViewLayout(ball, params) }
+                .onFailure { Log.w(TAG, "旋转后更新悬浮球位置失败", it) }
+        }
+
+        // 快捷菜单：跟随悬浮球重新定位
+        quickMenuView?.let { menu ->
+            val params = menu.layoutParams as? WindowManager.LayoutParams ?: return@let
+            val menuWidth = menu.width.takeIf { it > 0 } ?: menu.measuredWidth
+            val menuHeight = menu.height.takeIf { it > 0 } ?: menu.measuredHeight
+            params.x = menuX(menuWidth, metrics)
+            params.y = menuY(menuHeight, metrics)
+            runCatching { windowManager?.updateViewLayout(menu, params) }
+                .onFailure { Log.w(TAG, "旋转后更新快捷菜单位置失败", it) }
+        }
+
+        // 翻译面板：按新屏幕重新测量并更新窗口宽高
+        overlayView?.let { view ->
+            val params = view.layoutParams as? WindowManager.LayoutParams ?: return@let
+            overlayAnimator?.cancel()
+            overlayAnimator = null
+            view.alpha = 1f
+
+            val overlayWidth = minOf(screenWidth, (OVERLAY_MAX_WIDTH_DP * density).toInt())
+            view.measure(
+                View.MeasureSpec.makeMeasureSpec(overlayWidth, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            )
+            params.width = overlayWidth
+            params.height = TranslationOverlayView.windowHeightFor(view.measuredHeight, screenHeight)
+            params.y = (OVERLAY_BOTTOM_MARGIN_DP * density).toInt()
+            runCatching { windowManager?.updateViewLayout(view, params) }
+                .onFailure { Log.w(TAG, "旋转后更新翻译面板失败", it) }
+        }
     }
 
     /**
@@ -539,8 +602,9 @@ class FloatingButtonService : Service() {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = menuX(menu.measuredWidth)
-            y = menuY(menu.measuredHeight)
+            val metrics = realDisplayMetrics()
+            x = menuX(menu.measuredWidth, metrics)
+            y = menuY(menu.measuredHeight, metrics)
         }
 
         try {
@@ -563,16 +627,16 @@ class FloatingButtonService : Service() {
     }
 
     /** 菜单横向位置：与悬浮球左对齐，贴边时向内收，避免超出屏幕 */
-    private fun menuX(menuWidth: Int): Int {
-        val screenWidth = resources.displayMetrics.widthPixels
-        val margin = (MENU_SCREEN_MARGIN_DP * resources.displayMetrics.density).toInt()
+    private fun menuX(menuWidth: Int, metrics: DisplayMetrics = realDisplayMetrics()): Int {
+        val screenWidth = metrics.widthPixels
+        val margin = (MENU_SCREEN_MARGIN_DP * metrics.density).toInt()
         return lastX.coerceIn(margin, (screenWidth - menuWidth - margin).coerceAtLeast(margin))
     }
 
     /** 菜单纵向位置：优先显示在悬浮球下方，下方空间不足则显示在上方 */
-    private fun menuY(menuHeight: Int): Int {
-        val screenHeight = resources.displayMetrics.heightPixels
-        val density = resources.displayMetrics.density
+    private fun menuY(menuHeight: Int, metrics: DisplayMetrics = realDisplayMetrics()): Int {
+        val screenHeight = metrics.heightPixels
+        val density = metrics.density
         val gap = (MENU_GAP_DP * density).toInt()
         val margin = (MENU_SCREEN_MARGIN_DP * density).toInt()
         val ballHeight = floatingView?.height?.takeIf { it > 0 } ?: (FLOATING_BUTTON_SIZE_DP * density).toInt()
@@ -583,6 +647,19 @@ class FloatingButtonService : Service() {
         } else {
             (lastY - menuHeight - gap).coerceAtLeast(margin)
         }
+    }
+
+    /**
+     * 当前真实屏幕尺寸
+     *
+     * 不使用 resources.displayMetrics：服务在后台时，进程配置可能仍停在 App 内
+     * Activity 的竖屏方向，而用户实际在别的应用里横屏播放。用 Display 的真实尺寸，
+     * 浮窗才会按当前屏幕方向计算宽高，不会伸出屏幕。
+     */
+    @Suppress("DEPRECATION")
+    private fun realDisplayMetrics(): DisplayMetrics {
+        val wm = windowManager ?: return resources.displayMetrics
+        return DisplayMetrics().also { wm.defaultDisplay.getRealMetrics(it) }
     }
 
     /** 跳转到 App 内的界面；服务启动 Activity 需要 NEW_TASK */
@@ -743,9 +820,10 @@ class FloatingButtonService : Service() {
 
         // 单词释义多时面板会很高：这里按屏幕高度给窗口封顶，
         // 超出部分靠面板内的滚动查看，否则窗口会超出屏幕、顶部内容被裁掉
-        val screenWidth = resources.displayMetrics.widthPixels
-        val screenHeight = resources.displayMetrics.heightPixels
-        val density = resources.displayMetrics.density
+        val metrics = realDisplayMetrics()
+        val screenWidth = metrics.widthPixels
+        val screenHeight = metrics.heightPixels
+        val density = metrics.density
 
         // 横屏/平板上面板不铺满整块屏幕，限制最大阅读宽度并居中
         val overlayWidth = minOf(screenWidth, (OVERLAY_MAX_WIDTH_DP * density).toInt())

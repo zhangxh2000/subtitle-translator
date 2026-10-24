@@ -3,7 +3,10 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:padding="@dimen/word_card_padding"
+    android:paddingStart="@dimen/word_card_padding"
+    android:paddingTop="@dimen/word_card_padding"
+    android:paddingEnd="@dimen/word_card_padding_end"
+    android:paddingBottom="@dimen/word_card_padding"
     android:layout_marginTop="@dimen/word_card_spacing"
     android:background="@drawable/bg_card">
 
@@ -35,23 +38,33 @@
             android:gravity="center_vertical"
             android:baselineAligned="false">
 
-            <TextView
-                android:id="@+id/tvWord"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="@style/TextAppearance.SubtitleTranslator.Word" />
-
-            <TextView
-                android:id="@+id/tvPhonetic"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:textAppearance="@style/TextAppearance.SubtitleTranslator.Phonetic" />
-
-            <View
+            <!-- 文本区可压缩，窄屏上按钮不会被长单词/音标推出卡片（同 item_word_entry） -->
+            <LinearLayout
                 android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1" />
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:baselineAligned="false">
+
+                <TextView
+                    android:id="@+id/tvWord"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textAppearance="@style/TextAppearance.SubtitleTranslator.Word" />
+
+                <TextView
+                    android:id="@+id/tvPhonetic"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textAppearance="@style/TextAppearance.SubtitleTranslator.Phonetic" />
+            </LinearLayout>
 
             <ImageButton
                 android:id="@+id/btnPronounce"
@@ -74,11 +87,13 @@
                 android:contentDescription="@string/action_delete" />
         </LinearLayout>
 
+        <!-- 补回卡片右侧少掉的 8dp，让释义文字的视觉右留白仍与左侧一致 -->
         <TextView
             android:id="@+id/tvMeanings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
+            android:layout_marginEnd="@dimen/word_icon_padding"
             android:textAppearance="@style/TextAppearance.SubtitleTranslator.Meaning" />
 
         <TextView

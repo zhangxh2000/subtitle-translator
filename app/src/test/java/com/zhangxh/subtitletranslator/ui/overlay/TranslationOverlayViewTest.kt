@@ -213,6 +213,68 @@ class TranslationOverlayViewTest {
         }
     }
 
+    /**
+     * 收藏图标的视觉右留白要与难度标签的视觉左留白一致。
+     *
+     * 卡片右侧内边距比左侧少一个图标按钮的内边距：16 == 8 + 8。
+     * 否则图标会离卡片右缘多出 8dp，整行看起来右重左轻。
+     */
+    @Test
+    fun `save icon right inset matches difficulty badge left inset`() {
+        val overlay = overlay()
+        overlay.setTranslationResult(longResult(wordCount = 1))
+
+        val row = rows(overlay).getChildAt(0)
+        val save = saveButton(row)
+
+        assertEquals(
+            "收藏图标右侧视觉留白应与难度标签左侧留白一致",
+            row.paddingLeft,
+            row.paddingRight + save.paddingRight
+        )
+    }
+
+    /**
+     * 竖屏窄屏下，长单词不能把朗读/收藏按钮挤出卡片。
+     *
+     * 文本区（单词 + 音标）必须让出按钮的固定宽度并自行省略；
+     * 否则按钮会画到窗口外，用户既看不到也点不到。
+     */
+    @Test
+    fun `long word never pushes actions outside the card`() {
+        val overlay = overlay()
+        overlay.setTranslationResult(
+            longResult(wordCount = 1).copy(
+                difficultWords = listOf(
+                    WordEntry(
+                        word = "pneumonoultramicroscopicsilicovolcanoconiosis".repeat(4),
+                        phonetic = "/ˌnjuːmənəʊˌʌltrəˌmaɪkrəˈskɒpɪkˌsɪlɪkəʊvɒlˈkeɪnəʊkəʊniˈəʊsɪs/".repeat(2),
+                        // 用 MEDIUM 是有意的：英文标签 "Medium" 最宽，最贴近竖屏拥挤的情况
+                        difficulty = WordDifficulty.MEDIUM,
+                        meanings = listOf(Meaning("n.", "a lung disease", "一种肺部疾病"))
+                    )
+                )
+            )
+        )
+
+        val density = overlay.resources.displayMetrics.density
+        val portraitWidth = (320 * density).toInt()
+        overlay.measure(
+            View.MeasureSpec.makeMeasureSpec(portraitWidth, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        overlay.layout(0, 0, overlay.measuredWidth, overlay.measuredHeight)
+
+        val row = rows(overlay).getChildAt(0)
+        val save = saveButton(row)
+        val wordLine = requireNotNull(save.parent as? View) { "收藏按钮必须在单词行内" }
+
+        assertTrue(
+            "按钮被挤出了单词行：按钮右缘=${save.right}，行宽=${wordLine.width}",
+            save.right <= wordLine.width
+        )
+    }
+
     /** 右上角关闭按钮：48dp 触摸区 + 圆形 tonal 底色 */
     @Test
     fun `close button has a circular background and a 48dp touch target`() {
@@ -329,9 +391,10 @@ class TranslationOverlayViewTest {
         val word = requireNotNull(row.findViewById<TextView>(R.id.tvWord))
 
         // 单词在「单词行」里是垂直居中的，所以标识要对齐的是这一行的中心；
-        // 中间隔了两层父容器，逐层累加算出该行在整行坐标系里的位置。
+        // 中间隔了文本容器、单词行两层父容器，逐层累加算出该行在整行坐标系里的位置。
         // （不用 offsetDescendantRectToMyCoords：Robolectric 下它只返回退化矩形）
-        val wordLine = word.parent as View
+        val textBlock = word.parent as View
+        val wordLine = textBlock.parent as View
         val wordBlock = wordLine.parent as View
         val badgeCenter = badge.top + badge.height / 2
         val wordLineCenter = wordBlock.top + wordLine.top + wordLine.height / 2

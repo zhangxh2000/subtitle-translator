@@ -20,6 +20,9 @@
     <!-- 翻译浮窗（values-sw600dp 下会覆盖为更大尺寸） -->
     <dimen name="overlay_padding_horizontal">20dp</dimen>
     <dimen name="word_card_padding">16dp</dimen>
+    <!-- 右侧比左侧少 8dp：图标按钮自带 8dp padding，
+         这样图标的视觉右缘才能和难度标签的视觉左缘对齐 -->
+    <dimen name="word_card_padding_end">8dp</dimen>
     <dimen name="word_card_spacing">12dp</dimen>
     <!-- 词卡内图标：40dp 点击区 + 8dp padding = 24dp 图标 -->
     <dimen name="word_icon_size">40dp</dimen>
