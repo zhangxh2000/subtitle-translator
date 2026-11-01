@@ -12,6 +12,7 @@ import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessor
 import com.zhangxh.subtitletranslator.domain.ocr.OcrTextCleaner
 import com.zhangxh.subtitletranslator.domain.screenshot.IScreenCaptureManager
+import com.zhangxh.subtitletranslator.domain.subtitle.SubtitleRecognition
 import com.zhangxh.subtitletranslator.domain.translator.ITranslator
 import com.zhangxh.subtitletranslator.domain.wordextractor.IWordExtractor
 import com.zhangxh.subtitletranslator.util.CaptureOrientation
@@ -256,6 +257,54 @@ class TranslationCoordinator(
     private fun Throwable.toTranslationError(): TranslationError =
         (this as? TranslationException)?.error
             ?: TranslationError(AppError.TRANSLATION_FAILED, message)
+
+    /**
+     * 只识别当前字幕，不翻译
+     *
+     * 字幕导航每一小步都要比较文本，不能每步都调用翻译引擎。
+     * 不保存调试截图，避免一次导航把最近 5 条记录全部刷掉。
+     */
+    suspend fun recognizeSubtitleText(): SubtitleRecognition = withContext(Dispatchers.IO) {
+        var screenshot: Bitmap? = null
+        var subtitleBitmap: Bitmap? = null
+        var processedBitmap: Bitmap? = null
+        try {
+            screenshot = screenCapture.captureScreen()
+                ?: return@withContext SubtitleRecognition(
+                    error = TranslationError(AppError.CAPTURE_FAILED)
+                )
+
+            val cropped = cropSubtitleArea(screenshot)
+                ?: return@withContext SubtitleRecognition(
+                    error = TranslationError(AppError.CROP_FAILED)
+                )
+            subtitleBitmap = cropped.bitmap
+
+            processedBitmap = OcrPreprocessor.process(subtitleBitmap, preprocessMode())
+            val ocrResult = ocrEngine.recognizeText(processedBitmap)
+            if (!ocrResult.isSuccess) {
+                return@withContext SubtitleRecognition(
+                    error = ocrResult.error ?: TranslationError(AppError.OCR_FAILED)
+                )
+            }
+
+            val cleanedText = OcrTextCleaner.clean(ocrResult.text.trim())
+            if (cleanedText.isBlank()) {
+                return@withContext SubtitleRecognition(
+                    error = TranslationError(AppError.NO_SUBTITLE_TEXT)
+                )
+            }
+
+            SubtitleRecognition(text = cleanedText, isSuccess = true)
+        } catch (e: Exception) {
+            Log.e(TAG, "字幕识别失败", e)
+            SubtitleRecognition(error = e.toTranslationError())
+        } finally {
+            processedBitmap?.recycle()
+            subtitleBitmap?.recycle()
+            screenshot?.recycle()
+        }
+    }
 
     /**
      * 预加载翻译环境

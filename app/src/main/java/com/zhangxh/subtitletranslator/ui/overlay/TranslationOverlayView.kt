@@ -74,13 +74,22 @@ class TranslationOverlayView @JvmOverloads constructor(
     private var onCopyListener: ((String) -> Unit)? = null
     private var onPronounceListener: ((String) -> Unit)? = null
     private var onSaveToggleListener: ((WordEntry) -> Unit)? = null
+    private var onPreviousSubtitleListener: (() -> Unit)? = null
+    private var onNextSubtitleListener: (() -> Unit)? = null
 
     init {
         orientation = VERTICAL
         LayoutInflater.from(context).inflate(R.layout.overlay_translation, this, true)
+        // 窗口高度是精确值；面板必须 match_parent，否则滚动区的 weight
+        // 在 AT_MOST 约束下会吃掉底部操作栏的位置，导致两者重叠。
+        (getChildAt(0)?.layoutParams as? LinearLayout.LayoutParams)?.let { lp ->
+            lp.height = ViewGroup.LayoutParams.MATCH_PARENT
+            getChildAt(0).layoutParams = lp
+        }
         setupCloseButton()
         setupCollapseButton()
         setupCopyButtons()
+        setupNavigationButtons()
     }
 
     /**
@@ -100,12 +109,25 @@ class TranslationOverlayView @JvmOverloads constructor(
         lp.weight = 0f
         scroll.layoutParams = lp
 
+        // 自然测量时面板不能是 match_parent，否则会按可用高度撑满
+        val panel = getChildAt(0)
+        val panelLp = panel?.layoutParams as? LinearLayout.LayoutParams
+        val savedPanelHeight = panelLp?.height
+        if (panelLp != null && panel != null) {
+            panelLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            panel.layoutParams = panelLp
+        }
+
         measure(
             View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         )
         val naturalHeight = measuredHeight
 
+        if (panelLp != null && panel != null) {
+            panelLp.height = savedPanelHeight ?: ViewGroup.LayoutParams.MATCH_PARENT
+            panel.layoutParams = panelLp
+        }
         lp.height = savedHeight
         lp.weight = savedWeight
         scroll.layoutParams = lp
@@ -180,6 +202,16 @@ class TranslationOverlayView @JvmOverloads constructor(
         onSaveToggleListener = listener
     }
 
+    /** 跳到视频的上一条字幕 */
+    fun setOnPreviousSubtitleListener(listener: () -> Unit) {
+        onPreviousSubtitleListener = listener
+    }
+
+    /** 跳到视频的下一条字幕 */
+    fun setOnNextSubtitleListener(listener: () -> Unit) {
+        onNextSubtitleListener = listener
+    }
+
     /**
      * 更新生词收藏状态
      *
@@ -220,6 +252,18 @@ class TranslationOverlayView @JvmOverloads constructor(
     private fun setupCollapseButton() {
         findViewById<View>(R.id.btnCollapse)?.setOnClickListener {
             onCloseListener?.invoke()
+        }
+    }
+
+    /**
+     * 上一句 / 下一句
+     */
+    private fun setupNavigationButtons() {
+        findViewById<View>(R.id.btnPreviousSubtitle)?.setOnClickListener {
+            onPreviousSubtitleListener?.invoke()
+        }
+        findViewById<View>(R.id.btnNextSubtitle)?.setOnClickListener {
+            onNextSubtitleListener?.invoke()
         }
     }
 

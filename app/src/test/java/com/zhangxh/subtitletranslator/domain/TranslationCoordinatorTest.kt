@@ -52,10 +52,12 @@ class TranslationCoordinatorTest {
         override fun isInitialized(): Boolean = true
     }
 
-    private inner class FakeOcrEngine : IOcrEngine {
+    private inner class FakeOcrEngine(
+        private val text: String = "Hello there"
+    ) : IOcrEngine {
         override suspend fun recognizeText(bitmap: Bitmap): OcrResult {
             events.add("ocr")
-            return OcrResult(text = "Hello there", isSuccess = true)
+            return OcrResult(text = text, isSuccess = true)
         }
 
         override fun release() = Unit
@@ -84,10 +86,13 @@ class TranslationCoordinatorTest {
         override suspend fun lookupWord(word: String): WordEntry? = null
     }
 
-    private fun coordinator(screen: Bitmap?): TranslationCoordinator = TranslationCoordinator(
+    private fun coordinator(
+        screen: Bitmap?,
+        ocrText: String = "Hello there"
+    ): TranslationCoordinator = TranslationCoordinator(
         context = RuntimeEnvironment.getApplication(),
         screenCapture = FakeScreenCapture(screen),
-        ocrEngine = FakeOcrEngine(),
+        ocrEngine = FakeOcrEngine(ocrText),
         translator = FakeTranslator(),
         wordExtractor = FakeWordExtractor(),
         isDebugCaptureEnabled = { false },
@@ -109,5 +114,21 @@ class TranslationCoordinatorTest {
 
         assertEquals(AppError.CAPTURE_FAILED, result.error?.code)
         assertEquals(listOf("capture"), events)
+    }
+
+    @Test
+    fun `subtitle-only recognition captures and OCRs without translating`() = runBlocking {
+        val result = coordinator(screenBitmap()).recognizeSubtitleText()
+
+        assertTrue(result.isSuccess)
+        assertEquals("Hello there", result.text)
+        assertEquals(listOf("capture", "ocr"), events)
+    }
+
+    @Test
+    fun `subtitle-only recognition reports blank subtitles`() = runBlocking {
+        val result = coordinator(screenBitmap(), ocrText = "   ").recognizeSubtitleText()
+
+        assertEquals(AppError.NO_SUBTITLE_TEXT, result.error?.code)
     }
 }

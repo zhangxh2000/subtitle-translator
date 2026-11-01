@@ -41,6 +41,14 @@
     <string name="overlay_title">字幕翻译</string>
     <string name="overlay_subtitle">实时字幕翻译</string>
     <string name="overlay_collapse_hint">收起面板后继续观看</string>
+    <string name="overlay_previous_subtitle">上一句</string>
+    <string name="overlay_next_subtitle">下一句</string>
+    <string name="overlay_navigation_no_session">没有找到可控制的视频播放器</string>
+    <string name="overlay_navigation_seek_unsupported">当前播放器不支持精确跳转</string>
+    <string name="overlay_navigation_not_found">没有找到相邻字幕</string>
+    <string name="overlay_navigation_recognition_failed">无法识别字幕</string>
+    <string name="overlay_navigation_permission_required">需要通知使用权才能在字幕之间跳转</string>
+    <string name="overlay_seeking_adjacent_subtitle">正在定位字幕…</string>
     <string name="overlay_translated_label">译文</string>
     <string name="overlay_original_label">原文对照</string>
     <string name="overlay_key_words">重点词汇</string>
@@ -62,6 +70,12 @@
     <string name="settings_baidu_secret">百度密钥</string>
     <string name="settings_baidu_secret_hint">在控制台查看</string>
     <string name="settings_baidu_help">在 fanyi-api.baidu.com 注册开发者并创建应用即可获得。免费额度按你的账号计算，填在这里只存在本机。</string>
+    <string name="settings_media_control">媒体控制</string>
+    <string name="settings_media_access_granted">已授予通知使用权</string>
+    <string name="settings_media_access_missing">未授予通知使用权</string>
+    <string name="settings_media_access_action">去授权</string>
+    <string name="settings_media_control_desc">授予通知使用权后，应用可以读取当前视频的播放位置，并跳到上一句/下一句字幕。只读取媒体会话信息，不读取通知内容。</string>
+
     <string name="settings_difficulty_filter">生词筛选</string>
     <string name="settings_difficulty_help">决定「重点词汇」里显示多少词：宽松会多显示一些，严格只显示难词。若译文下常常没有词汇，可调宽松一些。</string>
     <string name="settings_preprocess">OCR 预处理</string>
@@ -153,6 +167,7 @@
     <string name="service_word_removed">已从生词库移除</string>
     <string name="clipboard_label_translation">翻译结果</string>
     <string name="toast_copied">已复制到剪贴板</string>
+    <string name="media_notification_listener_label">字幕翻译助手媒体控制</string>
     <string name="notification_channel_name">字幕翻译服务</string>
     <string name="notification_channel_description">保持字幕翻译悬浮窗运行</string>
     <string name="notification_text">悬浮窗运行中，点击打开应用</string>

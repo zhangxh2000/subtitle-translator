@@ -13,6 +13,7 @@ import androidx.activity.viewModels
 import androidx.core.widget.doAfterTextChanged
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.zhangxh.subtitletranslator.R
+import com.zhangxh.subtitletranslator.data.media.NotificationAccess
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
 import com.zhangxh.subtitletranslator.domain.translator.Language
 import com.zhangxh.subtitletranslator.domain.translator.TranslationEngine
@@ -44,6 +45,7 @@ class SettingsActivity : BaseActivity() {
     private lateinit var switchDebugCapture: SwitchMaterial
     private lateinit var tvEngineHint: TextView
     private lateinit var tvPreprocessHint: TextView
+    private lateinit var tvMediaAccessStatus: TextView
     private lateinit var baiduConfigGroup: View
 
     /** 渲染状态期间忽略控件回调，避免初始化触发写盘 */
@@ -68,6 +70,26 @@ class SettingsActivity : BaseActivity() {
         findViewById<View>(R.id.btnViewDebugCaptures)?.setOnClickListener {
             startActivity(Intent(this, DebugCaptureActivity::class.java))
         }
+        findViewById<View>(R.id.btnMediaAccess)?.setOnClickListener {
+            NotificationAccess.openSettings(this)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateMediaAccessStatus()
+    }
+
+    /** 权限可能在系统设置页被修改，每次回到界面都刷新一次 */
+    private fun updateMediaAccessStatus() {
+        val granted = NotificationAccess.isGranted(this)
+        tvMediaAccessStatus.text = getString(
+            if (granted) R.string.settings_media_access_granted
+            else R.string.settings_media_access_missing
+        )
+        tvMediaAccessStatus.setTextColor(
+            getColor(if (granted) R.color.accent else R.color.text_secondary)
+        )
     }
 
     private fun bindViews() {
@@ -81,6 +103,7 @@ class SettingsActivity : BaseActivity() {
         switchDebugCapture = findViewById(R.id.switchDebugCapture)
         tvEngineHint = findViewById(R.id.tvEngineHint)
         tvPreprocessHint = findViewById(R.id.tvPreprocessHint)
+        tvMediaAccessStatus = findViewById(R.id.tvMediaAccessStatus)
         baiduConfigGroup = findViewById(R.id.baiduConfigGroup)
     }
 

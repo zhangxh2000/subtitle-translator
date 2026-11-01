@@ -9,6 +9,11 @@ object OcrTextCleaner {
     /**
      * 常见英文单词词表（大写），用于判断去掉误识别首字母后是否是合理词汇
      */
+    /** 播放器进度条的时间文本，如 0:12、1:02:03、0:12 / 1:34 */
+    private val TIMESTAMP = Regex(
+        """^\d{1,2}:\d{2}(?::\d{2})?(\s*/\s*\d{1,2}:\d{2}(?::\d{2})?)?$"""
+    )
+
     private val COMMON_WORDS = setOf(
         "THE", "TO", "AND", "OF", "A", "AN", "IN", "IS", "IT", "YOU", "THAT", "HE",
         "WAS", "FOR", "ON", "ARE", "AS", "WITH", "HIS", "THEY", "I", "AT", "BE",
@@ -40,6 +45,8 @@ object OcrTextCleaner {
         val cleanedLines = text.lineSequence()
             .map { it.trim() }
             .filter { it.isNotBlank() }
+            // 暂停/seek 后播放器会显示进度时间，不能把它当成字幕内容
+            .filterNot { TIMESTAMP.matches(it) }
             .map { cleanLine(it) }
             .toList()
 

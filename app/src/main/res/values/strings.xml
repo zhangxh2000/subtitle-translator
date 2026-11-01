@@ -46,6 +46,14 @@
     <string name="overlay_title">Subtitle Translation</string>
     <string name="overlay_subtitle">SUBTITLE TRANSLATION</string>
     <string name="overlay_collapse_hint">Collapse and keep watching</string>
+    <string name="overlay_previous_subtitle">Previous line</string>
+    <string name="overlay_next_subtitle">Next line</string>
+    <string name="overlay_navigation_no_session">No controllable video player found</string>
+    <string name="overlay_navigation_seek_unsupported">This player does not support precise seeking</string>
+    <string name="overlay_navigation_not_found">No adjacent subtitle found</string>
+    <string name="overlay_navigation_recognition_failed">Could not read the subtitle</string>
+    <string name="overlay_navigation_permission_required">Notification access is required to jump between subtitles</string>
+    <string name="overlay_seeking_adjacent_subtitle">Finding subtitle…</string>
     <string name="overlay_translated_label">Translation</string>
     <string name="overlay_original_label">Original</string>
     <string name="overlay_key_words">Key words</string>
@@ -67,6 +75,12 @@
     <string name="settings_baidu_secret">Baidu secret key</string>
     <string name="settings_baidu_secret_hint">Shown in the Baidu console</string>
     <string name="settings_baidu_help">Register a developer account and create an app at fanyi-api.baidu.com. Your free quota is tied to your account; the key is stored only on this device.</string>
+    <string name="settings_media_control">Media control</string>
+    <string name="settings_media_access_granted">Notification access granted</string>
+    <string name="settings_media_access_missing">Notification access not granted</string>
+    <string name="settings_media_access_action">Manage access</string>
+    <string name="settings_media_control_desc">Grant notification access to read the current video position and jump to the previous/next subtitle. Only media session information is used, never notification content.</string>
+
     <string name="settings_difficulty_filter">Vocabulary filter</string>
     <string name="settings_difficulty_help">Controls how many words appear under Key words. Loose shows more; Strict shows only difficult words. If you often see no words, try Loose.</string>
     <string name="settings_preprocess">OCR preprocessing</string>
@@ -158,6 +172,7 @@
     <string name="service_word_removed">Removed from vocabulary</string>
     <string name="clipboard_label_translation">Translation result</string>
     <string name="toast_copied">Copied to clipboard</string>
+    <string name="media_notification_listener_label">Subtitle Translator media control</string>
     <string name="notification_channel_name">Subtitle translation service</string>
     <string name="notification_channel_description">Keeps the subtitle translation overlay running</string>
     <string name="notification_text">Overlay is running. Tap to open the app.</string>

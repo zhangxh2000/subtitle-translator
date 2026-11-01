@@ -216,6 +216,40 @@
             android:textColor="@color/text_secondary"
             android:lineSpacingMultiplier="1.2" />
 
+        <!-- 媒体控制：上一句/下一句需要通知使用权来读取播放位置 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/settings_media_control"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary" />
+
+        <TextView
+            android:id="@+id/tvMediaAccessStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary" />
+
+        <Button
+            android:id="@+id/btnMediaAccess"
+            style="@style/Widget.SubtitleTranslator.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_media_access_action" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_media_control_desc"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:lineSpacingMultiplier="1.2" />
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

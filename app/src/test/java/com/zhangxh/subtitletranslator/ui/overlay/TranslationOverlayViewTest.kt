@@ -130,16 +130,21 @@ class TranslationOverlayViewTest {
             content.height > scroll.height
         )
 
-        // 内容再高，底部收起入口也必须留在面板内，不能被挤出窗口
-        val footer = requireNotNull(overlay.findViewById<View>(R.id.btnCollapse))
+        // 内容再高，底部操作栏也必须留在面板内，不能被挤出窗口
+        val collapse = requireNotNull(overlay.findViewById<View>(R.id.btnCollapse))
+        val footerBar = collapse.parent as View
         val panelRoot = overlay.getChildAt(0)
         assertTrue(
-            "底部收起入口被挤出面板：footer=${footer.top}..${footer.bottom}, panel=$capped, " +
+            "底部操作栏被挤出面板：footer=${footerBar.top}..${footerBar.bottom}, panel=$capped, " +
                 "overlay=${overlay.measuredHeight}, panelRoot=${panelRoot.measuredHeight}, " +
                 "scroll=${scroll.top}..${scroll.bottom}/${scroll.measuredHeight}",
-            footer.bottom <= capped
+            footerBar.bottom <= capped
         )
-        assertTrue("底部收起入口应与滚动区不重叠", footer.top >= scroll.bottom)
+        assertTrue(
+            "底部操作栏应与滚动区不重叠：scroll=${scroll.top}..${scroll.bottom}, " +
+                "footer=${footerBar.top}..${footerBar.bottom}",
+            footerBar.top >= scroll.bottom
+        )
     }
 
     // ---------------------------------------------------------------------
@@ -294,6 +299,31 @@ class TranslationOverlayViewTest {
     }
 
     /** 底部「收起面板」与关闭按钮行为一致 */
+    /** 上一句/下一句固定在底部，且有 48dp 点击区 */
+    @Test
+    fun `subtitle navigation buttons are fixed, tappable and meet touch target`() {
+        val overlay = overlay()
+        var previousClicks = 0
+        var nextClicks = 0
+        overlay.setOnPreviousSubtitleListener { previousClicks++ }
+        overlay.setOnNextSubtitleListener { nextClicks++ }
+
+        val previous = requireNotNull(overlay.findViewById<View>(R.id.btnPreviousSubtitle))
+        val next = requireNotNull(overlay.findViewById<View>(R.id.btnNextSubtitle))
+        val density = overlay.resources.displayMetrics.density
+
+        listOf(previous, next).forEach { button ->
+            assertFalse("字幕导航按钮不能跟着内容滚动", hasAncestor<ScrollView>(button))
+            assertEquals(48f, button.layoutParams.width / density, 0.5f)
+            assertEquals(48f, button.layoutParams.height / density, 0.5f)
+        }
+
+        previous.performClick()
+        next.performClick()
+        assertEquals(1, previousClicks)
+        assertEquals(1, nextClicks)
+    }
+
     @Test
     fun `collapse footer closes the overlay`() {
         val overlay = overlay()

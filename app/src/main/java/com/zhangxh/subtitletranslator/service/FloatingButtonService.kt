@@ -28,6 +28,7 @@ import android.view.View
 import android.view.WindowInsets
 import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity.RESULT_OK
 import androidx.appcompat.view.ContextThemeWrapper
@@ -39,6 +40,8 @@ import com.zhangxh.subtitletranslator.data.screenshot.ScreenCaptureManagerImpl
 import com.zhangxh.subtitletranslator.data.translator.TranslatorProvider
 import com.zhangxh.subtitletranslator.data.dictionary.DictionaryRepositoryProvider
 import com.zhangxh.subtitletranslator.data.history.TranslationHistoryStore
+import com.zhangxh.subtitletranslator.data.media.MediaSessionPlaybackController
+import com.zhangxh.subtitletranslator.data.media.NotificationAccess
 import com.zhangxh.subtitletranslator.data.settings.SettingsStore
 import com.zhangxh.subtitletranslator.data.speech.AndroidTtsPronouncer
 import com.zhangxh.subtitletranslator.data.vocabulary.SqliteVocabularyRepository
@@ -46,6 +49,9 @@ import com.zhangxh.subtitletranslator.data.wordextractor.LocalWordExtractor
 import com.zhangxh.subtitletranslator.domain.TranslationCoordinator
 import com.zhangxh.subtitletranslator.domain.TranslationResult
 import com.zhangxh.subtitletranslator.domain.speech.IPronouncer
+import com.zhangxh.subtitletranslator.domain.subtitle.SubtitleDirection
+import com.zhangxh.subtitletranslator.domain.subtitle.SubtitleNavigationResult
+import com.zhangxh.subtitletranslator.domain.subtitle.SubtitleNavigator
 import com.zhangxh.subtitletranslator.ui.common.messageRes
 import com.zhangxh.subtitletranslator.ui.common.toUiText
 import com.zhangxh.subtitletranslator.domain.wordextractor.EnglishDifficultyAssessor
@@ -60,6 +66,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
@@ -135,6 +142,7 @@ class FloatingButtonService : Service() {
     private var overlayView: TranslationOverlayView? = null
     private var dismissingOverlay: View? = null
     private var overlayAnimator: ValueAnimator? = null
+    private var navigationStatusView: TextView? = null
     private var quickMenuView: View? = null
     private var translationCoordinator: TranslationCoordinator? = null
     private var dictionaryProvider: DictionaryRepositoryProvider? = null
@@ -143,6 +151,14 @@ class FloatingButtonService : Service() {
     private lateinit var settingsStore: SettingsStore
     private var mediaProjection: MediaProjection? = null
     private var isShowingTranslation = false
+
+    /** 当前面板对应的翻译结果，上一句/下一句失败时用来恢复面板 */
+    private var currentResult: TranslationResult? = null
+
+    /** 正在执行上一句/下一句定位，期间不接受新的悬浮球点击 */
+    private var isNavigating = false
+
+    private val mediaPlaybackController by lazy { MediaSessionPlaybackController(this) }
 
     /** 当前的暂停是否由本服务发出，关闭面板时只恢复自己暂停过的媒体 */
     private var mediaPausedByApp = false
@@ -531,6 +547,8 @@ class FloatingButtonService : Service() {
      * 菜单打开时点击只关闭菜单，避免误触发翻译。
      */
     private fun onFloatingButtonClick() {
+        // 定位上一句/下一句期间不要并发触发新的翻译
+        if (isNavigating) return
         if (quickMenuView != null) {
             dismissQuickMenu()
             return
@@ -554,6 +572,7 @@ class FloatingButtonService : Service() {
      * 因此沿用翻译覆盖层已验证过的 addView 方式。
      */
     private fun showQuickMenu() {
+        if (isNavigating || isTranslating) return
         if (quickMenuView != null) {
             dismissQuickMenu()
             return
@@ -772,7 +791,6 @@ class FloatingButtonService : Service() {
                     // 保存到历史记录（上限由 store 维护）
                     TranslationHistoryStore.add(result)
                     showTranslationOverlay(result)
-                    isShowingTranslation = true
                 } else {
                     Log.e(TAG, "翻译失败: ${result?.error}")
                     val message = result?.error?.toUiText()
@@ -797,11 +815,166 @@ class FloatingButtonService : Service() {
     }
 
     /**
+     * 跳到上一句/下一句字幕
+     *
+     * 面板先移除（否则截图会把面板本身截进去），视频保持暂停；
+     * 通过 MediaSession 以 1 秒为步长 seek，每步只做 OCR，
+     * 文本变化后再走完整翻译流程。
+     */
+    private fun navigateSubtitle(direction: SubtitleDirection) {
+        if (isTranslating || isNavigating) return
+        val current = currentResult ?: return
+        val coordinator = translationCoordinator
+        if (coordinator == null) {
+            Toast.makeText(this, R.string.service_not_ready, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (!NotificationAccess.isGranted(this)) {
+            removeOverlayView(animated = true)
+            isShowingTranslation = false
+            currentResult = null
+            // 去授权期间恢复播放，回来后可以正常重新翻译
+            resumeMedia()
+            Toast.makeText(
+                this,
+                R.string.overlay_navigation_permission_required,
+                Toast.LENGTH_LONG
+            ).show()
+            NotificationAccess.openSettings(this)
+            return
+        }
+
+        // 面板显示时视频通常已经暂停；兜底一次，避免用户中途用耳机恢复播放
+        pauseMedia()
+        val snapshot = mediaPlaybackController.snapshot()
+        if (snapshot == null) {
+            Toast.makeText(this, R.string.overlay_navigation_no_session, Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (!snapshot.canSeek) {
+            Toast.makeText(
+                this,
+                R.string.overlay_navigation_seek_unsupported,
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
+        val originPosition = snapshot.positionMs
+        isNavigating = true
+        // 立即移除，不等淡出动画，避免第一步截图截到半透明面板
+        removeOverlayView(animated = false)
+        isShowingTranslation = false
+        showNavigationStatus()
+
+        serviceScope.launch {
+            val navigator = SubtitleNavigator(
+                media = mediaPlaybackController,
+                recognize = {
+                    val recognition = coordinator.recognizeSubtitleText()
+                    Log.d(
+                        TAG,
+                        "字幕导航 OCR: success=${recognition.isSuccess}, " +
+                            "text=${recognition.text}, error=${recognition.error?.code}"
+                    )
+                    recognition
+                }
+            )
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    navigator.findAdjacent(current.originalText, direction)
+                }.getOrElse {
+                    Log.e(TAG, "字幕导航失败", it)
+                    SubtitleNavigationResult.RecognitionFailed
+                }
+            }
+
+            when (result) {
+                is SubtitleNavigationResult.Found -> {
+                    Log.d(TAG, "字幕导航命中: ${result.positionMs}ms, ${result.text}")
+                    removeNavigationStatus()
+                    isNavigating = false
+                    // 视频已经停在目标位置，直接对当前画面做完整翻译
+                    showTranslation()
+                }
+                else -> {
+                    Log.w(TAG, "字幕导航未命中: $result")
+                    removeNavigationStatus()
+                    // 回到起点并恢复原面板，避免把用户留在随机位置
+                    mediaPlaybackController.seekTo(originPosition)
+                    showTranslationOverlay(current)
+                    isNavigating = false
+                    Toast.makeText(
+                        this@FloatingButtonService,
+                        navigationErrorRes(result),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
+
+    private fun navigationErrorRes(result: SubtitleNavigationResult): Int = when (result) {
+        SubtitleNavigationResult.NoMediaSession -> R.string.overlay_navigation_no_session
+        SubtitleNavigationResult.SeekUnsupported -> R.string.overlay_navigation_seek_unsupported
+        SubtitleNavigationResult.NotFound -> R.string.overlay_navigation_not_found
+        SubtitleNavigationResult.RecognitionFailed -> R.string.overlay_navigation_recognition_failed
+        is SubtitleNavigationResult.Found -> R.string.overlay_navigation_not_found
+    }
+
+    /** 顶部小胶囊：字幕定位需要几秒，给用户一个明确的进行中反馈 */
+    private fun showNavigationStatus() {
+        removeNavigationStatus()
+        if (windowManager == null) return
+        val density = resources.displayMetrics.density
+        val metrics = usableOverlayMetrics()
+        val view = TextView(this).apply {
+            setText(R.string.overlay_seeking_adjacent_subtitle)
+            setTextColor(getColor(R.color.text_primary))
+            textSize = 13f
+            setPadding(
+                (16 * density).toInt(),
+                (10 * density).toInt(),
+                (16 * density).toInt(),
+                (10 * density).toInt()
+            )
+            background = getDrawable(R.drawable.bg_navigation_status)
+        }
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            OVERLAY_WINDOW_TYPE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            x = (metrics.rightInsetPx - metrics.leftInsetPx) / 2
+            y = (16 * density).toInt()
+        }
+        try {
+            windowManager?.addView(view, params)
+            navigationStatusView = view
+        } catch (e: Exception) {
+            Log.w(TAG, "显示字幕定位提示失败", e)
+        }
+    }
+
+    private fun removeNavigationStatus() {
+        val view = navigationStatusView ?: return
+        navigationStatusView = null
+        removeViewSafely(view)
+    }
+
+    /**
      * 隐藏翻译
      */
     private fun hideTranslation() {
         removeOverlayView(animated = true)
         isShowingTranslation = false
+        currentResult = null
 
         // 只恢复由本服务暂停的媒体
         resumeMedia()
@@ -867,6 +1040,12 @@ class FloatingButtonService : Service() {
             setOnCloseListener {
                 hideTranslation()
             }
+            setOnPreviousSubtitleListener {
+                navigateSubtitle(SubtitleDirection.PREVIOUS)
+            }
+            setOnNextSubtitleListener {
+                navigateSubtitle(SubtitleDirection.NEXT)
+            }
             setOnCopyListener { text ->
                 copyToClipboard(text)
             }
@@ -877,6 +1056,7 @@ class FloatingButtonService : Service() {
                 toggleSavedWord(entry)
             }
         }
+        currentResult = result
 
         // 单词释义多时面板会很高：这里按可用窗口高度给窗口封顶，
         // 超出部分靠面板内的滚动查看，否则窗口会超出屏幕、顶部内容被裁掉
@@ -925,6 +1105,7 @@ class FloatingButtonService : Service() {
 
         try {
             windowManager?.addView(overlayView, params)
+            isShowingTranslation = true
             overlayView?.let { view ->
                 // 收藏状态存在数据库里，异步查回来再点亮书签图标
                 refreshSavedStates(result.difficultWords, view)
@@ -933,6 +1114,7 @@ class FloatingButtonService : Service() {
         } catch (e: Exception) {
             Log.e(TAG, "添加翻译覆盖层失败", e)
             overlayView = null
+            currentResult = null
             isShowingTranslation = false
             resumeMedia()
         }
@@ -1180,7 +1362,10 @@ class FloatingButtonService : Service() {
     private fun releaseTranslationComponents() {
         dismissQuickMenu()
         removeOverlayView()
+        removeNavigationStatus()
         isShowingTranslation = false
+        currentResult = null
+        isNavigating = false
         // 服务销毁 / 重新授权时，别把视频留在暂停状态
         resumeMedia()
 

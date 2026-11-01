@@ -77,6 +77,38 @@ class LocalizationTest {
     }
 
     @Test
+    fun `subtitle navigation and media access copy is translated`() {
+        val keys = listOf(
+            R.string.overlay_previous_subtitle,
+            R.string.overlay_next_subtitle,
+            R.string.overlay_navigation_no_session,
+            R.string.overlay_navigation_seek_unsupported,
+            R.string.overlay_navigation_not_found,
+            R.string.overlay_navigation_recognition_failed,
+            R.string.overlay_navigation_permission_required,
+            R.string.overlay_seeking_adjacent_subtitle,
+            R.string.settings_media_control,
+            R.string.settings_media_access_granted,
+            R.string.settings_media_access_missing,
+            R.string.settings_media_access_action,
+            R.string.settings_media_control_desc,
+            R.string.media_notification_listener_label
+        )
+        val english = contextFor("en")
+        listOf("zh-Hans", "zh-Hant").forEach { tag ->
+            val localized = contextFor(tag)
+            keys.forEach { id ->
+                val name = english.resources.getResourceEntryName(id)
+                assertNotEquals(
+                    "$tag 的 $name 回退成了英文，说明缺少翻译",
+                    english.getString(id),
+                    localized.getString(id)
+                )
+            }
+        }
+    }
+
+    @Test
     fun `word count plural is localized`() {
         assertEquals(
             "1 word",
