@@ -846,18 +846,16 @@ class FloatingButtonService : Service() {
 
         // 面板显示时视频通常已经暂停；兜底一次，避免用户中途用耳机恢复播放
         pauseMedia()
+        // 固定当前会话，避免导航途中选中别的音乐 App
+        mediaPlaybackController.pinActiveSession()
         val snapshot = mediaPlaybackController.snapshot()
         if (snapshot == null) {
             Toast.makeText(this, R.string.overlay_navigation_no_session, Toast.LENGTH_SHORT).show()
             return
         }
+        // 有些播放器不声明 ACTION_SEEK_TO，但实际仍响应 seek；先尝试再判断
         if (!snapshot.canSeek) {
-            Toast.makeText(
-                this,
-                R.string.overlay_navigation_seek_unsupported,
-                Toast.LENGTH_SHORT
-            ).show()
-            return
+            Log.d(TAG, "媒体会话未声明 ACTION_SEEK_TO，尝试直接 seek")
         }
 
         val originPosition = snapshot.positionMs

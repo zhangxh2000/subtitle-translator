@@ -3,6 +3,7 @@ package com.zhangxh.subtitletranslator.domain.subtitle
 import com.zhangxh.subtitletranslator.domain.error.AppError
 import com.zhangxh.subtitletranslator.domain.media.IMediaPlaybackController
 import kotlinx.coroutines.delay
+import kotlin.math.abs
 
 enum class SubtitleDirection(val stepSign: Int) {
     PREVIOUS(-1),
@@ -39,20 +40,37 @@ class SubtitleNavigator(
         direction: SubtitleDirection
     ): SubtitleNavigationResult {
         val snapshot = media.snapshot() ?: return SubtitleNavigationResult.NoMediaSession
-        if (!snapshot.canSeek) return SubtitleNavigationResult.SeekUnsupported
 
         var position = snapshot.positionMs
         val duration = snapshot.durationMs
+        var seekVerified = false
 
         repeat(maxSteps) {
             val next = position + direction.stepSign * stepMs
             if (next < 0) return SubtitleNavigationResult.NotFound
             if (duration != null && next > duration) return SubtitleNavigationResult.NotFound
+
+            val beforeSeek = media.snapshot()?.positionMs
             if (!media.seekTo(next)) return SubtitleNavigationResult.SeekUnsupported
             position = next
 
             // 给播放器一点时间渲染 seek 后的画面，再截图
             wait(settleDelayMs)
+
+            // 部分播放器不声明 ACTION_SEEK_TO，也可能直接忽略 seek。
+            // 第一次 seek 后检查播放位置有没有真的移动，避免空转 12 秒。
+            if (!seekVerified && !snapshot.isPlaying && beforeSeek != null) {
+                var afterSeek = media.snapshot()?.positionMs
+                if (afterSeek != null && abs(afterSeek - beforeSeek) < 100L) {
+                    wait(250L)
+                    afterSeek = media.snapshot()?.positionMs
+                }
+                if (afterSeek != null && abs(afterSeek - beforeSeek) < 100L) {
+                    return SubtitleNavigationResult.SeekUnsupported
+                }
+                seekVerified = true
+            }
+
             val recognition = recognize()
 
             if (!recognition.isSuccess) {

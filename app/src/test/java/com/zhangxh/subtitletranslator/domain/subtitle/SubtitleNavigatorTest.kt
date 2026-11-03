@@ -15,6 +15,7 @@ class SubtitleNavigatorTest {
         var position: Long,
         private val duration: Long? = 10_000L,
         private val canSeek: Boolean = true,
+        private val ignoreSeek: Boolean = false,
         private val subtitleAt: (Long) -> String?
     ) : IMediaPlaybackController {
         val seeks = mutableListOf<Long>()
@@ -24,8 +25,8 @@ class SubtitleNavigatorTest {
 
         override fun seekTo(positionMs: Long): Boolean {
             if (!canSeek) return false
-            position = positionMs
             seeks += positionMs
+            if (!ignoreSeek) position = positionMs
             return true
         }
 
@@ -117,6 +118,19 @@ class SubtitleNavigatorTest {
 
         assertEquals(SubtitleNavigationResult.NotFound, result)
         assertEquals(emptyList<Long>(), media.seeks)
+    }
+
+    @Test
+    fun `player that ignores seek is reported as unsupported`() = runBlocking {
+        val media = FakeMedia(
+            position = 1_000,
+            ignoreSeek = true,
+            subtitleAt = ::timeline
+        )
+
+        val result = navigator(media).findAdjacent("Line A", SubtitleDirection.NEXT)
+
+        assertEquals(SubtitleNavigationResult.SeekUnsupported, result)
     }
 
     @Test
