@@ -71,6 +71,15 @@
     <string name="settings_media_access_action">去授权</string>
     <string name="settings_media_control_desc">授予通知使用权后，应用可以读取当前视频的播放位置，并跳到上一句/下一句字幕。只读取媒体会话信息，不读取通知内容。</string>
 
+    <string name="settings_accessibility_diagnostics">无障碍诊断</string>
+    <string name="settings_accessibility_granted">无障碍服务已开启</string>
+    <string name="settings_accessibility_missing">无障碍服务未开启</string>
+    <string name="settings_accessibility_action">去开启</string>
+    <string name="settings_accessibility_desc">仅用于检查当前应用的控件，诊断字幕跳转。开启后长按悬浮球，选择「无障碍诊断」。</string>
+    <string name="menu_a11y_dump">无障碍诊断</string>
+    <string name="a11y_dump_started">正在导出当前窗口节点，请查看 logcat 标签 A11yDump</string>
+    <string name="a11y_dump_unavailable">无障碍服务未开启</string>
+
     <string name="settings_difficulty_filter">生词筛选</string>
     <string name="settings_difficulty_help">决定「重点词汇」里显示多少词：宽松会多显示一些，严格只显示难词。若译文下常常没有词汇，可调宽松一些。</string>
     <string name="settings_preprocess">OCR 预处理</string>
@@ -163,6 +172,8 @@
     <string name="clipboard_label_translation">翻译结果</string>
     <string name="toast_copied">已复制到剪贴板</string>
     <string name="media_notification_listener_label">字幕翻译助手媒体控制</string>
+    <string name="accessibility_service_label">字幕翻译助手诊断</string>
+    <string name="accessibility_service_description">用于检查当前应用的控件，诊断字幕跳转；不会自动读取屏幕内容。</string>
     <string name="notification_channel_name">字幕翻译服务</string>
     <string name="notification_channel_description">保持字幕翻译悬浮窗运行</string>
     <string name="notification_text">悬浮窗运行中，点击打开应用</string>

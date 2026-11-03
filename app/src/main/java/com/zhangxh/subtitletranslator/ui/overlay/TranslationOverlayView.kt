@@ -113,7 +113,7 @@ class TranslationOverlayView @JvmOverloads constructor(
         val panel = getChildAt(0)
         val panelLp = panel?.layoutParams as? LinearLayout.LayoutParams
         val savedPanelHeight = panelLp?.height
-        if (panelLp != null && panel != null) {
+        if (panelLp != null) {
             panelLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
             panel.layoutParams = panelLp
         }
@@ -124,7 +124,7 @@ class TranslationOverlayView @JvmOverloads constructor(
         )
         val naturalHeight = measuredHeight
 
-        if (panelLp != null && panel != null) {
+        if (panelLp != null) {
             panelLp.height = savedPanelHeight ?: ViewGroup.LayoutParams.MATCH_PARENT
             panel.layoutParams = panelLp
         }

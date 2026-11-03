@@ -106,6 +106,21 @@
             </intent-filter>
         </service>
 
+        <!-- 无障碍诊断：仅按用户触发导出当前窗口节点树，不自动读取内容 -->
+        <service
+            android:name=".service.A11yDiagnosticService"
+            android:enabled="true"
+            android:exported="true"
+            android:label="@string/accessibility_service_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
     </application>
 
 </manifest>

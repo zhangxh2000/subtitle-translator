@@ -11,6 +11,7 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.zhangxh.subtitletranslator.R
+import com.zhangxh.subtitletranslator.data.accessibility.AccessibilityAccess
 import com.zhangxh.subtitletranslator.data.media.NotificationAccess
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
 import com.zhangxh.subtitletranslator.domain.translator.Language
@@ -42,6 +43,7 @@ class SettingsActivity : BaseActivity() {
     private lateinit var tvEngineHint: TextView
     private lateinit var tvPreprocessHint: TextView
     private lateinit var tvMediaAccessStatus: TextView
+    private lateinit var tvA11yStatus: TextView
 
     /** 渲染状态期间忽略控件回调，避免初始化触发写盘 */
     private var isBinding = false
@@ -68,11 +70,15 @@ class SettingsActivity : BaseActivity() {
         findViewById<View>(R.id.btnMediaAccess)?.setOnClickListener {
             NotificationAccess.openSettings(this)
         }
+        findViewById<View>(R.id.btnA11ySettings)?.setOnClickListener {
+            AccessibilityAccess.openSettings(this)
+        }
     }
 
     override fun onResume() {
         super.onResume()
         updateMediaAccessStatus()
+        updateAccessibilityStatus()
     }
 
     /** 权限可能在系统设置页被修改，每次回到界面都刷新一次 */
@@ -87,6 +93,17 @@ class SettingsActivity : BaseActivity() {
         )
     }
 
+    private fun updateAccessibilityStatus() {
+        val enabled = AccessibilityAccess.isEnabled(this)
+        tvA11yStatus.text = getString(
+            if (enabled) R.string.settings_accessibility_granted
+            else R.string.settings_accessibility_missing
+        )
+        tvA11yStatus.setTextColor(
+            getColor(if (enabled) R.color.accent else R.color.text_secondary)
+        )
+    }
+
     private fun bindViews() {
         spinnerSource = findViewById(R.id.spinnerSource)
         spinnerTarget = findViewById(R.id.spinnerTarget)
@@ -97,6 +114,7 @@ class SettingsActivity : BaseActivity() {
         tvEngineHint = findViewById(R.id.tvEngineHint)
         tvPreprocessHint = findViewById(R.id.tvPreprocessHint)
         tvMediaAccessStatus = findViewById(R.id.tvMediaAccessStatus)
+        tvA11yStatus = findViewById(R.id.tvA11yStatus)
     }
 
     private fun setupAdapters() {

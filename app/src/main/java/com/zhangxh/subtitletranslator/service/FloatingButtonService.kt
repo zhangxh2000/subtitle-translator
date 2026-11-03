@@ -38,6 +38,7 @@ import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.data.ocr.MLKitOcrEngine
 import com.zhangxh.subtitletranslator.data.screenshot.ScreenCaptureManagerImpl
 import com.zhangxh.subtitletranslator.data.translator.TranslatorProvider
+import com.zhangxh.subtitletranslator.data.accessibility.AccessibilityAccess
 import com.zhangxh.subtitletranslator.data.dictionary.DictionaryRepositoryProvider
 import com.zhangxh.subtitletranslator.data.history.TranslationHistoryStore
 import com.zhangxh.subtitletranslator.data.media.MediaSessionPlaybackController
@@ -592,6 +593,24 @@ class FloatingButtonService : Service() {
         menu.findViewById<View>(R.id.menuStop)?.setOnClickListener {
             dismissQuickMenu()
             stopSelf()
+        }
+        // 无障碍诊断只在服务开启时出现；用于导出当前播放器控件树
+        menu.findViewById<View>(R.id.menuA11yDump)?.let { entry ->
+            if (AccessibilityAccess.isEnabled(this)) {
+                entry.visibility = View.VISIBLE
+                entry.setOnClickListener {
+                    dismissQuickMenu()
+                    val started = A11yDiagnosticService.requestDump()
+                    Toast.makeText(
+                        this,
+                        if (started) R.string.a11y_dump_started
+                        else R.string.a11y_dump_unavailable,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            } else {
+                entry.visibility = View.GONE
+            }
         }
         // 调试入口只在开启「保存识别过程截图」后出现，平时不干扰正常使用
         menu.findViewById<View>(R.id.menuDebugCapture)?.let { entry ->

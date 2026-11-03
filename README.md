@@ -209,6 +209,25 @@ subtitle-translator/
 也不会出现在系统相册里（字幕截图可能含聊天记录等隐私内容）。只保留最近 **5 次**（约 6MB），
 超出后自动删除最旧的。开关立即生效，不必重启服务。
 
+## 无障碍诊断（播放器控件树）
+
+部分播放器（例如抖音长视频）不暴露可 seek 的 MediaSession。为了确认进度条到底能不能通过
+无障碍接口操作，可以在 **设置 → 无障碍诊断** 中开启诊断服务，然后在播放器内长按悬浮球，
+选择 **无障碍诊断**。
+
+节点树会以 `A11yDump` 标签输出到 logcat，重点看：
+
+- `SEEK_CANDIDATE` 开头的行：节点带 `range(...)`，或 class 是 `SeekBar` / `ProgressBar`
+- 节点的 `actions` 是否包含 `ACTION_SET_PROGRESS` / `ACTION_SEEK_TO`
+
+抓取日志：
+
+```bash
+adb logcat -s A11yDump
+```
+
+诊断服务只在你主动触发时读取当前窗口节点，不会自动读取、上传屏幕内容。
+
 ## 词典数据
 
 词典由 [ECDICT](https://github.com/skywind3000/ECDICT)（MIT License, Copyright (c) Linwei）

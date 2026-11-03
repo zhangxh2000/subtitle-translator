@@ -92,7 +92,17 @@ class LocalizationTest {
             R.string.settings_media_access_missing,
             R.string.settings_media_access_action,
             R.string.settings_media_control_desc,
-            R.string.media_notification_listener_label
+            R.string.media_notification_listener_label,
+            R.string.menu_a11y_dump,
+            R.string.a11y_dump_started,
+            R.string.a11y_dump_unavailable,
+            R.string.settings_accessibility_diagnostics,
+            R.string.settings_accessibility_granted,
+            R.string.settings_accessibility_missing,
+            R.string.settings_accessibility_action,
+            R.string.settings_accessibility_desc,
+            R.string.accessibility_service_label,
+            R.string.accessibility_service_description
         )
         val english = contextFor("en")
         listOf("zh-Hans", "zh-Hant").forEach { tag ->

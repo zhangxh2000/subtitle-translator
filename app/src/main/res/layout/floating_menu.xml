@@ -34,6 +34,19 @@
         android:textColor="@color/text_primary"
         android:textSize="15sp" />
 
+    <!-- 仅在无障碍诊断服务开启时显示 -->
+    <TextView
+        android:id="@+id/menuA11yDump"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:text="@string/menu_a11y_dump"
+        android:textColor="@color/text_primary"
+        android:textSize="15sp"
+        android:visibility="gone" />
+
     <!-- 仅在设置里打开了「保存识别过程截图」时显示，方便调试时快速查看 -->
     <TextView
         android:id="@+id/menuDebugCapture"

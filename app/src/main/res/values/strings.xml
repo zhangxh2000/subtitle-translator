@@ -76,6 +76,15 @@
     <string name="settings_media_access_action">Manage access</string>
     <string name="settings_media_control_desc">Grant notification access to read the current video position and jump to the previous/next subtitle. Only media session information is used, never notification content.</string>
 
+    <string name="settings_accessibility_diagnostics">Accessibility diagnostics</string>
+    <string name="settings_accessibility_granted">Accessibility service enabled</string>
+    <string name="settings_accessibility_missing">Accessibility service not enabled</string>
+    <string name="settings_accessibility_action">Open accessibility settings</string>
+    <string name="settings_accessibility_desc">Used only to inspect the current app\'s controls for subtitle navigation. Enable the service, then long-press the floating ball and choose Accessibility dump.</string>
+    <string name="menu_a11y_dump">Accessibility dump</string>
+    <string name="a11y_dump_started">Dumping the current window. Check logcat tag A11yDump.</string>
+    <string name="a11y_dump_unavailable">Accessibility service is not enabled</string>
+
     <string name="settings_difficulty_filter">Vocabulary filter</string>
     <string name="settings_difficulty_help">Controls how many words appear under Key words. Loose shows more; Strict shows only difficult words. If you often see no words, try Loose.</string>
     <string name="settings_preprocess">OCR preprocessing</string>
@@ -168,6 +177,8 @@
     <string name="clipboard_label_translation">Translation result</string>
     <string name="toast_copied">Copied to clipboard</string>
     <string name="media_notification_listener_label">Subtitle Translator media control</string>
+    <string name="accessibility_service_label">Subtitle Translator diagnostics</string>
+    <string name="accessibility_service_description">Inspects the current app\'s controls to diagnose subtitle navigation. It does not read screen content automatically.</string>
     <string name="notification_channel_name">Subtitle translation service</string>
     <string name="notification_channel_description">Keeps the subtitle translation overlay running</string>
     <string name="notification_text">Overlay is running. Tap to open the app.</string>
