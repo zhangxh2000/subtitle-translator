@@ -355,10 +355,9 @@ class FloatingButtonService : Service() {
             screenCapture.initialize(this, projection, metrics.widthPixels, metrics.heightPixels, metrics.densityDpi)
 
             val ocrEngine = MLKitOcrEngine()
-            // 翻译引擎由用户在设置里选择；在线引擎失败会自动回退到离线引擎
+            // 翻译引擎由用户在设置里选择；百度使用内置配置，在线引擎失败会自动回退到离线引擎
             val translator = TranslatorProvider(this).create(
-                engine = settingsStore.translationEngine,
-                credentials = { settingsStore.baiduCredentials }
+                engine = settingsStore.translationEngine
             )
 
             // 生词朗读：系统 TTS，引擎到用户第一次点喇叭时才真正创建

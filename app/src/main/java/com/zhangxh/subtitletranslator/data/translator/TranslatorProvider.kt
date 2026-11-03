@@ -2,7 +2,6 @@ package com.zhangxh.subtitletranslator.data.translator
 
 import android.content.Context
 import android.util.Log
-import com.zhangxh.subtitletranslator.domain.translator.BaiduCredentials
 import com.zhangxh.subtitletranslator.domain.translator.ITranslator
 import com.zhangxh.subtitletranslator.domain.translator.TranslationEngine
 
@@ -18,18 +17,14 @@ class TranslatorProvider(private val context: Context) {
         const val TAG = "TranslatorProvider"
     }
 
-    /**
-     * @param credentials 百度凭据，用回调读取以便在设置里改完立即生效
-     */
-    fun create(
-        engine: TranslationEngine,
-        credentials: () -> BaiduCredentials? = { null }
-    ): ITranslator {
+    fun create(engine: TranslationEngine): ITranslator {
         Log.d(TAG, "翻译引擎: ${engine.name}")
         return when (engine) {
             TranslationEngine.ML_KIT -> MLKitTranslator(context)
-            TranslationEngine.BAIDU ->
-                FallbackTranslator(BaiduTranslator(credentials), MLKitTranslator(context))
+            TranslationEngine.BAIDU -> FallbackTranslator(
+                BaiduTranslator { BaiduDefaults.credentials },
+                MLKitTranslator(context)
+            )
             TranslationEngine.GOOGLE ->
                 FallbackTranslator(GoogleTranslator(), MLKitTranslator(context))
         }

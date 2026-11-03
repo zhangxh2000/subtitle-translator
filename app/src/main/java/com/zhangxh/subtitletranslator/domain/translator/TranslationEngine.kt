@@ -13,7 +13,7 @@ enum class TranslationEngine(
     /** 端侧离线翻译，开箱即用 */
     ML_KIT(false),
 
-    /** 百度翻译，需要用户填自己的 APP ID 与密钥（免费额度按账号计算） */
+    /** 百度翻译，使用内置凭据，开箱即用 */
     BAIDU(true),
 
     /** Google 翻译，走公开接口，无需配置 */
@@ -32,7 +32,7 @@ enum class TranslationEngine(
 /**
  * 百度翻译的凭据
  *
- * 由用户自己申请并填写：免费额度是按账号计算的，内置到 APK 里会随包泄露并被他人耗尽。
+ * 当前由应用内置（见 data 层的 BaiduDefaults），所有用户共用同一份额度。
  */
 data class BaiduCredentials(
     val appId: String,

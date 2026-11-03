@@ -10,7 +10,6 @@ import com.zhangxh.subtitletranslator.domain.translator.TranslationEngine
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficultyFilter
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -66,26 +65,12 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `engine change updates derived state and baidu group visibility`() {
+    fun `engine change updates derived state`() {
         viewModel.setTranslationEngine(TranslationEngine.BAIDU)
 
         val state = requireNotNull(viewModel.uiState.value)
         assertEquals(TranslationEngine.BAIDU, store.translationEngine)
-        assertTrue(state.showBaiduConfig)
         assertEquals(R.string.engine_hint_baidu, state.engineHintRes)
-
-        viewModel.setTranslationEngine(TranslationEngine.ML_KIT)
-        assertFalse(requireNotNull(viewModel.uiState.value).showBaiduConfig)
-    }
-
-    @Test
-    fun `baidu credentials are saved independently`() {
-        viewModel.setBaiduAppId("app-id")
-        viewModel.setBaiduSecret("secret")
-
-        assertEquals("app-id", store.baiduCredentials.appId)
-        assertEquals("secret", store.baiduCredentials.secret)
-        assertEquals("app-id", requireNotNull(viewModel.uiState.value).baiduCredentials.appId)
     }
 
     @Test

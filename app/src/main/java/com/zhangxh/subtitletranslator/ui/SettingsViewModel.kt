@@ -7,7 +7,6 @@ import androidx.lifecycle.MutableLiveData
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.data.settings.SettingsStore
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
-import com.zhangxh.subtitletranslator.domain.translator.BaiduCredentials
 import com.zhangxh.subtitletranslator.domain.translator.Language
 import com.zhangxh.subtitletranslator.domain.translator.TranslationEngine
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficultyFilter
@@ -23,9 +22,7 @@ data class SettingsUiState(
     val difficultyFilter: WordDifficultyFilter = WordDifficultyFilter.DEFAULT,
     val preprocessMode: OcrPreprocessMode = OcrPreprocessMode.DEFAULT,
     val debugCaptureEnabled: Boolean = false,
-    val baiduCredentials: BaiduCredentials = BaiduCredentials("", ""),
     val engineHintRes: Int = R.string.engine_hint_mlkit,
-    val showBaiduConfig: Boolean = false,
     val preprocessHintRes: Int = R.string.preprocess_grayscale_desc
 )
 
@@ -83,20 +80,6 @@ class SettingsViewModel @JvmOverloads constructor(
         emitState()
     }
 
-    fun setBaiduAppId(appId: String) {
-        val saved = store.baiduCredentials
-        if (saved.appId == appId) return
-        store.saveBaiduAppId(appId)
-        emitState()
-    }
-
-    fun setBaiduSecret(secret: String) {
-        val saved = store.baiduCredentials
-        if (saved.secret == secret) return
-        store.saveBaiduSecret(secret)
-        emitState()
-    }
-
     /** 拒绝同语言时重新发一次状态，让界面把 Spinner 回退到已保存值 */
     private fun rejectSameLanguage(current: SettingsUiState) {
         _messages.value = Event(UiText(R.string.settings_error_same_language))
@@ -117,9 +100,7 @@ class SettingsViewModel @JvmOverloads constructor(
             difficultyFilter = store.difficultyFilter,
             preprocessMode = preprocess,
             debugCaptureEnabled = store.debugCaptureEnabled,
-            baiduCredentials = store.baiduCredentials,
             engineHintRes = engine.hintRes(),
-            showBaiduConfig = engine == TranslationEngine.BAIDU,
             preprocessHintRes = preprocess.descriptionRes()
         )
     }

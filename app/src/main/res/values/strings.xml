@@ -70,11 +70,6 @@
     <string name="settings_source_language">Source language</string>
     <string name="settings_target_language">Target language</string>
     <string name="settings_translation_engine">Translation engine</string>
-    <string name="settings_baidu_app_id">Baidu APP ID</string>
-    <string name="settings_baidu_app_id_hint">e.g. 2025010100000001</string>
-    <string name="settings_baidu_secret">Baidu secret key</string>
-    <string name="settings_baidu_secret_hint">Shown in the Baidu console</string>
-    <string name="settings_baidu_help">Register a developer account and create an app at fanyi-api.baidu.com. Your free quota is tied to your account; the key is stored only on this device.</string>
     <string name="settings_media_control">Media control</string>
     <string name="settings_media_access_granted">Notification access granted</string>
     <string name="settings_media_access_missing">Notification access not granted</string>
@@ -96,7 +91,7 @@
     <string name="engine_baidu">Baidu Translate (requires key)</string>
     <string name="engine_google">Google Translate (no key)</string>
     <string name="engine_hint_mlkit">Fully offline and needs no setup, but quality is modest and colloquial subtitles may be translated too literally.</string>
-    <string name="engine_hint_baidu">Fast in mainland China and good quality. Enter your own APP ID and secret (free quota is per account).</string>
+    <string name="engine_hint_baidu">Fast in mainland China and good quality. Uses the built-in configuration, so no setup is needed; falls back to offline translation on failure.</string>
     <string name="engine_hint_google">No setup and good quality. May be unreachable in mainland China; falls back to the offline engine on failure.</string>
 
     <!-- Vocabulary filter levels -->
@@ -190,14 +185,14 @@
     <string name="error_translation_failed">Translation failed</string>
     <string name="error_translator_not_initialized">Translator is not initialized</string>
     <string name="error_language_pack_download_failed">Failed to download the language pack</string>
-    <string name="error_baidu_not_configured">Baidu Translate is not configured. Enter your APP ID and secret in Settings.</string>
+    <string name="error_baidu_not_configured">Baidu Translate is not configured</string>
     <string name="error_unsupported_language_pair">This language pair is not supported</string>
     <string name="error_network">Network error. Please check your connection.</string>
     <string name="error_baidu_timeout">Baidu request timed out. Please retry.</string>
     <string name="error_baidu_service">Baidu service error. Please retry.</string>
-    <string name="error_baidu_unauthorized">Unauthorized: check your APP ID and whether the translation service is enabled</string>
+    <string name="error_baidu_unauthorized">Unauthorized: the built-in Baidu credentials may be restricted</string>
     <string name="error_baidu_empty_param">A required parameter is empty</string>
-    <string name="error_baidu_sign">Signature error: check your secret key</string>
+    <string name="error_baidu_sign">Signature error: the built-in Baidu configuration is invalid</string>
     <string name="error_baidu_rate_limited">Rate limit reached. Please try later.</string>
     <string name="error_baidu_quota">Insufficient balance: the free quota may be used up</string>
     <string name="error_baidu_too_frequent">Too many requests. Please try later.</string>

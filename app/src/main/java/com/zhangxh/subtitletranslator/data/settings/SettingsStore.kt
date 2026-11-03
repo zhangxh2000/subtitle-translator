@@ -2,7 +2,6 @@ package com.zhangxh.subtitletranslator.data.settings
 
 import android.content.Context
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
-import com.zhangxh.subtitletranslator.domain.translator.BaiduCredentials
 import com.zhangxh.subtitletranslator.domain.translator.Language
 import com.zhangxh.subtitletranslator.domain.translator.TranslationEngine
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficultyFilter
@@ -42,28 +41,6 @@ class SettingsStore(context: Context) {
         get() = prefs.getBoolean(KEY_DEBUG_CAPTURE, false)
         set(value) = prefs.edit().putBoolean(KEY_DEBUG_CAPTURE, value).apply()
 
-    var baiduCredentials: BaiduCredentials
-        get() = BaiduCredentials(
-            appId = prefs.getString(KEY_BAIDU_APP_ID, "").orEmpty(),
-            secret = prefs.getString(KEY_BAIDU_SECRET, "").orEmpty()
-        )
-        set(value) {
-            prefs.edit()
-                .putString(KEY_BAIDU_APP_ID, value.appId)
-                .putString(KEY_BAIDU_SECRET, value.secret)
-                .apply()
-        }
-
-    /** 只改 APP ID，保留已输入的密钥（逐字输入时不能互相覆盖） */
-    fun saveBaiduAppId(appId: String) {
-        baiduCredentials = baiduCredentials.copy(appId = appId)
-    }
-
-    /** 只改密钥，保留已输入的 APP ID */
-    fun saveBaiduSecret(secret: String) {
-        baiduCredentials = baiduCredentials.copy(secret = secret)
-    }
-
     companion object {
         const val PREFS_NAME = "subtitle_translator_prefs"
 
@@ -73,7 +50,5 @@ class SettingsStore(context: Context) {
         const val KEY_DEBUG_CAPTURE = "debug_capture_enabled"
         const val KEY_PREPROCESS_MODE = "ocr_preprocess_mode"
         const val KEY_TRANSLATION_ENGINE = "translation_engine"
-        const val KEY_BAIDU_APP_ID = "baidu_app_id"
-        const val KEY_BAIDU_SECRET = "baidu_secret"
     }
 }

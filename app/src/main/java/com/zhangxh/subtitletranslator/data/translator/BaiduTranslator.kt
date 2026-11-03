@@ -12,10 +12,8 @@ import kotlinx.coroutines.withContext
 /**
  * 百度翻译（在线）
  *
- * 凭据由用户自己在设置里填写：百度免费额度按账号计算，内置到 APK 里会随包泄露、
- * 被他人消耗殆尽，因此不做内置。
- *
- * 凭据通过回调读取而不是构造时传入，这样用户在设置里改完立即生效，不必重启服务。
+ * 默认使用 [BaiduDefaults] 的内置凭据，用户不需要配置；凭据通过回调读取，
+ * 以后如果要支持用户覆盖配置，也不需要改这里的调用链。
  */
 class BaiduTranslator(
     private val credentials: () -> BaiduCredentials?

@@ -65,11 +65,6 @@
     <string name="settings_source_language">源语言</string>
     <string name="settings_target_language">目标语言</string>
     <string name="settings_translation_engine">翻译引擎</string>
-    <string name="settings_baidu_app_id">百度 APP ID</string>
-    <string name="settings_baidu_app_id_hint">例如 2025010100000001</string>
-    <string name="settings_baidu_secret">百度密钥</string>
-    <string name="settings_baidu_secret_hint">在控制台查看</string>
-    <string name="settings_baidu_help">在 fanyi-api.baidu.com 注册开发者并创建应用即可获得。免费额度按你的账号计算，填在这里只存在本机。</string>
     <string name="settings_media_control">媒体控制</string>
     <string name="settings_media_access_granted">已授予通知使用权</string>
     <string name="settings_media_access_missing">未授予通知使用权</string>
@@ -91,7 +86,7 @@
     <string name="engine_baidu">百度翻译（需填密钥）</string>
     <string name="engine_google">Google 翻译（无需密钥）</string>
     <string name="engine_hint_mlkit">完全离线、无需任何配置，但质量一般，字幕口语化时容易直译。</string>
-    <string name="engine_hint_baidu">国内访问快、质量好，需要填自己的 APP ID 与密钥（免费额度按账号计算）。</string>
+    <string name="engine_hint_baidu">国内访问快、质量好，已内置配置，无需填写密钥；失败时自动回退到离线翻译。</string>
     <string name="engine_hint_google">无需配置、质量好；国内网络可能访问不了，失败时会自动回退到离线引擎。</string>
 
     <!-- 生词筛选强度 -->
@@ -185,14 +180,14 @@
     <string name="error_translation_failed">翻译失败</string>
     <string name="error_translator_not_initialized">翻译器未初始化</string>
     <string name="error_language_pack_download_failed">下载语言包失败</string>
-    <string name="error_baidu_not_configured">尚未配置百度翻译的 APP ID 与密钥，请在设置中填写</string>
+    <string name="error_baidu_not_configured">百度翻译未配置</string>
     <string name="error_unsupported_language_pair">不支持该语言方向</string>
     <string name="error_network">网络错误，请检查网络连接</string>
     <string name="error_baidu_timeout">请求超时，请重试</string>
     <string name="error_baidu_service">百度服务异常，请重试</string>
-    <string name="error_baidu_unauthorized">未授权：请检查 APP ID 是否正确、通用翻译服务是否已开通</string>
+    <string name="error_baidu_unauthorized">百度鉴权失败：内置凭据可能受限或被停用</string>
     <string name="error_baidu_empty_param">必填参数为空</string>
-    <string name="error_baidu_sign">签名错误：请检查密钥是否填写正确</string>
+    <string name="error_baidu_sign">百度签名错误：内置配置无效</string>
     <string name="error_baidu_rate_limited">访问频率受限，请稍后再试</string>
     <string name="error_baidu_quota">账户余额不足：免费额度可能已用完</string>
     <string name="error_baidu_too_frequent">请求过于频繁，请稍后再试</string>

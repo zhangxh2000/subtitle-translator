@@ -2,7 +2,6 @@ package com.zhangxh.subtitletranslator.data.settings
 
 import android.content.Context
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
-import com.zhangxh.subtitletranslator.domain.translator.BaiduCredentials
 import com.zhangxh.subtitletranslator.domain.translator.TranslationEngine
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficultyFilter
 import org.junit.After
@@ -51,7 +50,6 @@ class SettingsStoreTest {
         assertEquals(WordDifficultyFilter.LOOSE, store.difficultyFilter)
         assertEquals(OcrPreprocessMode.GRAYSCALE, store.preprocessMode)
         assertFalse(store.debugCaptureEnabled)
-        assertEquals(BaiduCredentials("", ""), store.baiduCredentials)
     }
 
     @Test
@@ -62,8 +60,6 @@ class SettingsStoreTest {
         store.difficultyFilter = WordDifficultyFilter.STRICT
         store.preprocessMode = OcrPreprocessMode.ADAPTIVE
         store.debugCaptureEnabled = true
-        store.saveBaiduAppId("app-id")
-        store.saveBaiduSecret("secret")
 
         // 重新构造一个实例，模拟进程重启后读取
         val reopened = SettingsStore(context)
@@ -73,20 +69,6 @@ class SettingsStoreTest {
         assertEquals(WordDifficultyFilter.STRICT, reopened.difficultyFilter)
         assertEquals(OcrPreprocessMode.ADAPTIVE, reopened.preprocessMode)
         assertTrue(reopened.debugCaptureEnabled)
-        assertEquals(BaiduCredentials("app-id", "secret"), reopened.baiduCredentials)
-    }
-
-    @Test
-    fun `baidu fields do not overwrite each other`() {
-        store.saveBaiduAppId("app-1")
-        store.saveBaiduSecret("secret-1")
-
-        store.saveBaiduAppId("app-2")
-        assertEquals("secret-1", store.baiduCredentials.secret)
-
-        store.saveBaiduSecret("secret-2")
-        assertEquals("app-2", store.baiduCredentials.appId)
-        assertEquals("secret-2", store.baiduCredentials.secret)
     }
 
     @Test
@@ -111,8 +93,6 @@ class SettingsStoreTest {
         store.difficultyFilter = WordDifficultyFilter.STRICT
         store.preprocessMode = OcrPreprocessMode.FIXED
         store.debugCaptureEnabled = true
-        store.saveBaiduAppId("a")
-        store.saveBaiduSecret("s")
 
         val prefs = prefs()
         assertEquals("ja", prefs.getString("source_lang", null))
@@ -121,8 +101,6 @@ class SettingsStoreTest {
         assertEquals("STRICT", prefs.getString("difficulty_filter", null))
         assertEquals("FIXED", prefs.getString("ocr_preprocess_mode", null))
         assertTrue(prefs.getBoolean("debug_capture_enabled", false))
-        assertEquals("a", prefs.getString("baidu_app_id", null))
-        assertEquals("s", prefs.getString("baidu_secret", null))
         assertEquals("subtitle_translator_prefs", SettingsStore.PREFS_NAME)
     }
 }

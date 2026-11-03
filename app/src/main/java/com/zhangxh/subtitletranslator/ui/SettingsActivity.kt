@@ -5,12 +5,10 @@ import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
-import android.widget.EditText
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
-import androidx.core.widget.doAfterTextChanged
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.data.media.NotificationAccess
@@ -40,13 +38,10 @@ class SettingsActivity : BaseActivity() {
     private lateinit var spinnerDifficulty: Spinner
     private lateinit var spinnerEngine: Spinner
     private lateinit var spinnerPreprocess: Spinner
-    private lateinit var etBaiduAppId: EditText
-    private lateinit var etBaiduSecret: EditText
     private lateinit var switchDebugCapture: SwitchMaterial
     private lateinit var tvEngineHint: TextView
     private lateinit var tvPreprocessHint: TextView
     private lateinit var tvMediaAccessStatus: TextView
-    private lateinit var baiduConfigGroup: View
 
     /** 渲染状态期间忽略控件回调，避免初始化触发写盘 */
     private var isBinding = false
@@ -98,13 +93,10 @@ class SettingsActivity : BaseActivity() {
         spinnerDifficulty = findViewById(R.id.spinnerDifficulty)
         spinnerEngine = findViewById(R.id.spinnerEngine)
         spinnerPreprocess = findViewById(R.id.spinnerPreprocess)
-        etBaiduAppId = findViewById(R.id.etBaiduAppId)
-        etBaiduSecret = findViewById(R.id.etBaiduSecret)
         switchDebugCapture = findViewById(R.id.switchDebugCapture)
         tvEngineHint = findViewById(R.id.tvEngineHint)
         tvPreprocessHint = findViewById(R.id.tvPreprocessHint)
         tvMediaAccessStatus = findViewById(R.id.tvMediaAccessStatus)
-        baiduConfigGroup = findViewById(R.id.baiduConfigGroup)
     }
 
     private fun setupAdapters() {
@@ -173,19 +165,6 @@ class SettingsActivity : BaseActivity() {
             }
         }
 
-        etBaiduAppId.doAfterTextChanged { editable ->
-            val text = editable?.toString().orEmpty()
-            if (!isBinding && text != viewModel.uiState.value?.baiduCredentials?.appId) {
-                viewModel.setBaiduAppId(text)
-            }
-        }
-        etBaiduSecret.doAfterTextChanged { editable ->
-            val text = editable?.toString().orEmpty()
-            if (!isBinding && text != viewModel.uiState.value?.baiduCredentials?.secret) {
-                viewModel.setBaiduSecret(text)
-            }
-        }
-
         switchDebugCapture.setOnCheckedChangeListener { _, checked ->
             if (!isBinding && checked != viewModel.uiState.value?.debugCaptureEnabled) {
                 viewModel.setDebugCaptureEnabled(checked)
@@ -216,12 +195,9 @@ class SettingsActivity : BaseActivity() {
             spinnerEngine.selectIfNeeded(engines.indexOf(state.translationEngine))
             spinnerPreprocess.selectIfNeeded(preprocessModes.indexOf(state.preprocessMode))
 
-            etBaiduAppId.setTextIfChanged(state.baiduCredentials.appId)
-            etBaiduSecret.setTextIfChanged(state.baiduCredentials.secret)
             switchDebugCapture.isChecked = state.debugCaptureEnabled
 
             tvEngineHint.text = getString(state.engineHintRes)
-            baiduConfigGroup.visibility = if (state.showBaiduConfig) View.VISIBLE else View.GONE
             tvPreprocessHint.text = getString(state.preprocessHintRes)
         } finally {
             isBinding = false
@@ -231,12 +207,5 @@ class SettingsActivity : BaseActivity() {
     private fun Spinner.selectIfNeeded(index: Int) {
         val target = index.coerceAtLeast(0)
         if (selectedItemPosition != target) setSelection(target)
-    }
-
-    private fun EditText.setTextIfChanged(text: String) {
-        if (this.text.toString() != text) {
-            setText(text)
-            setSelection(text.length)
-        }
     }
 }
