@@ -874,7 +874,7 @@ class FloatingButtonService : Service() {
                     "a11yConnected=${A11yDiagnosticService.isConnected()}, " +
                     "a11yEnabledBySystem=${AccessibilityAccess.isEnabled(this@FloatingButtonService)}"
             )
-            val a11yController = A11ySeekController()
+            val a11yController = A11ySeekController(this@FloatingButtonService)
             var a11ySnapshot = if (a11yEnabled) a11yController.snapshot() else null
 
             // 进度条节点只在播放控件显示时存在；点一下非中心区域把控件唤出来
@@ -980,7 +980,9 @@ class FloatingButtonService : Service() {
                     Log.w(TAG, "字幕导航未命中: $result")
                     removeNavigationStatus()
                     // 回到起点并恢复原面板，避免把用户留在随机位置
-                    seekController.seekTo(originPosition)
+                    withContext(Dispatchers.IO) {
+                        seekController.seekTo(originPosition)
+                    }
                     showTranslationOverlay(current)
                     isNavigating = false
                     Toast.makeText(
