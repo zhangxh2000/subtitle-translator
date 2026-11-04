@@ -228,6 +228,10 @@ adb logcat -s A11yDump
 
 诊断服务只在你主动触发时读取当前窗口节点，不会自动读取、上传屏幕内容。
 
+如果当前播放器的进度条是标准 `SeekBar`（抖音长视频就是），开启无障碍诊断后，
+上一句/下一句会优先通过节点的 `ACTION_SET_PROGRESS` 精确设置进度，
+不再依赖 MediaSession；播放控件没显示时则回退到原来的 MediaSession 方案。
+
 ## 词典数据
 
 词典由 [ECDICT](https://github.com/skywind3000/ECDICT)（MIT License, Copyright (c) Linwei）

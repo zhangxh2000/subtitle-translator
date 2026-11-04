@@ -31,6 +31,17 @@ class A11yDiagnosticService : AccessibilityService() {
             service.dumpAsync()
             return true
         }
+
+        /** 查找当前前台窗口里可见的进度条节点（SeekBar + RangeInfo） */
+        fun findSeekBarNode(): AccessibilityNodeInfo? {
+            val service = instance ?: return null
+            return try {
+                service.findVisibleSeekBar()
+            } catch (e: Exception) {
+                Log.w(TAG, "查找进度条节点失败", e)
+                null
+            }
+        }
     }
 
     private var dumpedNodes = 0
@@ -49,6 +60,37 @@ class A11yDiagnosticService : AccessibilityService() {
     override fun onDestroy() {
         if (instance === this) instance = null
         super.onDestroy()
+    }
+
+    private fun findVisibleSeekBar(): AccessibilityNodeInfo? {
+        val allWindows = windows.orEmpty()
+        val candidates = allWindows.filter {
+            it.root != null && it.root?.packageName != packageName
+        }
+        val target = candidates.maxByOrNull {
+            (if (it.isActive) 1_000_000 else 0) + it.layer
+        } ?: candidates.firstOrNull()
+        val root = target?.root ?: rootInActiveWindow ?: return null
+
+        val found = mutableListOf<AccessibilityNodeInfo>()
+        collectSeekBars(root, found)
+        // 视频进度条的 range.max 通常远大于音量/亮度滑块，取最大者
+        return found.maxByOrNull { it.rangeInfo?.max ?: 0f }
+    }
+
+    private fun collectSeekBars(node: AccessibilityNodeInfo, out: MutableList<AccessibilityNodeInfo>) {
+        val range = node.rangeInfo
+        val className = node.className?.toString().orEmpty()
+        if (node.isVisibleToUser && range != null &&
+            (className.contains("SeekBar", ignoreCase = true) ||
+                className.contains("ProgressBar", ignoreCase = true))
+        ) {
+            out += node
+        }
+        for (index in 0 until node.childCount) {
+            val child = node.getChild(index) ?: continue
+            collectSeekBars(child, out)
+        }
     }
 
     private fun dumpAsync() {

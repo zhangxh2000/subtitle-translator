@@ -131,4 +131,21 @@ class TranslationCoordinatorTest {
 
         assertEquals(AppError.NO_SUBTITLE_TEXT, result.error?.code)
     }
+
+    @Test
+    fun `translates already recognized text without capturing again`() = runBlocking {
+        val result = coordinator(screen = null).translateRecognizedText("Hello there")
+
+        assertTrue(result.isSuccess)
+        assertEquals("Hello there", result.originalText)
+        assertEquals("你好", result.translatedText)
+        assertEquals(listOf("translate", "extract"), events)
+    }
+
+    @Test
+    fun `blank recognized text is rejected`() = runBlocking {
+        val result = coordinator(screen = null).translateRecognizedText("   ")
+
+        assertEquals(AppError.NO_SUBTITLE_TEXT, result.error?.code)
+    }
 }

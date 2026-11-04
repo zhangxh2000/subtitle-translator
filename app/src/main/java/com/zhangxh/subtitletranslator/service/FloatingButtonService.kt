@@ -38,6 +38,7 @@ import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.data.ocr.MLKitOcrEngine
 import com.zhangxh.subtitletranslator.data.screenshot.ScreenCaptureManagerImpl
 import com.zhangxh.subtitletranslator.data.translator.TranslatorProvider
+import com.zhangxh.subtitletranslator.data.accessibility.A11ySeekController
 import com.zhangxh.subtitletranslator.data.accessibility.AccessibilityAccess
 import com.zhangxh.subtitletranslator.data.dictionary.DictionaryRepositoryProvider
 import com.zhangxh.subtitletranslator.data.history.TranslationHistoryStore
@@ -49,6 +50,8 @@ import com.zhangxh.subtitletranslator.data.vocabulary.SqliteVocabularyRepository
 import com.zhangxh.subtitletranslator.data.wordextractor.LocalWordExtractor
 import com.zhangxh.subtitletranslator.domain.TranslationCoordinator
 import com.zhangxh.subtitletranslator.domain.TranslationResult
+import com.zhangxh.subtitletranslator.domain.media.IMediaPlaybackController
+import com.zhangxh.subtitletranslator.domain.media.PlaybackSnapshot
 import com.zhangxh.subtitletranslator.domain.speech.IPronouncer
 import com.zhangxh.subtitletranslator.domain.subtitle.SubtitleDirection
 import com.zhangxh.subtitletranslator.domain.subtitle.SubtitleNavigationResult
@@ -774,8 +777,10 @@ class FloatingButtonService : Service() {
 
     /**
      * 显示翻译
+     *
+     * @param preRecognizedText 字幕导航已经识别好的文本；为空时重新截图识别
      */
-    private fun showTranslation() {
+    private fun showTranslation(preRecognizedText: String? = null) {
         // 检查 MediaProjection 是否已停止
         if (isProjectionStopped) {
             Log.e(TAG, "MediaProjection 已停止，需要重新申请权限")
@@ -802,8 +807,12 @@ class FloatingButtonService : Service() {
                 // 注意：暂停媒体的时机在 TranslationCoordinator 截图成功之后（见 onScreenshotCaptured），
                 // 这样 YouTube 等 App 的暂停控件不会出现在 OCR 截图里
 
-                // 执行翻译
-                val result = translationCoordinator?.translateSubtitle()
+                // 导航结果已经带回了目标字幕，直接翻译，避免重新截图截进播放控件
+                val result = if (preRecognizedText != null) {
+                    translationCoordinator?.translateRecognizedText(preRecognizedText)
+                } else {
+                    translationCoordinator?.translateSubtitle()
+                }
 
                 if (result?.isSuccess == true) {
                     // 保存到历史记录（上限由 store 维护）
@@ -848,7 +857,19 @@ class FloatingButtonService : Service() {
             return
         }
 
-        if (!NotificationAccess.isGranted(this)) {
+        // 面板显示时视频通常已经暂停；兜底一次，避免用户中途用耳机恢复播放
+        pauseMedia()
+
+        // 优先使用无障碍进度条节点（抖音长视频等），其次才用 MediaSession
+        val a11yController = A11ySeekController()
+        val a11ySnapshot = if (AccessibilityAccess.isEnabled(this)) {
+            a11yController.snapshot()
+        } else {
+            null
+        }
+
+        // 无障碍进度条可用时不需要通知使用权；只有走 MediaSession 才检查
+        if (a11ySnapshot == null && !NotificationAccess.isGranted(this)) {
             removeOverlayView(animated = true)
             isShowingTranslation = false
             currentResult = null
@@ -863,18 +884,33 @@ class FloatingButtonService : Service() {
             return
         }
 
-        // 面板显示时视频通常已经暂停；兜底一次，避免用户中途用耳机恢复播放
-        pauseMedia()
-        // 固定当前会话，避免导航途中选中别的音乐 App
-        mediaPlaybackController.pinActiveSession()
-        val snapshot = mediaPlaybackController.snapshot()
+        val seekController: IMediaPlaybackController
+        val snapshot: PlaybackSnapshot?
+        if (a11ySnapshot != null) {
+            Log.d(
+                TAG,
+                "使用无障碍进度条: pos=${a11ySnapshot.positionMs}, " +
+                    "duration=${a11ySnapshot.durationMs}"
+            )
+            seekController = a11yController
+            snapshot = a11ySnapshot
+        } else {
+            // 固定当前会话，避免导航途中选中别的音乐 App
+            mediaPlaybackController.pinActiveSession()
+            seekController = mediaPlaybackController
+            snapshot = mediaPlaybackController.snapshot()
+            if (snapshot != null && !snapshot.canSeek) {
+                // 有些播放器不声明 ACTION_SEEK_TO，但实际仍响应 seek；先尝试再判断
+                Log.d(TAG, "媒体会话未声明 ACTION_SEEK_TO，尝试直接 seek")
+            }
+        }
         if (snapshot == null) {
+            Log.d(
+                TAG,
+                "没有可用的 seek 控制器: a11yEnabled=${AccessibilityAccess.isEnabled(this)}"
+            )
             Toast.makeText(this, R.string.overlay_navigation_no_session, Toast.LENGTH_SHORT).show()
             return
-        }
-        // 有些播放器不声明 ACTION_SEEK_TO，但实际仍响应 seek；先尝试再判断
-        if (!snapshot.canSeek) {
-            Log.d(TAG, "媒体会话未声明 ACTION_SEEK_TO，尝试直接 seek")
         }
 
         val originPosition = snapshot.positionMs
@@ -886,7 +922,7 @@ class FloatingButtonService : Service() {
 
         serviceScope.launch {
             val navigator = SubtitleNavigator(
-                media = mediaPlaybackController,
+                media = seekController,
                 recognize = {
                     val recognition = coordinator.recognizeSubtitleText()
                     Log.d(
@@ -911,14 +947,14 @@ class FloatingButtonService : Service() {
                     Log.d(TAG, "字幕导航命中: ${result.positionMs}ms, ${result.text}")
                     removeNavigationStatus()
                     isNavigating = false
-                    // 视频已经停在目标位置，直接对当前画面做完整翻译
-                    showTranslation()
+                    // 直接翻译导航时识别到的字幕，避免重截图把播放控件带进译文
+                    showTranslation(result.text)
                 }
                 else -> {
                     Log.w(TAG, "字幕导航未命中: $result")
                     removeNavigationStatus()
                     // 回到起点并恢复原面板，避免把用户留在随机位置
-                    mediaPlaybackController.seekTo(originPosition)
+                    seekController.seekTo(originPosition)
                     showTranslationOverlay(current)
                     isNavigating = false
                     Toast.makeText(

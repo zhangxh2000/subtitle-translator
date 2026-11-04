@@ -11,6 +11,7 @@ import com.zhangxh.subtitletranslator.domain.ocr.IOcrEngine
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessor
 import com.zhangxh.subtitletranslator.domain.ocr.OcrTextCleaner
+import com.zhangxh.subtitletranslator.domain.ocr.SubtitleLineSelector
 import com.zhangxh.subtitletranslator.domain.screenshot.IScreenCaptureManager
 import com.zhangxh.subtitletranslator.domain.subtitle.SubtitleRecognition
 import com.zhangxh.subtitletranslator.domain.translator.ITranslator
@@ -259,6 +260,42 @@ class TranslationCoordinator(
             ?: TranslationError(AppError.TRANSLATION_FAILED, message)
 
     /**
+     * 翻译一段已经识别好的字幕
+     *
+     * 字幕导航找到目标后直接复用导航时的 OCR 结果，不再重新截图；
+     * 这样避免暂停画面上的播放控件混进译文。
+     */
+    suspend fun translateRecognizedText(cleanedText: String): TranslationResult =
+        withContext(Dispatchers.IO) {
+            if (cleanedText.isBlank()) {
+                return@withContext TranslationResult(
+                    isSuccess = false,
+                    error = TranslationError(AppError.NO_SUBTITLE_TEXT)
+                )
+            }
+            try {
+                val translatedText = translator
+                    .translate(cleanedText, sourceLang, targetLang)
+                    .getOrElse {
+                        return@withContext TranslationResult(
+                            isSuccess = false,
+                            error = it.toTranslationError()
+                        )
+                    }
+                val difficultWords = wordExtractor.extractDifficultWords(cleanedText, maxWords = 5)
+                TranslationResult(
+                    originalText = cleanedText,
+                    translatedText = translatedText,
+                    difficultWords = difficultWords,
+                    isSuccess = true
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "翻译已识别字幕失败", e)
+                TranslationResult(isSuccess = false, error = e.toTranslationError())
+            }
+        }
+
+    /**
      * 只识别当前字幕，不翻译
      *
      * 字幕导航每一小步都要比较文本，不能每步都调用翻译引擎。
@@ -288,7 +325,9 @@ class TranslationCoordinator(
                 )
             }
 
-            val cleanedText = OcrTextCleaner.clean(ocrResult.text.trim())
+            // 导航画面里播放控件是可见的，按行宽滤掉时间/点赞数等 UI 文本
+            val selectedText = SubtitleLineSelector.select(ocrResult, processedBitmap.width)
+            val cleanedText = OcrTextCleaner.clean(selectedText)
             if (cleanedText.isBlank()) {
                 return@withContext SubtitleRecognition(
                     error = TranslationError(AppError.NO_SUBTITLE_TEXT)
