@@ -50,6 +50,13 @@ class TranslationCoordinator(
      */
     private val preprocessMode: () -> OcrPreprocessMode = { OcrPreprocessMode.DEFAULT },
     /**
+     * 截图前的回调
+     *
+     * MediaProjection 在完全静止的画面上可能没有新帧；实现方可以做个
+     * 几像素/透明度级别的轻量刷新，促使系统合成一帧。
+     */
+    private val beforeCapture: () -> Unit = {},
+    /**
      * 截图成功后的回调
      *
      * 视频暂停后部分 App（例如 YouTube）会显示进度条/播放按钮等暂停控件，
@@ -101,6 +108,7 @@ class TranslationCoordinator(
         try {
             // 1. 截图
             Log.d(TAG, "开始截图")
+            beforeCapture()
             screenshot = screenCapture.captureScreen()
                 ?: return@withContext fail(TranslationError(AppError.CAPTURE_FAILED))
 
@@ -306,6 +314,7 @@ class TranslationCoordinator(
         var subtitleBitmap: Bitmap? = null
         var processedBitmap: Bitmap? = null
         try {
+            beforeCapture()
             screenshot = screenCapture.captureScreen()
                 ?: return@withContext SubtitleRecognition(
                     error = TranslationError(AppError.CAPTURE_FAILED)

@@ -5,10 +5,12 @@ import android.graphics.Bitmap
 import android.graphics.PixelFormat
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
+import android.media.Image
 import android.media.ImageReader
 import android.media.projection.MediaProjection
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import android.view.WindowManager
 import com.zhangxh.subtitletranslator.domain.screenshot.IScreenCaptureManager
@@ -25,6 +27,8 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
     companion object {
         private const val TAG = "ScreenCaptureManager"
         private const val MAX_IMAGES = 2
+        private const val CAPTURE_WAIT_TIMEOUT_MS = 800L
+        private const val CAPTURE_POLL_INTERVAL_MS = 40L
     }
 
     private var context: Context? = null
@@ -149,11 +153,18 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
             // 检查屏幕尺寸是否变化，必要时更新 VirtualDisplay
             updateScreenSizeIfNeeded()
 
-            // 等待一帧图像
-            delay(100)
-
-            val image = imageReader?.acquireLatestImage()
-                ?: return@withContext null
+            // 完全静止的画面可能不会持续产生新帧；在短时间内轮询等待，
+            // 避免偶发 acquireLatestImage() 为空导致 CAPTURE_FAILED。
+            val deadline = SystemClock.elapsedRealtime() + CAPTURE_WAIT_TIMEOUT_MS
+            var image: Image? = null
+            while (image == null && SystemClock.elapsedRealtime() < deadline) {
+                delay(CAPTURE_POLL_INTERVAL_MS)
+                image = imageReader?.acquireLatestImage()
+            }
+            if (image == null) {
+                Log.w(TAG, "等待屏幕帧超时（画面可能静止或录屏已停止）")
+                return@withContext null
+            }
 
             try {
                 val planes = image.planes

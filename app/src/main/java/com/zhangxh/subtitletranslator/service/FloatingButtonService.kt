@@ -409,6 +409,8 @@ class FloatingButtonService : Service() {
                 // 用回调而不是传布尔值：开关打开后立刻生效，不必重启服务
                 isDebugCaptureEnabled = { settingsStore.debugCaptureEnabled },
                 preprocessMode = { settingsStore.preprocessMode },
+                // 静止画面可能没有新帧：截图前轻微刷新悬浮球，促使系统合成一帧
+                beforeCapture = { nudgeScreenForCapture() },
                 // 截图完成后再暂停视频：部分 App 暂停时会显示控制条，不能让它进入截图
                 onScreenshotCaptured = { serviceScope.launch { pauseMedia() } }
             )
@@ -760,6 +762,24 @@ class FloatingButtonService : Service() {
         }.getOrElse {
             Log.w(TAG, "读取窗口可用区域失败，回退到真实屏幕尺寸", it)
             fallback
+        }
+    }
+
+    /**
+     * 截图前轻量刷新一次悬浮球
+     *
+     * MediaProjection 在完全静止的画面上可能不会产生新帧，导致
+     * acquireLatestImage() 返回空。改变悬浮球透明度会让系统重新合成一帧，
+     * 变化只有一瞬间，且悬浮球通常不在字幕裁剪区。
+     */
+    private fun nudgeScreenForCapture() {
+        val view = floatingView ?: return
+        view.post {
+            view.animate().cancel()
+            view.alpha = 0.95f
+            view.postDelayed({
+                if (floatingView === view) view.alpha = 1f
+            }, 40)
         }
     }
 
