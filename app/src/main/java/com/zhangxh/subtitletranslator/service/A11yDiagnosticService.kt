@@ -99,6 +99,13 @@ class A11yDiagnosticService : AccessibilityService() {
 
         Log.i(TAG, "===== seek candidates=${seekCandidates.size} =====")
         seekCandidates.forEach { Log.i(TAG, "SEEK_CANDIDATE $it") }
+        if (seekCandidates.isEmpty()) {
+            Log.w(
+                TAG,
+                "没有发现 SeekBar/ProgressBar/RangeInfo/ACTION_SET_PROGRESS 节点；" +
+                    "如果导出时播放控件已显示，说明进度条是自绘控件，只能考虑坐标手势"
+            )
+        }
         Log.i(TAG, "===== dump end nodes=$dumpedNodes =====")
     }
 
@@ -129,10 +136,13 @@ class A11yDiagnosticService : AccessibilityService() {
             "visible=${node.isVisibleToUser} actions=0x${actions.toString(16)}$rangeText"
         Log.i(TAG, line)
 
+        // ACTION_SET_PROGRESS 是 AccessibilityAction 的 id，不是 actions 位掩码里的位，
+        // 必须查 actionList；直接和 actions 做与运算会把普通节点全部误判成候选。
+        val supportsSetProgress = node.actionList.any { it.id == ACTION_SET_PROGRESS_ID }
         if (range != null ||
             className.contains("SeekBar", ignoreCase = true) ||
             className.contains("ProgressBar", ignoreCase = true) ||
-            (actions and ACTION_SET_PROGRESS_ID) != 0
+            supportsSetProgress
         ) {
             seekCandidates += line
         }
