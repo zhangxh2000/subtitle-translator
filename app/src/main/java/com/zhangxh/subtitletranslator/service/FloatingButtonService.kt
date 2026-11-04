@@ -165,6 +165,9 @@ class FloatingButtonService : Service() {
 
     private val mediaPlaybackController by lazy { MediaSessionPlaybackController(this) }
 
+    /** 正在进行的连续扫描；服务销毁时需要它来暂停播放并恢复音量 */
+    private var activeA11yScanController: A11ySeekController? = null
+
     /** 当前的暂停是否由本服务发出，关闭面板时只恢复自己暂停过的媒体 */
     private var mediaPausedByApp = false
 
@@ -773,6 +776,8 @@ class FloatingButtonService : Service() {
      * 变化只有一瞬间，且悬浮球通常不在字幕裁剪区。
      */
     private fun nudgeScreenForCapture() {
+        // 连续扫描时视频本身在播放，画面持续刷新，不需要再闪悬浮球
+        if (activeA11yScanController?.isScanning == true) return
         val view = floatingView ?: return
         view.post {
             view.animate().cancel()
@@ -979,12 +984,24 @@ class FloatingButtonService : Service() {
                     recognition
                 }
             )
-            val result = withContext(Dispatchers.IO) {
-                runCatching {
-                    navigator.findAdjacent(current.originalText, direction)
-                }.getOrElse {
-                    Log.e(TAG, "字幕导航失败", it)
-                    SubtitleNavigationResult.RecognitionFailed
+            // 无障碍进度条路径改为连续扫描：整段查找只播放一次、暂停一次，
+            // 期间静音，避免每走一步都暂停/播放造成闪烁。
+            val scanController = seekController as? A11ySeekController
+            activeA11yScanController = scanController
+            scanController?.beginScan()
+            val result = try {
+                withContext(Dispatchers.IO) {
+                    runCatching {
+                        navigator.findAdjacent(current.originalText, direction)
+                    }.getOrElse {
+                        Log.e(TAG, "字幕导航失败", it)
+                        SubtitleNavigationResult.RecognitionFailed
+                    }
+                }
+            } finally {
+                scanController?.endScan()
+                if (activeA11yScanController === scanController) {
+                    activeA11yScanController = null
                 }
             }
 
@@ -992,6 +1009,13 @@ class FloatingButtonService : Service() {
                 is SubtitleNavigationResult.Found -> {
                     Log.d(TAG, "字幕导航命中: ${result.positionMs}ms, ${result.text}")
                     removeNavigationStatus()
+                    // 连续扫描时播放器仍在前进，把播放位置对齐到识别到的那一句；
+                    // 关闭面板恢复播放时才会从正确的位置开始。
+                    if (scanController != null) {
+                        withContext(Dispatchers.IO) {
+                            seekController.seekTo(result.positionMs)
+                        }
+                    }
                     isNavigating = false
                     // 直接翻译导航时识别到的字幕，避免重截图把播放控件带进译文
                     showTranslation(result.text)
@@ -1505,6 +1529,9 @@ class FloatingButtonService : Service() {
         isShowingTranslation = false
         currentResult = null
         isNavigating = false
+        // 连续扫描中途退出时，先暂停并恢复音量，再把状态交还用户
+        activeA11yScanController?.endScan()
+        activeA11yScanController = null
         // 服务销毁 / 重新授权时，别把视频留在暂停状态
         resumeMedia()
 
