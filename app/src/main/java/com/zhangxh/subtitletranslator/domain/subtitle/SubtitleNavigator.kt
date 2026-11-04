@@ -59,7 +59,12 @@ class SubtitleNavigator(
 
             // 部分播放器不声明 ACTION_SEEK_TO，也可能直接忽略 seek。
             // 第一次 seek 后检查播放位置有没有真的移动，避免空转 12 秒。
-            if (!seekVerified && !snapshot.isPlaying && beforeSeek != null) {
+            // 无障碍 SeekBar 的 RangeInfo 可能滞后，因此只对声明需要校验的控制器执行。
+            if (media.verifiesSeekPosition &&
+                !seekVerified &&
+                !snapshot.isPlaying &&
+                beforeSeek != null
+            ) {
                 var afterSeek = media.snapshot()?.positionMs
                 if (afterSeek != null && abs(afterSeek - beforeSeek) < 100L) {
                     wait(250L)

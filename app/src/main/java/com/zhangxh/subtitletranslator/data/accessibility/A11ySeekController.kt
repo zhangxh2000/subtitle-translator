@@ -20,6 +20,9 @@ class A11ySeekController : IMediaPlaybackController {
         private const val TAG = "A11ySeekController"
     }
 
+    /** 抖音设置进度后 RangeInfo 不会立即刷新，不能靠位置变化判断成功 */
+    override val verifiesSeekPosition: Boolean = false
+
     override fun snapshot(): PlaybackSnapshot? {
         val node = A11yDiagnosticService.findSeekBarNode() ?: return null
         val range = node.rangeInfo ?: return null

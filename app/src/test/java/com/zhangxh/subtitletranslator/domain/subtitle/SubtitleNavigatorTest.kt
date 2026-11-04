@@ -16,9 +16,13 @@ class SubtitleNavigatorTest {
         private val duration: Long? = 10_000L,
         private val canSeek: Boolean = true,
         private val ignoreSeek: Boolean = false,
+        private val verifiesPosition: Boolean = true,
         private val subtitleAt: (Long) -> String?
     ) : IMediaPlaybackController {
         val seeks = mutableListOf<Long>()
+
+        override val verifiesSeekPosition: Boolean
+            get() = verifiesPosition
 
         override fun snapshot(): PlaybackSnapshot? =
             PlaybackSnapshot(position, duration, isPlaying = false, canSeek = canSeek)
@@ -131,6 +135,20 @@ class SubtitleNavigatorTest {
         val result = navigator(media).findAdjacent("Line A", SubtitleDirection.NEXT)
 
         assertEquals(SubtitleNavigationResult.SeekUnsupported, result)
+    }
+
+    @Test
+    fun `controller that trusts seek result does not verify stale position`() = runBlocking {
+        val media = FakeMedia(
+            position = 1_000,
+            ignoreSeek = true,
+            verifiesPosition = false,
+            subtitleAt = ::timeline
+        )
+
+        val result = navigator(media).findAdjacent("Line A", SubtitleDirection.NEXT)
+
+        assertEquals(SubtitleNavigationResult.NotFound, result)
     }
 
     @Test

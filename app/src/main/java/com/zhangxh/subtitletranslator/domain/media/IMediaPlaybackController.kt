@@ -19,6 +19,15 @@ data class PlaybackSnapshot(
  * 通过系统 MediaSession 读取当前会话的位置并 seek。
  */
 interface IMediaPlaybackController {
+    /**
+     * seekTo 返回成功后，是否还需要核对播放位置有没有变化
+     *
+     * MediaSession 有些播放器会忽略 seek，需要校验；无障碍 SeekBar 的
+     * RangeInfo 在设置进度后可能不会立即刷新，但 ACTION_SET_PROGRESS
+     * 返回成功即可信，因此实现类可以关掉校验。
+     */
+    val verifiesSeekPosition: Boolean get() = true
+
     /** 取当前活动媒体会话；没有权限/没有会话时返回 null */
     fun snapshot(): PlaybackSnapshot?
 
