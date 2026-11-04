@@ -867,7 +867,13 @@ class FloatingButtonService : Service() {
         showNavigationStatus()
 
         serviceScope.launch {
-            val a11yEnabled = AccessibilityAccess.isEnabled(this@FloatingButtonService)
+            val a11yEnabled = AccessibilityAccess.isUsable(this@FloatingButtonService)
+            Log.d(
+                TAG,
+                "导航准备: a11yUsable=$a11yEnabled, " +
+                    "a11yConnected=${A11yDiagnosticService.isConnected()}, " +
+                    "a11yEnabledBySystem=${AccessibilityAccess.isEnabled(this@FloatingButtonService)}"
+            )
             val a11yController = A11ySeekController()
             var a11ySnapshot = if (a11yEnabled) a11yController.snapshot() else null
 

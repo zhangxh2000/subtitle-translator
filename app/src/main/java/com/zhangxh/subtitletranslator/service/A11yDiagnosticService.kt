@@ -28,6 +28,9 @@ class A11yDiagnosticService : AccessibilityService() {
         @Volatile
         private var instance: A11yDiagnosticService? = null
 
+        /** 无障碍服务当前是否已连接 */
+        fun isConnected(): Boolean = instance != null
+
         /** 从悬浮窗服务触发；无障碍服务未连接时返回 false */
         fun requestDump(): Boolean {
             val service = instance ?: return false

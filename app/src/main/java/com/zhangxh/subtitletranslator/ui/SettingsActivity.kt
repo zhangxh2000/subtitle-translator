@@ -94,7 +94,7 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun updateAccessibilityStatus() {
-        val enabled = AccessibilityAccess.isEnabled(this)
+        val enabled = AccessibilityAccess.isUsable(this)
         tvA11yStatus.text = getString(
             if (enabled) R.string.settings_accessibility_granted
             else R.string.settings_accessibility_missing
