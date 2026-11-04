@@ -75,7 +75,7 @@
     <string name="settings_accessibility_granted">无障碍服务已开启</string>
     <string name="settings_accessibility_missing">无障碍服务未开启</string>
     <string name="settings_accessibility_action">去开启</string>
-    <string name="settings_accessibility_desc">仅用于检查当前应用的控件，诊断字幕跳转。开启后长按悬浮球，选择「无障碍诊断」。</string>
+    <string name="settings_accessibility_desc">用于字幕导航：读取播放器进度条，控件隐藏时会在视频非中心区域点一下唤出控件。长按悬浮球可导出节点树用于诊断。</string>
     <string name="menu_a11y_dump">无障碍诊断</string>
     <string name="a11y_dump_started">正在导出当前窗口节点，请查看 logcat 标签 A11yDump</string>
     <string name="a11y_dump_unavailable">无障碍服务未开启</string>
@@ -173,7 +173,7 @@
     <string name="toast_copied">已复制到剪贴板</string>
     <string name="media_notification_listener_label">字幕翻译助手媒体控制</string>
     <string name="accessibility_service_label">字幕翻译助手诊断</string>
-    <string name="accessibility_service_description">用于检查当前应用的控件，诊断字幕跳转；不会自动读取屏幕内容。</string>
+    <string name="accessibility_service_description">用于读取当前播放器的进度条进行字幕跳转，控件隐藏时会在视频非中心区域点一下唤出控件；不会自动读取屏幕内容。</string>
     <string name="notification_channel_name">字幕翻译服务</string>
     <string name="notification_channel_description">保持字幕翻译悬浮窗运行</string>
     <string name="notification_text">悬浮窗运行中，点击打开应用</string>

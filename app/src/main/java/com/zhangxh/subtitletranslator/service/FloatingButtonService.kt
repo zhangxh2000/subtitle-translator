@@ -69,6 +69,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.CopyOnWriteArrayList
@@ -859,68 +860,82 @@ class FloatingButtonService : Service() {
 
         // 面板显示时视频通常已经暂停；兜底一次，避免用户中途用耳机恢复播放
         pauseMedia()
-
-        // 优先使用无障碍进度条节点（抖音长视频等），其次才用 MediaSession
-        val a11yController = A11ySeekController()
-        val a11ySnapshot = if (AccessibilityAccess.isEnabled(this)) {
-            a11yController.snapshot()
-        } else {
-            null
-        }
-
-        // 无障碍进度条可用时不需要通知使用权；只有走 MediaSession 才检查
-        if (a11ySnapshot == null && !NotificationAccess.isGranted(this)) {
-            removeOverlayView(animated = true)
-            isShowingTranslation = false
-            currentResult = null
-            // 去授权期间恢复播放，回来后可以正常重新翻译
-            resumeMedia()
-            Toast.makeText(
-                this,
-                R.string.overlay_navigation_permission_required,
-                Toast.LENGTH_LONG
-            ).show()
-            NotificationAccess.openSettings(this)
-            return
-        }
-
-        val seekController: IMediaPlaybackController
-        val snapshot: PlaybackSnapshot?
-        if (a11ySnapshot != null) {
-            Log.d(
-                TAG,
-                "使用无障碍进度条: pos=${a11ySnapshot.positionMs}, " +
-                    "duration=${a11ySnapshot.durationMs}"
-            )
-            seekController = a11yController
-            snapshot = a11ySnapshot
-        } else {
-            // 固定当前会话，避免导航途中选中别的音乐 App
-            mediaPlaybackController.pinActiveSession()
-            seekController = mediaPlaybackController
-            snapshot = mediaPlaybackController.snapshot()
-            if (snapshot != null && !snapshot.canSeek) {
-                // 有些播放器不声明 ACTION_SEEK_TO，但实际仍响应 seek；先尝试再判断
-                Log.d(TAG, "媒体会话未声明 ACTION_SEEK_TO，尝试直接 seek")
-            }
-        }
-        if (snapshot == null) {
-            Log.d(
-                TAG,
-                "没有可用的 seek 控制器: a11yEnabled=${AccessibilityAccess.isEnabled(this)}"
-            )
-            Toast.makeText(this, R.string.overlay_navigation_no_session, Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val originPosition = snapshot.positionMs
         isNavigating = true
-        // 立即移除，不等淡出动画，避免第一步截图截到半透明面板
+        // 立即移除，不等淡出动画，避免后续截图截到半透明面板
         removeOverlayView(animated = false)
         isShowingTranslation = false
         showNavigationStatus()
 
         serviceScope.launch {
+            val a11yEnabled = AccessibilityAccess.isEnabled(this@FloatingButtonService)
+            val a11yController = A11ySeekController()
+            var a11ySnapshot = if (a11yEnabled) a11yController.snapshot() else null
+
+            // 进度条节点只在播放控件显示时存在；点一下非中心区域把控件唤出来
+            if (a11ySnapshot == null && a11yEnabled) {
+                Log.d(TAG, "未找到进度条节点，尝试自动唤出播放控件")
+                if (A11yDiagnosticService.tapToShowControls()) {
+                    delay(500)
+                    a11ySnapshot = a11yController.snapshot()
+                    if (a11ySnapshot == null) {
+                        // 控件淡入可能比无障碍树更新稍慢，再给一次机会
+                        delay(300)
+                        a11ySnapshot = a11yController.snapshot()
+                    }
+                }
+            }
+
+            val seekController: IMediaPlaybackController
+            val snapshot: PlaybackSnapshot?
+            if (a11ySnapshot != null) {
+                Log.d(
+                    TAG,
+                    "使用无障碍进度条: pos=${a11ySnapshot.positionMs}, " +
+                        "duration=${a11ySnapshot.durationMs}"
+                )
+                seekController = a11yController
+                snapshot = a11ySnapshot
+            } else if (NotificationAccess.isGranted(this@FloatingButtonService)) {
+                // 固定当前会话，避免导航途中选中别的音乐 App
+                mediaPlaybackController.pinActiveSession()
+                seekController = mediaPlaybackController
+                snapshot = mediaPlaybackController.snapshot()
+                if (snapshot != null && !snapshot.canSeek) {
+                    // 有些播放器不声明 ACTION_SEEK_TO，但实际仍响应 seek；先尝试再判断
+                    Log.d(TAG, "媒体会话未声明 ACTION_SEEK_TO，尝试直接 seek")
+                }
+            } else {
+                removeNavigationStatus()
+                isNavigating = false
+                currentResult = null
+                // 去授权期间恢复播放，回来后可以正常重新翻译
+                resumeMedia()
+                Toast.makeText(
+                    this@FloatingButtonService,
+                    R.string.overlay_navigation_permission_required,
+                    Toast.LENGTH_LONG
+                ).show()
+                NotificationAccess.openSettings(this@FloatingButtonService)
+                return@launch
+            }
+
+            if (snapshot == null) {
+                Log.d(
+                    TAG,
+                    "没有可用的 seek 控制器: a11yEnabled=$a11yEnabled"
+                )
+                removeNavigationStatus()
+                isNavigating = false
+                showTranslationOverlay(current)
+                Toast.makeText(
+                    this@FloatingButtonService,
+                    R.string.overlay_navigation_no_session,
+                    Toast.LENGTH_SHORT
+                ).show()
+                return@launch
+            }
+
+            val originPosition = snapshot.positionMs
             val navigator = SubtitleNavigator(
                 media = seekController,
                 recognize = {

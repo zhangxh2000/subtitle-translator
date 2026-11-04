@@ -1,6 +1,8 @@
 package com.zhangxh.subtitletranslator.service
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.GestureDescription
+import android.graphics.Path
 import android.graphics.Rect
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
@@ -10,8 +12,9 @@ import android.view.accessibility.AccessibilityWindowInfo
 /**
  * 无障碍诊断服务
  *
- * 只做一件事：在用户主动触发时，把当前前台应用的窗口/节点树打印到 logcat（tag=A11yDump），
- * 用来确认播放器的进度条是否暴露为可操作的节点（RangeInfo / ACTION_SET_PROGRESS）。
+ * 按用户主动触发导出当前前台应用的窗口/节点树（tag=A11yDump），用于确认
+ * 播放器进度条是否暴露为可操作的 SeekBar/RangeInfo；字幕导航时如果进度条
+ * 控件已隐藏，还会在视频区域非中心位置点一下把控件唤出。
  * 不读取、不上传、不自动处理任何屏幕内容。
  */
 class A11yDiagnosticService : AccessibilityService() {
@@ -42,6 +45,21 @@ class A11yDiagnosticService : AccessibilityService() {
                 null
             }
         }
+
+        /**
+         * 在视频区域的非中心位置点一下，唤出播放控件
+         *
+         * 抖音单击屏幕中心会暂停/播放，点其它区域只会显示/隐藏控件。
+         */
+        fun tapToShowControls(): Boolean {
+            val service = instance ?: return false
+            return try {
+                service.tapSafeArea()
+            } catch (e: Exception) {
+                Log.w(TAG, "点击视频区域失败", e)
+                false
+            }
+        }
     }
 
     private var dumpedNodes = 0
@@ -63,20 +81,55 @@ class A11yDiagnosticService : AccessibilityService() {
     }
 
     private fun findVisibleSeekBar(): AccessibilityNodeInfo? {
-        val allWindows = windows.orEmpty()
-        val candidates = allWindows.filter {
-            it.root != null && it.root?.packageName != packageName
-        }
-        val target = candidates.maxByOrNull {
-            (if (it.isActive) 1_000_000 else 0) + it.layer
-        } ?: candidates.firstOrNull()
-        val root = target?.root ?: rootInActiveWindow ?: return null
-
+        val root = targetRoot() ?: return null
         val found = mutableListOf<AccessibilityNodeInfo>()
         collectSeekBars(root, found)
         // 视频进度条的 range.max 通常远大于音量/亮度滑块，取最大者
         return found.maxByOrNull { it.rangeInfo?.max ?: 0f }
     }
+
+    private fun tapSafeArea(): Boolean {
+        val bounds = Rect()
+        targetWindow()?.getBoundsInScreen(bounds)
+        if (bounds.width() <= 0 || bounds.height() <= 0) {
+            bounds.set(
+                0,
+                0,
+                resources.displayMetrics.widthPixels,
+                resources.displayMetrics.heightPixels
+            )
+        }
+        // 避开屏幕中心：抖音中心单击会暂停/播放
+        val x = bounds.left + bounds.width() * 0.25f
+        val y = bounds.top + bounds.height() * 0.5f
+        val path = Path().apply {
+            moveTo(x, y)
+            lineTo(x + 1f, y)
+        }
+        val gesture = GestureDescription.Builder()
+            .addStroke(GestureDescription.StrokeDescription(path, 0L, 80L))
+            .build()
+        return try {
+            val dispatched = dispatchGesture(gesture, null, null)
+            Log.d(TAG, "点击视频区域唤出控件: ($x, $y), dispatched=$dispatched")
+            dispatched
+        } catch (e: Exception) {
+            Log.w(TAG, "dispatchGesture 失败", e)
+            false
+        }
+    }
+
+    private fun targetWindow(): AccessibilityWindowInfo? {
+        val candidates = windows.orEmpty().filter {
+            it.root != null && it.root?.packageName != packageName
+        }
+        return candidates.maxByOrNull {
+            (if (it.isActive) 1_000_000 else 0) + it.layer
+        } ?: candidates.firstOrNull()
+    }
+
+    private fun targetRoot(): AccessibilityNodeInfo? =
+        targetWindow()?.root ?: rootInActiveWindow
 
     private fun collectSeekBars(node: AccessibilityNodeInfo, out: MutableList<AccessibilityNodeInfo>) {
         val range = node.rangeInfo

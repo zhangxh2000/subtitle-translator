@@ -80,7 +80,7 @@
     <string name="settings_accessibility_granted">Accessibility service enabled</string>
     <string name="settings_accessibility_missing">Accessibility service not enabled</string>
     <string name="settings_accessibility_action">Open accessibility settings</string>
-    <string name="settings_accessibility_desc">Used only to inspect the current app\'s controls for subtitle navigation. Enable the service, then long-press the floating ball and choose Accessibility dump.</string>
+    <string name="settings_accessibility_desc">Used for subtitle navigation: reads the player\'s progress bar and may tap outside the video center to reveal playback controls. Long-press the floating ball for an accessibility dump.</string>
     <string name="menu_a11y_dump">Accessibility dump</string>
     <string name="a11y_dump_started">Dumping the current window. Check logcat tag A11yDump.</string>
     <string name="a11y_dump_unavailable">Accessibility service is not enabled</string>
@@ -178,7 +178,7 @@
     <string name="toast_copied">Copied to clipboard</string>
     <string name="media_notification_listener_label">Subtitle Translator media control</string>
     <string name="accessibility_service_label">Subtitle Translator diagnostics</string>
-    <string name="accessibility_service_description">Inspects the current app\'s controls to diagnose subtitle navigation. It does not read screen content automatically.</string>
+    <string name="accessibility_service_description">Reads the current player\'s progress bar for subtitle navigation and may tap outside the video center to reveal playback controls. It does not read screen content automatically.</string>
     <string name="notification_channel_name">Subtitle translation service</string>
     <string name="notification_channel_description">Keeps the subtitle translation overlay running</string>
     <string name="notification_text">Overlay is running. Tap to open the app.</string>
