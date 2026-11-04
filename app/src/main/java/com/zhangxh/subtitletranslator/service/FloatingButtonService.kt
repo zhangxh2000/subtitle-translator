@@ -901,44 +901,49 @@ class FloatingButtonService : Service() {
                 )
                 seekController = a11yController
                 snapshot = a11ySnapshot
-            } else if (NotificationAccess.isGranted(this@FloatingButtonService)) {
-                // 固定当前会话，避免导航途中选中别的音乐 App
-                mediaPlaybackController.pinActiveSession()
-                seekController = mediaPlaybackController
-                snapshot = mediaPlaybackController.snapshot()
-                if (snapshot != null && !snapshot.canSeek) {
-                    // 有些播放器不声明 ACTION_SEEK_TO，但实际仍响应 seek；先尝试再判断
-                    Log.d(TAG, "媒体会话未声明 ACTION_SEEK_TO，尝试直接 seek")
-                }
             } else {
-                removeNavigationStatus()
-                isNavigating = false
-                currentResult = null
-                // 去授权期间恢复播放，回来后可以正常重新翻译
-                resumeMedia()
-                Toast.makeText(
-                    this@FloatingButtonService,
-                    R.string.overlay_navigation_permission_required,
-                    Toast.LENGTH_LONG
-                ).show()
-                NotificationAccess.openSettings(this@FloatingButtonService)
-                return@launch
-            }
+                val hasNotificationAccess =
+                    NotificationAccess.isGranted(this@FloatingButtonService)
+                val mediaSnapshot = if (hasNotificationAccess) {
+                    // 固定当前会话，避免导航途中选中别的音乐 App
+                    mediaPlaybackController.pinActiveSession()
+                    mediaPlaybackController.snapshot()
+                } else {
+                    null
+                }
 
-            if (snapshot == null) {
-                Log.d(
-                    TAG,
-                    "没有可用的 seek 控制器: a11yEnabled=$a11yEnabled"
-                )
-                removeNavigationStatus()
-                isNavigating = false
-                showTranslationOverlay(current)
-                Toast.makeText(
-                    this@FloatingButtonService,
-                    R.string.overlay_navigation_no_session,
-                    Toast.LENGTH_SHORT
-                ).show()
-                return@launch
+                if (mediaSnapshot != null &&
+                    (mediaSnapshot.durationMs != null || mediaSnapshot.canSeek)
+                ) {
+                    if (!mediaSnapshot.canSeek) {
+                        // 有些播放器不声明 ACTION_SEEK_TO，但实际仍响应 seek；先尝试再判断
+                        Log.d(TAG, "媒体会话未声明 ACTION_SEEK_TO，尝试直接 seek")
+                    }
+                    seekController = mediaPlaybackController
+                    snapshot = mediaSnapshot
+                } else if (a11yEnabled) {
+                    // 无障碍已开启，但自动唤出控件后仍未找到进度条节点
+                    Log.d(TAG, "无障碍已开启但未找到进度条节点")
+                    removeNavigationStatus()
+                    isNavigating = false
+                    showTranslationOverlay(current)
+                    Toast.makeText(
+                        this@FloatingButtonService,
+                        R.string.overlay_navigation_progress_bar_missing,
+                        Toast.LENGTH_LONG
+                    ).show()
+                    return@launch
+                } else if (hasNotificationAccess) {
+                    // MediaSession 没有可用时间线，无障碍又被关闭：引导开启无障碍
+                    Log.d(TAG, "MediaSession 无时间线且无障碍不可用，引导开启无障碍")
+                    guideToEnableAccessibility()
+                    return@launch
+                } else {
+                    // 两条路径都不可用，先引导通知使用权（原有流程）
+                    Log.d(TAG, "无障碍不可用且没有通知使用权，引导开启通知使用权")
+                    guideToNotificationAccess()
+                    return@launch
+                }
             }
 
             val originPosition = snapshot.positionMs
@@ -994,6 +999,38 @@ class FloatingButtonService : Service() {
         SubtitleNavigationResult.NotFound -> R.string.overlay_navigation_not_found
         SubtitleNavigationResult.RecognitionFailed -> R.string.overlay_navigation_recognition_failed
         is SubtitleNavigationResult.Found -> R.string.overlay_navigation_not_found
+    }
+
+    /** 收起面板、恢复播放，并引导用户去系统设置开启无障碍诊断服务 */
+    private fun guideToEnableAccessibility() {
+        removeNavigationStatus()
+        isNavigating = false
+        currentResult = null
+        removeOverlayView(animated = false)
+        isShowingTranslation = false
+        resumeMedia()
+        Toast.makeText(
+            this,
+            R.string.overlay_navigation_accessibility_required,
+            Toast.LENGTH_LONG
+        ).show()
+        AccessibilityAccess.openSettings(this)
+    }
+
+    /** 收起面板、恢复播放，引导开启通知使用权（MediaSession 路径） */
+    private fun guideToNotificationAccess() {
+        removeNavigationStatus()
+        isNavigating = false
+        currentResult = null
+        removeOverlayView(animated = false)
+        isShowingTranslation = false
+        resumeMedia()
+        Toast.makeText(
+            this,
+            R.string.overlay_navigation_permission_required,
+            Toast.LENGTH_LONG
+        ).show()
+        NotificationAccess.openSettings(this)
     }
 
     /** 顶部小胶囊：字幕定位需要几秒，给用户一个明确的进行中反馈 */

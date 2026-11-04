@@ -233,6 +233,10 @@ adb logcat -s A11yDump
 不再依赖 MediaSession。播放控件自动隐藏时会先在视频**非中心区域**点一下把控件唤出，
 不需要用户手动点屏幕；点中心会暂停/播放，所以不会点中心。
 
+如果无障碍服务未开启、且当前播放器的 MediaSession 没有可用时间线（例如抖音），
+导航会收起翻译面板并直接打开系统无障碍设置，提示用户开启「字幕翻译助手诊断」，
+开启后重新翻译即可。
+
 ## 词典数据
 
 词典由 [ECDICT](https://github.com/skywind3000/ECDICT)（MIT License, Copyright (c) Linwei）

@@ -48,6 +48,8 @@
     <string name="overlay_navigation_not_found">没有找到相邻字幕</string>
     <string name="overlay_navigation_recognition_failed">无法识别字幕</string>
     <string name="overlay_navigation_permission_required">需要通知使用权才能在字幕之间跳转</string>
+    <string name="overlay_navigation_accessibility_required">请在系统无障碍设置中开启「字幕翻译助手诊断」，开启后重新翻译。</string>
+    <string name="overlay_navigation_progress_bar_missing">没有找到播放进度条，请确认播放控件可以显示</string>
     <string name="overlay_seeking_adjacent_subtitle">正在定位字幕…</string>
     <string name="overlay_translated_label">译文</string>
     <string name="overlay_original_label">原文对照</string>

@@ -86,6 +86,8 @@ class LocalizationTest {
             R.string.overlay_navigation_not_found,
             R.string.overlay_navigation_recognition_failed,
             R.string.overlay_navigation_permission_required,
+            R.string.overlay_navigation_accessibility_required,
+            R.string.overlay_navigation_progress_bar_missing,
             R.string.overlay_seeking_adjacent_subtitle,
             R.string.settings_media_control,
             R.string.settings_media_access_granted,

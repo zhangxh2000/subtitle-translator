@@ -53,6 +53,8 @@
     <string name="overlay_navigation_not_found">No adjacent subtitle found</string>
     <string name="overlay_navigation_recognition_failed">Could not read the subtitle</string>
     <string name="overlay_navigation_permission_required">Notification access is required to jump between subtitles</string>
+    <string name="overlay_navigation_accessibility_required">Enable “Subtitle Translator diagnostics” in Accessibility settings, then translate again.</string>
+    <string name="overlay_navigation_progress_bar_missing">Could not find the player\'s progress bar. Make sure playback controls are available.</string>
     <string name="overlay_seeking_adjacent_subtitle">Finding subtitle…</string>
     <string name="overlay_translated_label">Translation</string>
     <string name="overlay_original_label">Original</string>
