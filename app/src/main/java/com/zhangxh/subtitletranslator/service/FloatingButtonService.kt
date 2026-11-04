@@ -1001,14 +1001,18 @@ class FloatingButtonService : Service() {
         is SubtitleNavigationResult.Found -> R.string.overlay_navigation_not_found
     }
 
-    /** 收起面板、恢复播放，并引导用户去系统设置开启无障碍诊断服务 */
+    /**
+     * 收起面板并引导用户去系统设置开启无障碍诊断服务
+     *
+     * 不恢复播放：用户只是去开权限，回来后还要继续当前暂停位置，
+     * 恢复播放会直接跳走，打断正在看的那一句。
+     */
     private fun guideToEnableAccessibility() {
         removeNavigationStatus()
         isNavigating = false
         currentResult = null
         removeOverlayView(animated = false)
         isShowingTranslation = false
-        resumeMedia()
         Toast.makeText(
             this,
             R.string.overlay_navigation_accessibility_required,
@@ -1017,14 +1021,17 @@ class FloatingButtonService : Service() {
         AccessibilityAccess.openSettings(this)
     }
 
-    /** 收起面板、恢复播放，引导开启通知使用权（MediaSession 路径） */
+    /**
+     * 收起面板、引导开启通知使用权（MediaSession 路径）
+     *
+     * 同样保持暂停，避免把用户的观看位置跳走。
+     */
     private fun guideToNotificationAccess() {
         removeNavigationStatus()
         isNavigating = false
         currentResult = null
         removeOverlayView(animated = false)
         isShowingTranslation = false
-        resumeMedia()
         Toast.makeText(
             this,
             R.string.overlay_navigation_permission_required,
