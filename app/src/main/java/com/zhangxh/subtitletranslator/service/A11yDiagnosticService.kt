@@ -14,7 +14,7 @@ import android.view.accessibility.AccessibilityWindowInfo
  *
  * 按用户主动触发导出当前前台应用的窗口/节点树（tag=A11yDump），用于确认
  * 播放器进度条是否暴露为可操作的 SeekBar/RangeInfo；字幕导航时如果进度条
- * 控件已隐藏，还会在视频区域非中心位置点一下把控件唤出。
+ * 控件已隐藏，会在视频区域非中心位置点一下把控件唤出，截图前再点一下收起。
  * 不读取、不上传、不自动处理任何屏幕内容。
  */
 class A11yDiagnosticService : AccessibilityService() {
@@ -57,9 +57,25 @@ class A11yDiagnosticService : AccessibilityService() {
         fun tapToShowControls(): Boolean {
             val service = instance ?: return false
             return try {
-                service.tapSafeArea()
+                service.tapSafeArea("唤出播放控件")
             } catch (e: Exception) {
-                Log.w(TAG, "点击视频区域失败", e)
+                Log.w(TAG, "点击视频区域唤出控件失败", e)
+                false
+            }
+        }
+
+        /**
+         * 在视频区域的非中心位置点一下，隐藏播放控件
+         *
+         * 暂停后进度条、时间文字等控件会留在画面上，底部裁剪区正好覆盖它们，
+         * 截图前先点掉，避免 OCR 把时间/按钮当成字幕内容。
+         */
+        fun tapToHideControls(): Boolean {
+            val service = instance ?: return false
+            return try {
+                service.tapSafeArea("隐藏播放控件")
+            } catch (e: Exception) {
+                Log.w(TAG, "点击视频区域隐藏控件失败", e)
                 false
             }
         }
@@ -91,7 +107,7 @@ class A11yDiagnosticService : AccessibilityService() {
         return found.maxByOrNull { it.rangeInfo?.max ?: 0f }
     }
 
-    private fun tapSafeArea(): Boolean {
+    private fun tapSafeArea(purpose: String): Boolean {
         val bounds = Rect()
         targetWindow()?.getBoundsInScreen(bounds)
         if (bounds.width() <= 0 || bounds.height() <= 0) {
@@ -114,7 +130,7 @@ class A11yDiagnosticService : AccessibilityService() {
             .build()
         return try {
             val dispatched = dispatchGesture(gesture, null, null)
-            Log.d(TAG, "点击视频区域唤出控件: ($x, $y), dispatched=$dispatched")
+            Log.d(TAG, "点击视频区域$purpose: ($x, $y), dispatched=$dispatched")
             dispatched
         } catch (e: Exception) {
             Log.w(TAG, "dispatchGesture 失败", e)

@@ -19,7 +19,8 @@ import com.zhangxh.subtitletranslator.service.A11yDiagnosticService
  * 然后暂停并把稳定画面交给 OCR。
  *
  * 扫描流程：beginScan 时静音；每次 seekTo 设置进度 → 播放 [RENDER_PLAY_MS] →
- * 暂停；找不到字幕就继续下一步，找到后 endScan 恢复音量。
+ * 暂停 → 点一下画面收起播放控件；找不到字幕就继续下一步，
+ * 找到后 endScan 恢复音量。
  */
 class A11ySeekController(
     private val context: Context
@@ -37,6 +38,10 @@ class A11ySeekController(
         private const val RENDER_PLAY_MS = 400L
         /** 控件隐藏时点一下后等待其出现的时长 */
         private const val CONTROL_WAIT_MS = 400L
+        /** 暂停后等画面和控件状态稳定，再判断是否需要收起控件 */
+        private const val PAUSE_SETTLE_MS = 100L
+        /** 点击后等控件淡出，避免截图截到半透明进度条 */
+        private const val CONTROL_HIDE_SETTLE_MS = 200L
     }
 
     /** 抖音设置进度后 RangeInfo 不会立即刷新，不能靠位置变化判断成功 */
@@ -174,6 +179,8 @@ class A11ySeekController(
      * 暂停状态下 seek 不会渲染画面：播放一小段让目标帧显示出来，再暂停
      *
      * 暂停后的画面保持稳定，导航器随后截图做 OCR 时不会糊。
+     * 播放控件（进度条、时间文字）在暂停后往往还留在画面上，
+     * 而底部裁剪区正好覆盖它们，所以截图前先点一下收起。
      */
     private fun pulsePlayback() {
         val audioManager = audioManager() ?: return
@@ -187,11 +194,43 @@ class A11ySeekController(
                 playing = false
             }
             Log.d(TAG, "播放 ${RENDER_PLAY_MS}ms 渲染目标帧后暂停")
+            // 给播放器一点时间把暂停控件显示出来，再判断是否需要收起
+            sleep(PAUSE_SETTLE_MS)
+            hideControlsForCapture()
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
         } catch (e: Exception) {
             Log.w(TAG, "播放/暂停渲染目标帧失败", e)
         }
+    }
+
+    /**
+     * 截图前收起播放控件，避免进度条和时间文字被 OCR 当成字幕
+     *
+     * 只在线索表明控件可见时点击：控件本来已经隐藏时再点会把它唤出来。
+     * 参数带默认值是为了让单元测试替换掉真实的无障碍调用。
+     *
+     * @return 是否执行了点击
+     */
+    internal fun hideControlsForCapture(
+        isControlsVisible: () -> Boolean = {
+            A11yDiagnosticService.findSeekBarNode() != null
+        },
+        tapToHide: () -> Boolean = { A11yDiagnosticService.tapToHideControls() },
+        wait: (Long) -> Unit = { sleep(it) }
+    ): Boolean {
+        if (!isControlsVisible()) {
+            Log.d(TAG, "播放控件不可见，跳过收起")
+            return false
+        }
+        if (!tapToHide()) {
+            Log.w(TAG, "收起播放控件失败")
+            return false
+        }
+        // 控件淡出需要时间，等它完全消失，导航器随后截图才是干净画面
+        wait(CONTROL_HIDE_SETTLE_MS)
+        Log.d(TAG, "已点击收起播放控件")
+        return true
     }
 
     private fun audioManager(): AudioManager? =
