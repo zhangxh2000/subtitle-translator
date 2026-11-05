@@ -15,10 +15,11 @@ import com.zhangxh.subtitletranslator.service.A11yDiagnosticService
  *
  * 抖音长视频的进度条是标准 android.widget.SeekBar，带 RangeInfo（单位毫秒），
  * 可以直接用 ACTION_SET_PROGRESS 设置进度。但抖音暂停时只移动进度条、不渲染画面，
- * 所以查找字幕时不能一直暂停。
+ * 所以每一步都要在暂停状态下设置进度，再播放一小段让解码器渲染出目标帧，
+ * 然后暂停并把稳定画面交给 OCR。
  *
- * 连续扫描模式：beginScan 时静音，第一次 seekTo 开始播放；之后每次只设置进度，
- * 播放器持续渲染画面，OCR 采样期间不再反复暂停。endScan 时暂停一次并恢复音量。
+ * 扫描流程：beginScan 时静音；每次 seekTo 设置进度 → 播放 [RENDER_PLAY_MS] →
+ * 暂停；找不到字幕就继续下一步，找到后 endScan 恢复音量。
  */
 class A11ySeekController(
     private val context: Context
@@ -28,11 +29,12 @@ class A11ySeekController(
         private const val TAG = "A11ySeekController"
 
         /**
-         * 设置进度到截图之间的大致耗时（导航器 settle 350ms + 截图约 100ms）
+         * 设置进度后短暂播放的时长
          *
-         * 扫描时播放器仍在前进，所以设置进度时提前这么多，截图时刚好落在目标位置。
+         * 播放器在暂停状态收到 seek 只移动进度条，需要真正播放一小段才会
+         * 解码并显示目标帧；播放结束时大致落在目标位置。
          */
-        private const val SCAN_LEAD_MS = 450L
+        private const val RENDER_PLAY_MS = 400L
         /** 控件隐藏时点一下后等待其出现的时长 */
         private const val CONTROL_WAIT_MS = 400L
     }
@@ -47,7 +49,7 @@ class A11ySeekController(
 
     val isScanning: Boolean get() = scanning
 
-    /** 开始连续扫描：静音，等第一次 seekTo 时再开始播放 */
+    /** 开始扫描：静音，避免每一步的播放/暂停发出声音 */
     fun beginScan() {
         if (scanning) return
         scanning = true
@@ -69,10 +71,10 @@ class A11ySeekController(
                 Log.w(TAG, "扫描时静音失败", e)
             }
         }
-        Log.d(TAG, "连续扫描开始: muted=$mutedByUs")
+        Log.d(TAG, "字幕扫描开始: muted=$mutedByUs")
     }
 
-    /** 结束连续扫描：只暂停一次，并恢复静音前的音量状态 */
+    /** 结束扫描：兜底暂停，并恢复静音前的音量状态 */
     fun endScan() {
         if (!scanning) return
         scanning = false
@@ -93,7 +95,7 @@ class A11ySeekController(
             }
             mutedByUs = false
         }
-        Log.d(TAG, "连续扫描结束: 已暂停并恢复音量")
+        Log.d(TAG, "字幕扫描结束: 已暂停并恢复音量")
     }
 
     override fun snapshot(): PlaybackSnapshot? {
@@ -116,8 +118,8 @@ class A11ySeekController(
         }
         var range = node.rangeInfo ?: return false
 
-        // 扫描时播放器仍在播放，提前一个截图延迟落点，截图时正好到目标
-        val target = if (scanning) positionMs - SCAN_LEAD_MS else positionMs
+        // 先退到目标之前，再播放一小段：暂停时正好渲染在目标位置
+        val target = if (scanning) positionMs - RENDER_PLAY_MS else positionMs
         var progressTarget = target
             .coerceIn(range.min.toLong(), range.max.toLong())
             .toFloat()
@@ -138,7 +140,7 @@ class A11ySeekController(
             return false
         }
 
-        if (scanning) ensurePlaying()
+        if (scanning) pulsePlayback()
         return true
     }
 
@@ -168,13 +170,28 @@ class A11ySeekController(
         }
     }
 
-    /** 第一次 seekTo 时开始播放，之后保持播放，不再反复暂停/播放 */
-    private fun ensurePlaying() {
-        if (playing) return
+    /**
+     * 暂停状态下 seek 不会渲染画面：播放一小段让目标帧显示出来，再暂停
+     *
+     * 暂停后的画面保持稳定，导航器随后截图做 OCR 时不会糊。
+     */
+    private fun pulsePlayback() {
         val audioManager = audioManager() ?: return
-        dispatchMediaKey(audioManager, KeyEvent.KEYCODE_MEDIA_PLAY)
-        playing = true
-        Log.d(TAG, "开始播放以驱动连续扫描")
+        try {
+            dispatchMediaKey(audioManager, KeyEvent.KEYCODE_MEDIA_PLAY)
+            playing = true
+            try {
+                Thread.sleep(RENDER_PLAY_MS)
+            } finally {
+                dispatchMediaKey(audioManager, KeyEvent.KEYCODE_MEDIA_PAUSE)
+                playing = false
+            }
+            Log.d(TAG, "播放 ${RENDER_PLAY_MS}ms 渲染目标帧后暂停")
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+        } catch (e: Exception) {
+            Log.w(TAG, "播放/暂停渲染目标帧失败", e)
+        }
     }
 
     private fun audioManager(): AudioManager? =

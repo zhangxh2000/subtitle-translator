@@ -165,7 +165,7 @@ class FloatingButtonService : Service() {
 
     private val mediaPlaybackController by lazy { MediaSessionPlaybackController(this) }
 
-    /** 正在进行的连续扫描；服务销毁时需要它来暂停播放并恢复音量 */
+    /** 正在进行的字幕扫描；服务销毁时需要它来暂停播放并恢复音量 */
     private var activeA11yScanController: A11ySeekController? = null
 
     /** 当前的暂停是否由本服务发出，关闭面板时只恢复自己暂停过的媒体 */
@@ -776,7 +776,7 @@ class FloatingButtonService : Service() {
      * 变化只有一瞬间，且悬浮球通常不在字幕裁剪区。
      */
     private fun nudgeScreenForCapture() {
-        // 连续扫描时视频本身在播放，画面持续刷新，不需要再闪悬浮球
+        // 扫描的每一步都刚播放过，已有新画面，不需要再闪悬浮球
         if (activeA11yScanController?.isScanning == true) return
         val view = floatingView ?: return
         view.post {
@@ -984,8 +984,8 @@ class FloatingButtonService : Service() {
                     recognition
                 }
             )
-            // 无障碍进度条路径改为连续扫描：整段查找只播放一次、暂停一次，
-            // 期间静音，避免每走一步都暂停/播放造成闪烁。
+            // 无障碍进度条路径逐步扫描：每一步在暂停状态设置进度，
+            // 播放一小段渲染出目标帧后再暂停，然后才做 OCR；全程静音。
             val scanController = seekController as? A11ySeekController
             activeA11yScanController = scanController
             scanController?.beginScan()
@@ -1009,7 +1009,7 @@ class FloatingButtonService : Service() {
                 is SubtitleNavigationResult.Found -> {
                     Log.d(TAG, "字幕导航命中: ${result.positionMs}ms, ${result.text}")
                     removeNavigationStatus()
-                    // 连续扫描时播放器仍在前进，把播放位置对齐到识别到的那一句；
+                    // 把播放位置精确对齐到识别到的那一句；
                     // 关闭面板恢复播放时才会从正确的位置开始。
                     if (scanController != null) {
                         withContext(Dispatchers.IO) {
@@ -1529,7 +1529,7 @@ class FloatingButtonService : Service() {
         isShowingTranslation = false
         currentResult = null
         isNavigating = false
-        // 连续扫描中途退出时，先暂停并恢复音量，再把状态交还用户
+        // 字幕扫描中途退出时，先暂停并恢复音量，再把状态交还用户
         activeA11yScanController?.endScan()
         activeA11yScanController = null
         // 服务销毁 / 重新授权时，别把视频留在暂停状态

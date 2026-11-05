@@ -14,9 +14,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowAudioManager
 
 /**
- * 连续扫描期间的声音控制
+ * 字幕扫描期间的声音控制
  *
- * 查找字幕时整段静音，结束（无论成功失败）必须恢复；用户本来就静音时不能擅自取消。
+ * 查找字幕时静音，结束（无论成功失败）必须恢复；用户本来就静音时不能擅自取消。
  * 没有真正开始播放时也不应该发送暂停键，避免把用户自己的播放状态按掉。
  */
 @RunWith(RobolectricTestRunner::class)
