@@ -51,7 +51,9 @@ import com.zhangxh.subtitletranslator.data.wordextractor.LocalWordExtractor
 import com.zhangxh.subtitletranslator.domain.TranslationCoordinator
 import com.zhangxh.subtitletranslator.domain.TranslationResult
 import com.zhangxh.subtitletranslator.domain.media.IMediaPlaybackController
+import com.zhangxh.subtitletranslator.domain.media.IPlaybackScanController
 import com.zhangxh.subtitletranslator.domain.media.PlaybackSnapshot
+import com.zhangxh.subtitletranslator.domain.media.hasSeekableTimeline
 import com.zhangxh.subtitletranslator.domain.speech.IPronouncer
 import com.zhangxh.subtitletranslator.domain.subtitle.SubtitleDirection
 import com.zhangxh.subtitletranslator.domain.subtitle.SubtitleNavigationResult
@@ -166,7 +168,7 @@ class FloatingButtonService : Service() {
     private val mediaPlaybackController by lazy { MediaSessionPlaybackController(this) }
 
     /** 正在进行的字幕扫描；服务销毁时需要它来暂停播放并恢复音量 */
-    private var activeA11yScanController: A11ySeekController? = null
+    private var activeScanController: IPlaybackScanController? = null
 
     /** 当前的暂停是否由本服务发出，关闭面板时只恢复自己暂停过的媒体 */
     private var mediaPausedByApp = false
@@ -777,7 +779,7 @@ class FloatingButtonService : Service() {
      */
     private fun nudgeScreenForCapture() {
         // 扫描的每一步都刚播放过，已有新画面，不需要再闪悬浮球
-        if (activeA11yScanController?.isScanning == true) return
+        if (activeScanController?.isScanning == true) return
         val view = floatingView ?: return
         view.post {
             view.animate().cancel()
@@ -937,9 +939,9 @@ class FloatingButtonService : Service() {
                     null
                 }
 
-                if (mediaSnapshot != null &&
-                    (mediaSnapshot.durationMs != null || mediaSnapshot.canSeek)
-                ) {
+                // 必须有有效时间线才能按秒导航。抖音信息流会话会返回
+                // pos=0、duration=null，这类会话只能靠无障碍进度条。
+                if (mediaSnapshot != null && mediaSnapshot.hasSeekableTimeline()) {
                     if (!mediaSnapshot.canSeek) {
                         // 有些播放器不声明 ACTION_SEEK_TO，但实际仍响应 seek；先尝试再判断
                         Log.d(TAG, "媒体会话未声明 ACTION_SEEK_TO，尝试直接 seek")
@@ -984,10 +986,10 @@ class FloatingButtonService : Service() {
                     recognition
                 }
             )
-            // 无障碍进度条路径逐步扫描：每一步在暂停状态设置进度，
-            // 播放一小段渲染出目标帧后再暂停，然后才做 OCR；全程静音。
-            val scanController = seekController as? A11ySeekController
-            activeA11yScanController = scanController
+            // 逐步扫描：每一步设置进度后播放一小段渲染目标帧，再暂停做 OCR；
+            // 两条路径都支持，全程静音（无障碍路径还需要隐藏进度条）。
+            val scanController = seekController as? IPlaybackScanController
+            activeScanController = scanController
             scanController?.beginScan()
             val result = try {
                 withContext(Dispatchers.IO) {
@@ -1000,8 +1002,8 @@ class FloatingButtonService : Service() {
                 }
             } finally {
                 scanController?.endScan()
-                if (activeA11yScanController === scanController) {
-                    activeA11yScanController = null
+                if (activeScanController === scanController) {
+                    activeScanController = null
                 }
             }
 
@@ -1530,8 +1532,8 @@ class FloatingButtonService : Service() {
         currentResult = null
         isNavigating = false
         // 字幕扫描中途退出时，先暂停并恢复音量，再把状态交还用户
-        activeA11yScanController?.endScan()
-        activeA11yScanController = null
+        activeScanController?.endScan()
+        activeScanController = null
         // 服务销毁 / 重新授权时，别把视频留在暂停状态
         resumeMedia()
 

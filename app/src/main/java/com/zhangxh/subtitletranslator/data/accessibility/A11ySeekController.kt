@@ -6,7 +6,9 @@ import android.os.Bundle
 import android.util.Log
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import com.zhangxh.subtitletranslator.data.media.ScanAudioMuter
 import com.zhangxh.subtitletranslator.domain.media.IMediaPlaybackController
+import com.zhangxh.subtitletranslator.domain.media.IPlaybackScanController
 import com.zhangxh.subtitletranslator.domain.media.PlaybackSnapshot
 import com.zhangxh.subtitletranslator.service.A11yDiagnosticService
 
@@ -24,7 +26,7 @@ import com.zhangxh.subtitletranslator.service.A11yDiagnosticService
  */
 class A11ySeekController(
     private val context: Context
-) : IMediaPlaybackController {
+) : IMediaPlaybackController, IPlaybackScanController {
 
     companion object {
         private const val TAG = "A11ySeekController"
@@ -49,38 +51,20 @@ class A11ySeekController(
 
     private var scanning = false
     private var playing = false
-    private var mutedByUs = false
-    private var wasMutedBeforeScan = false
+    private val audioMuter = ScanAudioMuter(context)
 
-    val isScanning: Boolean get() = scanning
+    override val isScanning: Boolean get() = scanning
 
     /** 开始扫描：静音，避免每一步的播放/暂停发出声音 */
-    fun beginScan() {
+    override fun beginScan() {
         if (scanning) return
         scanning = true
-        val audioManager = audioManager() ?: return
-        wasMutedBeforeScan = try {
-            audioManager.isStreamMute(AudioManager.STREAM_MUSIC)
-        } catch (e: Exception) {
-            false
-        }
-        if (!wasMutedBeforeScan) {
-            try {
-                audioManager.adjustStreamVolume(
-                    AudioManager.STREAM_MUSIC,
-                    AudioManager.ADJUST_MUTE,
-                    0
-                )
-                mutedByUs = true
-            } catch (e: Exception) {
-                Log.w(TAG, "扫描时静音失败", e)
-            }
-        }
-        Log.d(TAG, "字幕扫描开始: muted=$mutedByUs")
+        audioMuter.mute()
+        Log.d(TAG, "字幕扫描开始")
     }
 
     /** 结束扫描：兜底暂停，并恢复静音前的音量状态 */
-    fun endScan() {
+    override fun endScan() {
         if (!scanning) return
         scanning = false
         val audioManager = audioManager()
@@ -88,18 +72,7 @@ class A11ySeekController(
             audioManager?.let { dispatchMediaKey(it, KeyEvent.KEYCODE_MEDIA_PAUSE) }
             playing = false
         }
-        if (mutedByUs) {
-            try {
-                audioManager?.adjustStreamVolume(
-                    AudioManager.STREAM_MUSIC,
-                    AudioManager.ADJUST_UNMUTE,
-                    0
-                )
-            } catch (e: Exception) {
-                Log.w(TAG, "恢复音量失败", e)
-            }
-            mutedByUs = false
-        }
+        audioMuter.restore()
         Log.d(TAG, "字幕扫描结束: 已暂停并恢复音量")
     }
 

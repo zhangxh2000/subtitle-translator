@@ -40,6 +40,7 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
     private var screenDensity: Int = 0
     private var onProjectionStoppedListener: (() -> Unit)? = null
     private var isReleased = false
+    private var lastFrameCache: LastFrameCache? = null
 
     /**
      * 设置 MediaProjection 停止监听回调
@@ -73,6 +74,8 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
         this.screenHeight = height
         this.screenDensity = density
         this.isReleased = false
+        lastFrameCache?.clear()
+        lastFrameCache = LastFrameCache(width, height)
 
         // 创建 ImageReader 用于接收屏幕图像
         imageReader = ImageReader.newInstance(
@@ -121,6 +124,8 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
         // 更新尺寸
         screenWidth = currentWidth
         screenHeight = currentHeight
+        lastFrameCache?.clear()
+        lastFrameCache = LastFrameCache(currentWidth, currentHeight)
 
         // 关闭旧的 ImageReader
         try {
@@ -162,7 +167,14 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
                 image = imageReader?.acquireLatestImage()
             }
             if (image == null) {
-                Log.w(TAG, "等待屏幕帧超时（画面可能静止或录屏已停止）")
+                // 没有新帧说明画面和上一帧完全一样，直接复用缓存，
+                // 不能把它当成截图失败——否则暂停状态下逐秒导航会直接中断。
+                val cached = lastFrameCache?.copy()
+                if (cached != null) {
+                    Log.d(TAG, "没有新屏幕帧，复用上一帧: ${cached.width}x${cached.height}")
+                    return@withContext cached
+                }
+                Log.w(TAG, "等待屏幕帧超时（画面静止且尚未缓存任何帧）")
                 return@withContext null
             }
 
@@ -185,7 +197,14 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
                 // 裁剪到实际屏幕大小（创建独立副本，避免共享像素数据被回收后失效）
                 val croppedBitmap = Bitmap.createBitmap(screenWidth, screenHeight, Bitmap.Config.ARGB_8888)
                 android.graphics.Canvas(croppedBitmap).drawBitmap(bitmap, 0f, 0f, null)
-                bitmap.recycle()
+
+                // 原始帧交给缓存持有，静止画面时可直接复用
+                val cache = lastFrameCache
+                if (cache != null) {
+                    cache.update(bitmap)
+                } else {
+                    bitmap.recycle()
+                }
 
                 Log.d(TAG, "截图成功: ${croppedBitmap.width}x${croppedBitmap.height}")
                 return@withContext croppedBitmap
@@ -221,6 +240,8 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
             virtualDisplay = null
             imageReader = null
             mMediaProjection = null
+            lastFrameCache?.clear()
+            lastFrameCache = null
         }
     }
 
