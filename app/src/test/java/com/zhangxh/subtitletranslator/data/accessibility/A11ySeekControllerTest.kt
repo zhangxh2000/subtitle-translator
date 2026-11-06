@@ -89,21 +89,22 @@ class A11ySeekControllerTest {
         assertTrue(shadowAudioManager.dispatchedMediaKeyEvents.isEmpty())
     }
 
-    /** 暂停后控件还显示着：点一下收起，并等淡出后再截图 */
+    /** 截图前控件还显示着：点一下收起，并轮询确认进度条节点消失 */
     @Test
-    fun `hides visible playback controls and waits for the fade`() {
+    fun `hides visible controls and waits until they disappear`() {
         val controller = A11ySeekController(context)
+        var visible = true
         var taps = 0
         val waits = mutableListOf<Long>()
 
-        val hidden = controller.hideControlsForCapture(
-            isControlsVisible = { true },
-            tapToHide = { taps++; true },
+        controller.hideControlsBeforeCapture(
+            isControlsVisible = { visible },
+            tapToHide = { taps++; visible = false; true },
             wait = { waits += it }
         )
 
-        assertTrue(hidden)
         assertEquals(1, taps)
+        assertFalse(visible)
         assertEquals(1, waits.size)
         assertTrue(waits.single() > 0)
     }
@@ -115,30 +116,62 @@ class A11ySeekControllerTest {
         var taps = 0
         val waits = mutableListOf<Long>()
 
-        val hidden = controller.hideControlsForCapture(
+        controller.hideControlsBeforeCapture(
             isControlsVisible = { false },
             tapToHide = { taps++; true },
             wait = { waits += it }
         )
 
-        assertFalse(hidden)
         assertEquals(0, taps)
         assertTrue(waits.isEmpty())
     }
 
-    /** 手势派发失败时不必再等淡出，直接进入截图 */
+    /** 第一次点击可能把状态滞后的控件重新唤出，轮询发现仍在就再点一次 */
     @Test
-    fun `failed tap does not wait`() {
+    fun `retries once when the first tap leaves controls visible`() {
         val controller = A11ySeekController(context)
+        var visible = true
+        var taps = 0
+
+        controller.hideControlsBeforeCapture(
+            isControlsVisible = { visible },
+            tapToHide = { taps++; if (taps == 2) visible = false; true },
+            wait = {}
+        )
+
+        assertEquals(2, taps)
+        assertFalse(visible)
+    }
+
+    /** 播放器始终不隐藏控件时不能无限点击 */
+    @Test
+    fun `gives up after two attempts`() {
+        val controller = A11ySeekController(context)
+        var taps = 0
+
+        controller.hideControlsBeforeCapture(
+            isControlsVisible = { true },
+            tapToHide = { taps++; true },
+            wait = {}
+        )
+
+        assertEquals(2, taps)
+    }
+
+    /** 手势派发失败时没有重试意义，直接进入截图 */
+    @Test
+    fun `stops when the tap cannot be dispatched`() {
+        val controller = A11ySeekController(context)
+        var taps = 0
         val waits = mutableListOf<Long>()
 
-        val hidden = controller.hideControlsForCapture(
+        controller.hideControlsBeforeCapture(
             isControlsVisible = { true },
-            tapToHide = { false },
+            tapToHide = { taps++; false },
             wait = { waits += it }
         )
 
-        assertFalse(hidden)
+        assertEquals(1, taps)
         assertTrue(waits.isEmpty())
     }
 }

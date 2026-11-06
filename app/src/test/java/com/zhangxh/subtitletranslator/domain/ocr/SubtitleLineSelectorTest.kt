@@ -47,8 +47,9 @@ class SubtitleLineSelectorTest {
         )
     }
 
+    /** 短字幕达不到宽度阈值时，也不能把纯数字 UI 行退回来 */
     @Test
-    fun `falls back to full text when every line is short`() {
+    fun `falls back to text lines without player UI when every line is short`() {
         val ocr = OcrResult(
             text = "No! 7827",
             blocks = listOf(
@@ -58,6 +59,36 @@ class SubtitleLineSelectorTest {
             isSuccess = true
         )
 
-        assertEquals("No! 7827", SubtitleLineSelector.select(ocr, imageWidth = 2_424))
+        assertEquals("No!", SubtitleLineSelector.select(ocr, imageWidth = 2_424))
+    }
+
+    /** 实际日志：短字幕没达到宽度阈值，旧逻辑会退回整段 OCR 文本 */
+    @Test
+    fun `drops player UI numbers when the subtitle line is narrow`() {
+        val ocr = OcrResult(
+            text = "03:19 11:50 7838 2548 it was a challenge.",
+            blocks = listOf(
+                block("03:19 11:50 7838 2548", 50, 400, 100),
+                block("it was a challenge.", 200, 600, 180)
+            ),
+            isSuccess = true
+        )
+
+        assertEquals(
+            "it was a challenge.",
+            SubtitleLineSelector.select(ocr, imageWidth = 2_424)
+        )
+    }
+
+    /** 数字字幕本身没有字母，不能把唯一的候选也过滤掉 */
+    @Test
+    fun `keeps a numeric-only subtitle`() {
+        val ocr = OcrResult(
+            text = "1984",
+            blocks = listOf(block("1984", 100, 900, 100)),
+            isSuccess = true
+        )
+
+        assertEquals("1984", SubtitleLineSelector.select(ocr, imageWidth = 2_424))
     }
 }

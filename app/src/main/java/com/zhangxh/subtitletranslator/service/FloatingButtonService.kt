@@ -974,9 +974,14 @@ class FloatingButtonService : Service() {
             }
 
             val originPosition = snapshot.positionMs
+            // 逐步扫描：每一步设置进度后播放一小段渲染目标帧，再暂停做 OCR；
+            // 两条路径都支持，全程静音（无障碍路径还需要隐藏进度条）。
+            val scanController = seekController as? IPlaybackScanController
             val navigator = SubtitleNavigator(
                 media = seekController,
                 recognize = {
+                    // settle 之后再收起控件，缩短播放器重新弹出控件的时间窗口
+                    scanController?.prepareForCapture()
                     val recognition = coordinator.recognizeSubtitleText()
                     Log.d(
                         TAG,
@@ -986,9 +991,6 @@ class FloatingButtonService : Service() {
                     recognition
                 }
             )
-            // 逐步扫描：每一步设置进度后播放一小段渲染目标帧，再暂停做 OCR；
-            // 两条路径都支持，全程静音（无障碍路径还需要隐藏进度条）。
-            val scanController = seekController as? IPlaybackScanController
             activeScanController = scanController
             scanController?.beginScan()
             val result = try {

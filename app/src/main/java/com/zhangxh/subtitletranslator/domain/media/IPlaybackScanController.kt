@@ -16,4 +16,12 @@ interface IPlaybackScanController {
 
     /** 结束扫描：兜底暂停，并恢复扫描前的静音状态 */
     fun endScan()
+
+    /**
+     * 截图前准备画面
+     *
+     * 例如收起仍显示的播放控件，避免进度条/时间文字混进 OCR。
+     * 不具备该能力的实现保持默认空实现。
+     */
+    fun prepareForCapture() {}
 }

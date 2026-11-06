@@ -40,10 +40,11 @@ class A11ySeekController(
         private const val RENDER_PLAY_MS = 400L
         /** 控件隐藏时点一下后等待其出现的时长 */
         private const val CONTROL_WAIT_MS = 400L
-        /** 暂停后等画面和控件状态稳定，再判断是否需要收起控件 */
-        private const val PAUSE_SETTLE_MS = 100L
-        /** 点击后等控件淡出，避免截图截到半透明进度条 */
-        private const val CONTROL_HIDE_SETTLE_MS = 200L
+        /** 点击收起控件后，轮询确认其消失的间隔与上限 */
+        private const val CONTROL_HIDE_POLL_MS = 100L
+        private const val CONTROL_HIDE_MAX_WAIT_MS = 400L
+        /** 最多点两次：第一次可能把状态滞后的控件重新唤出，第二次才收起 */
+        private const val CONTROL_HIDE_MAX_ATTEMPTS = 2
     }
 
     /** 抖音设置进度后 RangeInfo 不会立即刷新，不能靠位置变化判断成功 */
@@ -167,9 +168,6 @@ class A11ySeekController(
                 playing = false
             }
             Log.d(TAG, "播放 ${RENDER_PLAY_MS}ms 渲染目标帧后暂停")
-            // 给播放器一点时间把暂停控件显示出来，再判断是否需要收起
-            sleep(PAUSE_SETTLE_MS)
-            hideControlsForCapture()
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
         } catch (e: Exception) {
@@ -178,32 +176,59 @@ class A11ySeekController(
     }
 
     /**
-     * 截图前收起播放控件，避免进度条和时间文字被 OCR 当成字幕
+     * 截图前的最后一步：确认播放控件已经收起
      *
-     * 只在线索表明控件可见时点击：控件本来已经隐藏时再点会把它唤出来。
-     * 参数带默认值是为了让单元测试替换掉真实的无障碍调用。
-     *
-     * @return 是否执行了点击
+     * 放在导航器 settle 之后执行，而不是暂停后立刻执行——部分播放器
+     * 暂停后会稍晚才弹出控件，过早点击会被随后出现的控件覆盖。
      */
-    internal fun hideControlsForCapture(
+    override fun prepareForCapture() {
+        hideControlsBeforeCapture()
+    }
+
+    /**
+     * 点击收起播放控件，并轮询无障碍树确认它真的消失
+     *
+     * 只在线索表明控件可见时点击；点击后如果进度条节点仍在，说明点击
+     * 可能把状态滞后的控件重新唤了出来，再点一次。最多两次，避免把
+     * 播放器留在“点一下显示、点一下隐藏”的来回切换里。
+     * 参数带默认值是为了让单元测试替换掉真实的无障碍调用。
+     */
+    internal fun hideControlsBeforeCapture(
         isControlsVisible: () -> Boolean = {
             A11yDiagnosticService.findSeekBarNode() != null
         },
         tapToHide: () -> Boolean = { A11yDiagnosticService.tapToHideControls() },
         wait: (Long) -> Unit = { sleep(it) }
-    ): Boolean {
+    ) {
         if (!isControlsVisible()) {
-            Log.d(TAG, "播放控件不可见，跳过收起")
-            return false
+            Log.d(TAG, "截图前播放控件已隐藏")
+            return
         }
-        if (!tapToHide()) {
-            Log.w(TAG, "收起播放控件失败")
-            return false
+        repeat(CONTROL_HIDE_MAX_ATTEMPTS) { attempt ->
+            if (!tapToHide()) {
+                Log.w(TAG, "收起播放控件失败：手势未派发")
+                return
+            }
+            if (waitUntilHidden(isControlsVisible, wait)) {
+                Log.d(TAG, "截图前已收起播放控件（第 ${attempt + 1} 次点击）")
+                return
+            }
+            Log.d(TAG, "第 ${attempt + 1} 次点击后控件仍可见")
         }
-        // 控件淡出需要时间，等它完全消失，导航器随后截图才是干净画面
-        wait(CONTROL_HIDE_SETTLE_MS)
-        Log.d(TAG, "已点击收起播放控件")
-        return true
+        Log.w(TAG, "播放控件无法收起，OCR 将依赖 UI 文本过滤")
+    }
+
+    private fun waitUntilHidden(
+        isControlsVisible: () -> Boolean,
+        wait: (Long) -> Unit
+    ): Boolean {
+        var waited = 0L
+        while (waited < CONTROL_HIDE_MAX_WAIT_MS) {
+            wait(CONTROL_HIDE_POLL_MS)
+            waited += CONTROL_HIDE_POLL_MS
+            if (!isControlsVisible()) return true
+        }
+        return false
     }
 
     private fun audioManager(): AudioManager? =
