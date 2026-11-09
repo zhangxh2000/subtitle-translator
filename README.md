@@ -113,8 +113,9 @@
 
 - 后端联调地址由 Gradle 属性注入：`apiBaseUrl`（默认 `http://110.40.178.127/api/v1/`，
   可用 `gradle.properties` 或 `-PapiBaseUrl=...` 覆盖）。
-- 服务端尚未配置 HTTPS，`network_security_config.xml` 目前只对该 IP 放行明文；
-  正式上线前必须切换到 HTTPS 并移除这个例外。
+- 服务端尚未配置 HTTPS：debug 构建允许明文以便联调；release 的
+  `network_security_config.xml` 只放行该 IP。正式上线前必须切换到 HTTPS，
+  并移除 `app/src/debug` 与 `app/src/main` 两处明文例外。
 - 已接入接口：`POST /auth/register`、`/auth/login`、`/auth/refresh`、`/auth/logout`、
   `GET /me`、`GET /config`。
 - Token：Access 15 分钟、Refresh 30 天，刷新时轮换；401 最多刷新并重试一次；
