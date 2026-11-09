@@ -2,6 +2,7 @@ package com.zhangxh.subtitletranslator.ui.common
 
 import androidx.annotation.StringRes
 import com.zhangxh.subtitletranslator.R
+import com.zhangxh.subtitletranslator.domain.auth.AuthErrorCode
 import com.zhangxh.subtitletranslator.domain.error.AppError
 import com.zhangxh.subtitletranslator.domain.error.TranslationError
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
@@ -121,3 +122,19 @@ fun TranslationError?.toUiText(): UiText = when {
         UiText(R.string.error_unknown_with_detail, listOf(detail))
     else -> UiText(code.messageRes())
 }
+
+@StringRes
+fun AuthErrorCode.messageRes(): Int = when (this) {
+    AuthErrorCode.NETWORK -> R.string.error_auth_network
+    AuthErrorCode.INVALID_CREDENTIALS -> R.string.error_auth_invalid_credentials
+    AuthErrorCode.EMAIL_ALREADY_REGISTERED -> R.string.error_auth_email_registered
+    AuthErrorCode.VALIDATION -> R.string.error_auth_validation
+    AuthErrorCode.SESSION_EXPIRED -> R.string.error_auth_session_expired
+    AuthErrorCode.ACCOUNT_SUSPENDED -> R.string.error_auth_account_suspended
+    AuthErrorCode.RATE_LIMITED -> R.string.error_auth_rate_limited
+    AuthErrorCode.SERVER -> R.string.error_auth_server
+    AuthErrorCode.INVALID_RESPONSE -> R.string.error_auth_unknown
+    AuthErrorCode.UNKNOWN -> R.string.error_auth_unknown
+}
+
+fun AuthErrorCode.toUiText(): UiText = UiText(messageRes())

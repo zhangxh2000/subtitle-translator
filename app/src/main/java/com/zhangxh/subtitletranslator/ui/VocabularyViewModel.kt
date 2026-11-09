@@ -7,8 +7,11 @@ import androidx.lifecycle.MutableLiveData
 import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
 import com.zhangxh.subtitletranslator.R
+import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
 import com.zhangxh.subtitletranslator.data.speech.AndroidTtsPronouncer
 import com.zhangxh.subtitletranslator.data.vocabulary.SqliteVocabularyRepository
+import com.zhangxh.subtitletranslator.domain.auth.AuthManager
+import com.zhangxh.subtitletranslator.domain.auth.AuthState
 import com.zhangxh.subtitletranslator.domain.speech.PronouncerError
 import com.zhangxh.subtitletranslator.domain.vocabulary.IVocabularyRepository
 import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWord
@@ -27,7 +30,9 @@ data class VocabularyUiState(
  */
 class VocabularyViewModel @JvmOverloads constructor(
     application: Application,
-    private val repository: IVocabularyRepository = SqliteVocabularyRepository(application)
+    private val repository: IVocabularyRepository = SqliteVocabularyRepository(application),
+    private val authManager: AuthManager =
+        (application as SubtitleTranslatorApplication).container.sessionManager
 ) : AndroidViewModel(application) {
 
     private val pronouncer = AndroidTtsPronouncer(application) { error ->
@@ -40,8 +45,16 @@ class VocabularyViewModel @JvmOverloads constructor(
     private val _messages = MutableLiveData<Event<UiText>>()
     val messages: LiveData<Event<UiText>> = _messages
 
+    private val _isLoggedIn = MutableLiveData(authManager.isLoggedIn())
+    val isLoggedIn: LiveData<Boolean> = _isLoggedIn
+
     init {
         refresh()
+        viewModelScope.launch {
+            authManager.state.collect { state ->
+                _isLoggedIn.value = state is AuthState.LoggedIn
+            }
+        }
     }
 
     fun refresh() {

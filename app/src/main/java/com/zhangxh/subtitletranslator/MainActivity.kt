@@ -2,36 +2,40 @@ package com.zhangxh.subtitletranslator
 
 import android.content.Context
 import android.content.Intent
-import android.content.res.ColorStateList
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
-import android.view.View
-import android.widget.Button
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.core.content.ContextCompat
+import androidx.navigation.NavController
+import androidx.navigation.NavOptions
+import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.ui.setupWithNavController
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.zhangxh.subtitletranslator.ui.BaseActivity
-import com.zhangxh.subtitletranslator.ui.HistoryActivity
 import com.zhangxh.subtitletranslator.ui.MainEvent
 import com.zhangxh.subtitletranslator.ui.MainViewModel
-import com.zhangxh.subtitletranslator.ui.VocabularyActivity
 
 /**
- * 主界面
- * 只负责视图渲染与系统交互，权限与服务编排由 [MainViewModel] 决定。
+ * 应用壳
+ *
+ * 只负责底部导航、系统权限/Intent 与一次性事件；页面内容在 4 个 Fragment 中，
+ * 启动/停止服务的编排仍由 [MainViewModel] 完成。
  */
 class MainActivity : BaseActivity() {
 
     companion object {
         const val EXTRA_RESTART_SERVICE = "extra_restart_service"
+        const val EXTRA_OPEN_TAB = "extra_open_tab"
+        const val TAB_HISTORY = "history"
+        const val TAB_VOCABULARY = "vocabulary"
     }
 
     private val viewModel: MainViewModel by viewModels()
-    private lateinit var btnStartService: Button
-    private var statusContainer: View? = null
+    private lateinit var navController: NavController
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -51,29 +55,13 @@ class MainActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        statusContainer = findViewById(R.id.statusContainer)
-        btnStartService = findViewById(R.id.btnStartService)
-        btnStartService.setOnClickListener { viewModel.onStartStopClicked() }
-
-        findViewById<View>(R.id.btnHistory)?.setOnClickListener {
-            startActivity(Intent(this, HistoryActivity::class.java))
-        }
-
-        findViewById<View>(R.id.btnVocabulary)?.setOnClickListener {
-            startActivity(Intent(this, VocabularyActivity::class.java))
-        }
-
-        findViewById<View>(R.id.btnSettings)?.setOnClickListener {
-            startActivity(Intent(this, com.zhangxh.subtitletranslator.ui.SettingsActivity::class.java))
-        }
+        val host = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+        navController = host.navController
+        findViewById<BottomNavigationView>(R.id.bottom_nav).setupWithNavController(navController)
+        setupBackNavigation()
 
         observeViewModel()
-
-        // 服务因录屏授权失效而打开本界面：提示并自动重新发起授权
-        if (intent.getBooleanExtra(EXTRA_RESTART_SERVICE, false)) {
-            Toast.makeText(this, R.string.main_restart_hint, Toast.LENGTH_LONG).show()
-            viewModel.onRestartRequested()
-        }
+        handleIntent(intent)
     }
 
     override fun onResume() {
@@ -83,17 +71,47 @@ class MainActivity : BaseActivity() {
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
-        if (intent?.getBooleanExtra(EXTRA_RESTART_SERVICE, false) == true) {
-            setIntent(intent)
+        if (intent == null) return
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent) {
+        if (intent.getBooleanExtra(EXTRA_RESTART_SERVICE, false)) {
+            navigateTo(R.id.homeFragment)
             Toast.makeText(this, R.string.main_restart_hint, Toast.LENGTH_LONG).show()
             viewModel.onRestartRequested()
+            return
+        }
+        when (intent.getStringExtra(EXTRA_OPEN_TAB)) {
+            TAB_HISTORY -> navigateTo(R.id.historyFragment)
+            TAB_VOCABULARY -> navigateTo(R.id.vocabularyFragment)
         }
     }
 
+    private fun setupBackNavigation() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (navController.currentDestination?.id != R.id.homeFragment) {
+                    navigateTo(R.id.homeFragment)
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                }
+            }
+        })
+    }
+
+    private fun navigateTo(destinationId: Int) {
+        val options = NavOptions.Builder()
+            .setLaunchSingleTop(true)
+            .setRestoreState(true)
+            .setPopUpTo(navController.graph.startDestinationId, inclusive = false)
+            .build()
+        navController.navigate(destinationId, null, options)
+    }
+
     private fun observeViewModel() {
-        viewModel.serviceRunning.observe(this) { running ->
-            updateServiceState(running)
-        }
         viewModel.events.observe(this) { event ->
             when (val action = event.getContentIfNotHandled() ?: return@observe) {
                 is MainEvent.RequestPermissions -> permissionLauncher.launch(action.permissions)
@@ -116,31 +134,6 @@ class MainActivity : BaseActivity() {
             Intent(
                 Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                 Uri.parse("package:$packageName")
-            )
-        )
-    }
-
-    /**
-     * 根据服务运行状态刷新界面
-     */
-    private fun updateServiceState(running: Boolean) {
-        statusContainer?.visibility = if (running) View.VISIBLE else View.GONE
-        btnStartService.text = getString(
-            if (running) R.string.main_stop_service else R.string.main_start_service
-        )
-        // 注意：不能把 backgroundTintList 置空来「恢复默认色」。MaterialButton
-        // 置空后会丢掉填充色，按钮变成与背景同色的黑色，深色文字几乎看不见。
-        btnStartService.backgroundTintList = ColorStateList.valueOf(
-            ContextCompat.getColor(
-                this,
-                if (running) R.color.stop_button else R.color.accent
-            )
-        )
-        // 停止态是红底，配浅色文字；启动态是 accent 底，配深色文字
-        btnStartService.setTextColor(
-            ContextCompat.getColor(
-                this,
-                if (running) R.color.text_primary else R.color.on_accent
             )
         )
     }

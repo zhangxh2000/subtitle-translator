@@ -13,10 +13,17 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+
+        // 联调地址由 Gradle 属性注入，默认值可在 gradle.properties 中覆盖。
+        // 末尾的斜杠是 Retrofit baseUrl 的硬性要求。
+        val apiBaseUrl = (project.findProperty("apiBaseUrl") as? String)
+            ?: "http://110.40.178.127/api/v1/"
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 
     testOptions {
@@ -63,6 +70,17 @@ dependencies {
 
     // RecyclerView
     implementation("androidx.recyclerview:recyclerview:1.3.2")
+
+    // 导航：底部导航 + Fragment 返回栈
+    implementation("androidx.navigation:navigation-fragment-ktx:2.7.7")
+    implementation("androidx.navigation:navigation-ui-ktx:2.7.7")
+
+    // 网络：认证接口使用 Retrofit + Gson
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+
+    // Token 安全存储（EncryptedSharedPreferences）
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     // MVVM：by viewModels() / viewModelScope（LiveData 与 ViewModel 基础构件已由 appcompat 传递引入）
     implementation("androidx.activity:activity-ktx:1.8.0")

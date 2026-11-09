@@ -35,6 +35,8 @@ import androidx.appcompat.view.ContextThemeWrapper
 import androidx.core.app.NotificationCompat
 import com.zhangxh.subtitletranslator.MainActivity
 import com.zhangxh.subtitletranslator.R
+import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
+import com.zhangxh.subtitletranslator.data.auth.LoginPromptCoordinator
 import com.zhangxh.subtitletranslator.data.ocr.MLKitOcrEngine
 import com.zhangxh.subtitletranslator.data.screenshot.ScreenCaptureManagerImpl
 import com.zhangxh.subtitletranslator.data.translator.TranslatorProvider
@@ -50,6 +52,7 @@ import com.zhangxh.subtitletranslator.data.vocabulary.SqliteVocabularyRepository
 import com.zhangxh.subtitletranslator.data.wordextractor.LocalWordExtractor
 import com.zhangxh.subtitletranslator.domain.TranslationCoordinator
 import com.zhangxh.subtitletranslator.domain.TranslationResult
+import com.zhangxh.subtitletranslator.domain.auth.AuthManager
 import com.zhangxh.subtitletranslator.domain.media.IMediaPlaybackController
 import com.zhangxh.subtitletranslator.domain.media.IPlaybackScanController
 import com.zhangxh.subtitletranslator.domain.media.PlaybackSnapshot
@@ -64,8 +67,8 @@ import com.zhangxh.subtitletranslator.domain.wordextractor.EnglishDifficultyAsse
 import com.zhangxh.subtitletranslator.domain.wordextractor.NoOpWordExtractor
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordEntry
 import com.zhangxh.subtitletranslator.ui.DebugCaptureActivity
-import com.zhangxh.subtitletranslator.ui.HistoryActivity
 import com.zhangxh.subtitletranslator.ui.SettingsActivity
+import com.zhangxh.subtitletranslator.ui.auth.LoginActivity
 import com.zhangxh.subtitletranslator.ui.overlay.TranslationOverlayView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -156,6 +159,11 @@ class FloatingButtonService : Service() {
     private var pronouncer: IPronouncer? = null
     private var vocabularyRepository: SqliteVocabularyRepository? = null
     private lateinit var settingsStore: SettingsStore
+    private lateinit var authManager: AuthManager
+    private lateinit var loginPromptCoordinator: LoginPromptCoordinator
+
+    /** 游客点击收藏后等待登录成功的条目；成功后续跑保存，取消则丢弃 */
+    private var pendingSaveEntry: WordEntry? = null
     private var mediaProjection: MediaProjection? = null
     private var isShowingTranslation = false
 
@@ -221,6 +229,20 @@ class FloatingButtonService : Service() {
         // 生词库独立于 MediaProjection 生命周期：投影重启、换视频都不该影响收藏
         vocabularyRepository = SqliteVocabularyRepository(this)
         settingsStore = SettingsStore(this)
+
+        val container = (application as SubtitleTranslatorApplication).container
+        authManager = container.sessionManager
+        loginPromptCoordinator = container.loginPromptCoordinator
+        // 悬浮窗收藏是服务内的动作，用进程级登录结果继续/丢弃 pending 操作
+        serviceScope.launch {
+            loginPromptCoordinator.results.collect { success ->
+                val entry = pendingSaveEntry
+                pendingSaveEntry = null
+                if (success && entry != null) {
+                    saveWordAfterLogin(entry)
+                }
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -595,7 +617,7 @@ class FloatingButtonService : Service() {
 
         menu.findViewById<View>(R.id.menuHistory)?.setOnClickListener {
             dismissQuickMenu()
-            openAppScreen(HistoryActivity::class.java)
+            openMainTab(MainActivity.TAB_HISTORY)
         }
         menu.findViewById<View>(R.id.menuSettings)?.setOnClickListener {
             dismissQuickMenu()
@@ -800,6 +822,20 @@ class FloatingButtonService : Service() {
             )
         } catch (e: Exception) {
             Log.e(TAG, "打开界面失败: ${activityClass.simpleName}", e)
+        }
+    }
+
+    /** 打开主界面并切到指定 Tab（主界面已存在时走 onNewIntent） */
+    private fun openMainTab(tab: String) {
+        try {
+            startActivity(
+                Intent(this, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    putExtra(MainActivity.EXTRA_OPEN_TAB, tab)
+                }
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "打开主界面失败", e)
         }
     }
 
@@ -1142,6 +1178,7 @@ class FloatingButtonService : Service() {
         removeOverlayView(animated = true)
         isShowingTranslation = false
         currentResult = null
+        pendingSaveEntry = null
 
         // 只恢复由本服务暂停的媒体
         resumeMedia()
@@ -1315,13 +1352,42 @@ class FloatingButtonService : Service() {
     /**
      * 收藏/取消收藏生词
      *
-     * 图标只在数据库操作成功后更新，始终和库里的数据保持一致。
+     * 游客不允许收藏：先发起登录，成功后继续保存；已登录用户保持原来的 toggle 行为。
      */
     private fun toggleSavedWord(entry: WordEntry) {
+        if (!authManager.isLoggedIn()) {
+            requestLoginForSave(entry)
+            return
+        }
+        val repository = vocabularyRepository ?: return
+        serviceScope.launch { performToggle(repository, entry) }
+    }
+
+    private fun requestLoginForSave(entry: WordEntry) {
+        if (pendingSaveEntry != null) return
+        if (!loginPromptCoordinator.tryBegin()) return
+        pendingSaveEntry = entry
+        try {
+            startActivity(
+                Intent(this, LoginActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    putExtra(LoginActivity.EXTRA_NOTIFY_PROMPT, true)
+                }
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "打开登录页失败", e)
+            pendingSaveEntry = null
+            loginPromptCoordinator.finish(false)
+            Toast.makeText(this, R.string.error_auth_unknown, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /** 登录成功后的收藏：只保存，不做 toggle，避免误删已经存在的词 */
+    private fun saveWordAfterLogin(entry: WordEntry) {
         val repository = vocabularyRepository ?: return
         serviceScope.launch {
-            val result = repository.toggle(entry)
-            if (!result.success) {
+            val saved = repository.add(entry)
+            if (!saved) {
                 Log.e(TAG, "保存生词失败: ${entry.word}")
                 Toast.makeText(
                     this@FloatingButtonService,
@@ -1330,12 +1396,31 @@ class FloatingButtonService : Service() {
                 ).show()
                 return@launch
             }
-            overlayView?.setWordSaved(entry.word, result.saved)
-            val message = getString(
-                if (result.saved) R.string.service_word_saved else R.string.service_word_removed
-            )
-            Toast.makeText(this@FloatingButtonService, message, Toast.LENGTH_SHORT).show()
+            overlayView?.setWordSaved(entry.word, true)
+            Toast.makeText(
+                this@FloatingButtonService,
+                R.string.service_word_saved,
+                Toast.LENGTH_SHORT
+            ).show()
         }
+    }
+
+    private suspend fun performToggle(repository: SqliteVocabularyRepository, entry: WordEntry) {
+        val result = repository.toggle(entry)
+        if (!result.success) {
+            Log.e(TAG, "保存生词失败: ${entry.word}")
+            Toast.makeText(
+                this@FloatingButtonService,
+                R.string.service_save_word_failed,
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+        overlayView?.setWordSaved(entry.word, result.saved)
+        val message = getString(
+            if (result.saved) R.string.service_word_saved else R.string.service_word_removed
+        )
+        Toast.makeText(this@FloatingButtonService, message, Toast.LENGTH_SHORT).show()
     }
 
     /**
@@ -1509,6 +1594,7 @@ class FloatingButtonService : Service() {
         floatingView = null
 
         // 取消协程作用域
+        pendingSaveEntry = null
         serviceScope.cancel()
 
         vocabularyRepository?.close()

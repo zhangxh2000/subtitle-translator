@@ -7,8 +7,10 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import androidx.core.content.ContextCompat
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -74,16 +76,18 @@ class MainScreenLayoutTest {
     }
 
     @Test
-    fun `quick actions are clickable and meet touch target size`() = withActivity { activity ->
-        val minTouchTarget = (48 * activity.resources.displayMetrics.density).toInt()
-        listOf(R.id.btnHistory, R.id.btnVocabulary, R.id.btnSettings).forEach { id ->
-            val tile = activity.findViewById<View>(id)
-            assertTrue("快捷入口 $id 必须可点击", tile.isClickable)
-            assertTrue(
-                "快捷入口 $id 的点击区小于 48dp",
-                tile.minimumHeight >= minTouchTarget
-            )
+    fun `bottom navigation exposes four real destinations`() = withActivity { activity ->
+        val navigation = activity.findViewById<BottomNavigationView>(R.id.bottom_nav)
+        assertEquals("底部导航应包含 4 个入口", 4, navigation.menu.size())
+        listOf(
+            R.id.homeFragment,
+            R.id.vocabularyFragment,
+            R.id.historyFragment,
+            R.id.profileFragment
+        ).forEach { id ->
+            assertNotNull("底部导航缺少入口 $id", navigation.menu.findItem(id))
         }
+        assertEquals("默认应停留在首页", R.id.homeFragment, navigation.selectedItemId)
     }
 
     private fun View.isDescendantOf(ancestor: View): Boolean {

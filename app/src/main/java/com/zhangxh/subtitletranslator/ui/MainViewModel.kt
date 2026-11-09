@@ -10,10 +10,15 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.viewModelScope
 import com.zhangxh.subtitletranslator.R
+import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
+import com.zhangxh.subtitletranslator.domain.auth.AuthEvent
+import com.zhangxh.subtitletranslator.domain.auth.AuthManager
 import com.zhangxh.subtitletranslator.service.FloatingButtonService
 import com.zhangxh.subtitletranslator.ui.common.Event
 import com.zhangxh.subtitletranslator.ui.common.UiText
+import kotlinx.coroutines.launch
 
 /**
  * 主界面的权限/服务编排
@@ -28,7 +33,11 @@ sealed class MainEvent {
     data class ShowMessage(val text: UiText) : MainEvent()
 }
 
-class MainViewModel(application: Application) : AndroidViewModel(application) {
+class MainViewModel @JvmOverloads constructor(
+    application: Application,
+    private val authManager: AuthManager =
+        (application as SubtitleTranslatorApplication).container.sessionManager
+) : AndroidViewModel(application) {
 
     private val _serviceRunning = MutableLiveData(FloatingButtonService.isRunning())
     val serviceRunning: LiveData<Boolean> = _serviceRunning
@@ -45,6 +54,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         FloatingButtonService.addRunningStateListener(runningStateListener)
+        viewModelScope.launch {
+            authManager.events.collect { event ->
+                if (event == AuthEvent.SessionExpired) {
+                    emitMessage(R.string.error_auth_session_expired)
+                }
+            }
+        }
     }
 
     override fun onCleared() {

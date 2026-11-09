@@ -6,10 +6,10 @@ import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.zhangxh.subtitletranslator.ui.DebugCaptureActivity
-import com.zhangxh.subtitletranslator.ui.HistoryActivity
+import com.zhangxh.subtitletranslator.ui.auth.LoginActivity
+import com.zhangxh.subtitletranslator.ui.auth.RegisterActivity
 import com.zhangxh.subtitletranslator.ui.ImagePreviewActivity
 import com.zhangxh.subtitletranslator.ui.SettingsActivity
-import com.zhangxh.subtitletranslator.ui.VocabularyActivity
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -37,8 +37,8 @@ class WindowInsetsTest {
 
         val ACTIVITIES = listOf(
             SettingsActivity::class.java,
-            HistoryActivity::class.java,
-            VocabularyActivity::class.java,
+            LoginActivity::class.java,
+            RegisterActivity::class.java,
             DebugCaptureActivity::class.java,
             ImagePreviewActivity::class.java,
             MainActivity::class.java
@@ -89,26 +89,32 @@ class WindowInsetsTest {
     /**
      * insets 必须叠加在布局自带的内边距之上
      *
-     * android:fitsSystemWindows 会把内边距直接覆盖成 insets 的值，
-     * 主界面根布局的 24dp 左右内边距会因此丢失、内容贴到屏幕边缘，
-     * 所以这里单独验证左右内边距没有被改动。
+     * android:fitsSystemWindows 会把内边距直接覆盖成 insets 的值。
+     * 新的壳布局自身不留内边距，24dp 页面内边距在 HomeFragment 根布局上；
+     * 这里验证壳的左右内边距不会被 insets 改动，同时首页自己的边距保持不变。
      */
     @Test
-    fun `insets are added on top of the layout's own padding`() {
+    fun `insets do not overwrite layout padding`() {
         val controller = Robolectric.buildActivity(MainActivity::class.java).setup()
         try {
-            val root = rootOf(controller.get())
-            val ownPadding = (MAIN_ACTIVITY_PADDING_DP * root.resources.displayMetrics.density).toInt()
+            val activity = controller.get()
+            val root = rootOf(activity)
             val paddingLeftBefore = root.paddingLeft
             val paddingRightBefore = root.paddingRight
 
-            assertEquals("主界面根布局应有 24dp 内边距", ownPadding, paddingLeftBefore)
+            assertEquals("壳布局自身不应有左右内边距", 0, paddingLeftBefore)
+            assertEquals(0, paddingRightBefore)
 
             ViewCompat.dispatchApplyWindowInsets(root, systemBarInsets())
 
-            // 左右没有 insets，不应被清零
+            // 左右没有 insets，不应被改动
             assertEquals(paddingLeftBefore, root.paddingLeft)
             assertEquals(paddingRightBefore, root.paddingRight)
+
+            val homeRoot = activity.findViewById<ViewGroup>(R.id.homeRoot)
+            val ownPadding =
+                (MAIN_ACTIVITY_PADDING_DP * homeRoot.resources.displayMetrics.density).toInt()
+            assertEquals("首页根布局应保留 24dp 内边距", ownPadding, homeRoot.paddingLeft)
         } finally {
             controller.destroy()
         }

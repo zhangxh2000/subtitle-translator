@@ -24,10 +24,16 @@ class LayoutInflationTest {
 
     private companion object {
         val LAYOUTS = listOf(
-            R.layout.activity_main,
+            // activity_main 含 FragmentContainerView，必须由真实 FragmentActivity 创建，
+            // 由 MainScreenLayoutTest / WindowInsetsTest 覆盖
+            R.layout.fragment_home,
+            R.layout.fragment_vocabulary,
+            R.layout.fragment_history,
+            R.layout.fragment_profile,
+            R.layout.activity_login,
+            R.layout.activity_register,
+            R.layout.bottom_sheet_login_required,
             R.layout.activity_settings,
-            R.layout.activity_history,
-            R.layout.activity_vocabulary,
             R.layout.activity_debug_capture,
             R.layout.activity_image_preview,
             R.layout.item_history,

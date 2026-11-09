@@ -121,6 +121,52 @@ class LocalizationTest {
     }
 
     @Test
+    fun `auth profile and navigation copy is translated`() {
+        val keys = listOf(
+            R.string.nav_home,
+            R.string.nav_vocabulary,
+            R.string.nav_history,
+            R.string.nav_profile,
+            R.string.auth_login_title,
+            R.string.auth_login_subtitle,
+            R.string.auth_register_title,
+            R.string.auth_email_label,
+            R.string.auth_password_label,
+            R.string.auth_login_action,
+            R.string.auth_register_action,
+            R.string.auth_terms_accept,
+            R.string.auth_config_unavailable,
+            R.string.profile_guest_title,
+            R.string.profile_login_action,
+            R.string.profile_register_action,
+            R.string.profile_settings,
+            R.string.profile_logout,
+            R.string.profile_logout_confirm_title,
+            R.string.login_required_title,
+            R.string.login_required_action,
+            R.string.login_required_later,
+            R.string.vocabulary_login_banner,
+            R.string.auth_register_success,
+            R.string.error_auth_network,
+            R.string.error_auth_invalid_credentials,
+            R.string.error_auth_session_expired,
+            R.string.error_auth_server
+        )
+        val english = contextFor("en")
+        listOf("zh-Hans", "zh-Hant").forEach { tag ->
+            val localized = contextFor(tag)
+            keys.forEach { id ->
+                val name = english.resources.getResourceEntryName(id)
+                assertNotEquals(
+                    "$tag 的 $name 回退成了英文，说明缺少翻译",
+                    english.getString(id),
+                    localized.getString(id)
+                )
+            }
+        }
+    }
+
+    @Test
     fun `word count plural is localized`() {
         assertEquals(
             "1 word",

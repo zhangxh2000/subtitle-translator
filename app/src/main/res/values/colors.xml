@@ -26,6 +26,9 @@
     <!-- 大字号译文用低饱和版本，避免长时间观看刺眼 -->
     <color name="accent_dim">#FFCBE97F</color>
     <color name="on_accent">#FF101114</color>
+    <!-- Material 3 primary container：用于 tonal 按钮/选中态 -->
+    <color name="accent_container">#FF33430F</color>
+    <color name="on_accent_container">#FFD6F67A</color>
 
     <!-- 服务运行中「停止」按钮的警示色 -->
     <color name="stop_button">#FFB3261E</color>

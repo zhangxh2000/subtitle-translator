@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  联调阶段服务端尚未配置 HTTPS，仅允许当前开发地址使用明文 HTTP。
+  其余域名仍禁止明文；正式上线配置 HTTPS 后应删除该 domain-config。
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">110.40.178.127</domain>
+    </domain-config>
+</network-security-config>

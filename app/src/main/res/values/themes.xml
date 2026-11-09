@@ -1,20 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-      固定使用深色主题（不再用 DayNight）
+      固定使用 Material 3 深色主题（本期不做明暗切换）
 
-      所有界面都硬编码了「深色底 + 浅色字」的配色，若跟随系统切到浅色模式，
-      Spinner 等由主题驱动颜色的控件会变成深色文字压在深色底上，几乎看不见，
-      所以这里直接锁定深色，保证主题色与布局配色一致。
+      产品是覆盖在视频上的沉浸式工具，深色是主视觉；所有自定义 drawable
+      也按深色设计。Material 3 组件通过下面的颜色角色统一取色。
     -->
-    <style name="Theme.SubtitleTranslator" parent="Theme.MaterialComponents.NoActionBar">
+    <style name="Theme.SubtitleTranslator" parent="Theme.Material3.Dark.NoActionBar">
         <!-- 主色：设计 Token 里的强调色 -->
         <item name="colorPrimary">@color/accent</item>
-        <item name="colorPrimaryVariant">@color/accent_dim</item>
         <item name="colorOnPrimary">@color/on_accent</item>
-        <item name="colorSecondary">@color/accent</item>
-        <item name="colorSecondaryVariant">@color/accent_dim</item>
+        <item name="colorPrimaryContainer">@color/accent_container</item>
+        <item name="colorOnPrimaryContainer">@color/on_accent_container</item>
+        <item name="colorSecondary">@color/accent_dim</item>
         <item name="colorOnSecondary">@color/on_accent</item>
+        <item name="colorSecondaryContainer">@color/surface_variant</item>
+        <item name="colorOnSecondaryContainer">@color/text_primary</item>
+        <item name="colorSurface">@color/screen_bg</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorSurfaceVariant">@color/surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+        <item name="colorSurfaceContainer">@color/surface_tile</item>
+        <item name="colorSurfaceContainerHigh">@color/card_bg</item>
+        <item name="colorOutline">@color/button_outline</item>
+        <item name="colorOutlineVariant">@color/card_stroke</item>
+        <item name="colorError">@color/stop_button</item>
+        <item name="colorOnError">@color/text_primary</item>
         <!--
           状态栏：targetSdk 35（Android 15）起系统强制 edge-to-edge，
           statusBarColor 在 API 35 上已失效、状态栏透明，露出的是界面自身的背景色。

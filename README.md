@@ -14,6 +14,9 @@
 - 📋 **一键复制**：长按原文/译文/单词即可复制到剪贴板
 - 📜 **翻译历史**：保存最近 50 条翻译记录，方便复习
 - ⚙️ **语言设置**：支持多语言对切换（英/日/韩/法/德/西等）
+- 👤 **账号体系**：邮箱注册/登录、Token 自动刷新、启动恢复登录态；游客可正常翻译，收藏需要登录
+- 🧭 **Material 3 导航**：首页 / 词汇 / 历史 / 我的四个底部入口；设置作为“我的”子页面
+- ☁️ **云端同步（预留）**：已接入用户会话与鉴权骨架，生词同步等待服务端接口上线后启用
 
 ## 技术架构
 
@@ -74,10 +77,18 @@
 - `ScreenCaptureManagerImpl`：MediaProjection 实现，带生命周期管理
 
 ### 5. UI 层 (`ui/`)
-- `MainActivity`：主界面，权限申请
-- `HistoryActivity`：翻译历史记录
-- `SettingsActivity`：语言对设置
+- `MainActivity`：Material 3 壳 + 底部导航 + 系统权限编排
+- `HomeFragment` / `VocabularyFragment` / `HistoryFragment` / `ProfileFragment`：四个 Tab
+- `LoginActivity` / `RegisterActivity`：邮箱密码登录与注册
+- `SettingsActivity`：语言、引擎、OCR、媒体/无障碍权限等设置
 - `TranslationOverlayView`：翻译结果悬浮窗
+
+### 6. 账号与网络 (`domain/auth`、`data/auth`、`data/remote`)
+- `AuthManager`：进程级登录状态（Loading / Guest / LoggedIn）
+- `AuthRepositoryImpl`：注册、登录、恢复会话、登出
+- `TokenRefresher`：Refresh Token 单飞轮换；401 只重试一次
+- `SessionStore`：EncryptedSharedPreferences 安全存储；Keystore 不可用时降级为内存会话
+- `AuthApi` + Retrofit：统一响应包裹、错误码映射、Authorization/语言/版本请求头
 
 ## 使用说明
 
@@ -89,10 +100,31 @@
 6. 查看翻译结果和重点词汇，长按可复制；底部可切换上一句/下一句
 7. 再次点击按钮关闭翻译并恢复播放
 
+> 底部导航：首页 / 词汇 / 历史 / 我的。游客可以正常翻译和浏览本地词汇；
+> 点击悬浮窗的书签收藏会先进入登录页，登录成功后自动继续保存。
+> 登录入口在「我的」；设置入口也在「我的」。
+
 > 字幕导航依赖播放器的 MediaSession：YouTube、VLC 等支持精确 seek 的播放器可用；
 > 暂停状态下 seek 不刷新画面的播放器，会自动静音播放一小段来渲染目标帧。
 > 没有有效时长时间线的会话（例如抖音信息流）需要开启无障碍诊断；
 > 部分 DRM 播放器或浏览器不暴露会话，此时会提示找不到可控制的播放器。
+
+## 账号与登录（当前版本）
+
+- 后端联调地址由 Gradle 属性注入：`apiBaseUrl`（默认 `http://110.40.178.127/api/v1/`，
+  可用 `gradle.properties` 或 `-PapiBaseUrl=...` 覆盖）。
+- 服务端尚未配置 HTTPS，`network_security_config.xml` 目前只对该 IP 放行明文；
+  正式上线前必须切换到 HTTPS 并移除这个例外。
+- 已接入接口：`POST /auth/register`、`/auth/login`、`/auth/refresh`、`/auth/logout`、
+  `GET /me`、`GET /config`。
+- Token：Access 15 分钟、Refresh 30 天，刷新时轮换；401 最多刷新并重试一次；
+  刷新遇到网络错误时保留本地登录态，不会把人踢下线。
+- 游客：可以翻译、查看历史、浏览本地词汇；**收藏生词需要登录**。
+  悬浮窗里点书签会打开登录页，登录成功后自动继续保存。
+- 注册需要同意服务端返回版本的条款/隐私政策。完整法律文本尚未提供，当前为占位说明，
+  上线前必须替换为正式文本。
+- 尚未实现：邮箱验证流程、资料编辑（服务端 `PATCH /me` 未实现）、
+  云端生词同步（服务端生词接口未实现，客户端仅预留架构与登录拦截）。
 
 **悬浮按钮操作**
 
@@ -126,30 +158,29 @@
 ```
 subtitle-translator/
 ├── app/src/main/java/com/zhangxh/subtitletranslator/
-│   ├── MainActivity.kt                 # 主界面
-│   ├── domain/                         # 业务逻辑层
-│   │   ├── TranslationCoordinator.kt   # 翻译协调器
-│   │   ├── TranslationResult.kt        # 翻译结果数据类
-│   │   ├── translator/                 # 翻译接口与实现
-│   │   ├── ocr/                        # OCR 接口与实现
-│   │   ├── screenshot/                 # 截图接口与实现
-│   │   ├── dictionary/                 # 词典模型与查词接口
-│   │   └── wordextractor/              # 单词提取与难度评估接口
-│   ├── data/                           # 数据层
-│   │   ├── translator/MLKitTranslator.kt
-│   │   ├── ocr/MLKitOcrEngine.kt
-│   │   ├── screenshot/ScreenCaptureManagerImpl.kt
-│   │   ├── dictionary/                 # SQLite 词典实现
-│   │   └── wordextractor/LocalWordExtractor.kt
-│   ├── service/                        # 服务层
-│   │   └── FloatingButtonService.kt    # 悬浮窗服务
-│   └── ui/                             # UI 层
-│       ├── HistoryActivity.kt          # 历史记录
-│       ├── SettingsActivity.kt         # 设置
-│       └── overlay/                    # 悬浮窗视图
+│   ├── MainActivity.kt                 # 底部导航壳 + 权限编排
+│   ├── SubtitleTranslatorApplication.kt
+│   ├── di/AppContainer.kt              # 进程级 Session/Retrofit 装配
+│   ├── domain/                         # 与 Android 无关的接口和模型
+│   │   ├── TranslationCoordinator.kt
+│   │   ├── auth/                       # AuthManager/AuthRepository/AuthError
+│   │   ├── config/                     # 服务端公开配置模型
+│   │   ├── translator/ ocr/ screenshot/ dictionary/ wordextractor/
+│   ├── data/                           # 数据与网络
+│   │   ├── auth/                       # SessionStore、AuthRepositoryImpl、TokenRefresher
+│   │   ├── remote/                     # Retrofit、DTO、拦截器、错误码解析
+│   │   ├── config/                     # /config 缓存
+│   │   ├── translator/ ocr/ screenshot/ dictionary/ wordextractor/
+│   ├── service/                        # 悬浮窗/媒体/无障碍服务
+│   └── ui/
+│       ├── home/ vocabulary/ history/ profile/  # 4 个底部 Tab
+│       ├── auth/                       # Login/Register + ViewModel
+│       ├── common/auth/                # LoginGate、登录引导 BottomSheet
+│       ├── SettingsActivity.kt
+│       └── overlay/                    # 翻译结果悬浮窗
 ├── app/src/main/assets/dictionary.db   # 词典数据库（由脚本生成后入库）
-├── app/src/main/res/                   # 布局和资源
-├── app/src/test/                       # 单元测试
+├── app/src/main/res/                   # 布局和资源（含 values、values-b+zh+Hans/Hant）
+├── app/src/test/                       # JUnit4 + Robolectric 单元测试
 └── scripts/import_ecdict.py            # ECDICT → dictionary.db 构建脚本
 ```
 
@@ -309,6 +340,13 @@ python3 scripts/import_ecdict.py --csv ecdict.csv --lemma lemma.en.txt
 4. 悬浮窗位置会自动记忆，下次启动时恢复上次位置
 
 ## 最近更新
+
+- 接入用户体系与 Material 3 导航：底部首页/词汇/历史/我的；新增邮箱注册、登录、
+  Token 自动刷新、启动恢复会话、退出登录；游客收藏会被统一登录拦截，登录成功后继续原操作
+- 主题迁移到 Material 3（固定深色）；设置页改用 M3 Toolbar、Exposed Dropdown、MaterialSwitch
+- 新增统一网络层：Retrofit + 统一响应/错误码解析、Authorization 自动注入、401 单飞刷新、
+  EncryptedSharedPreferences 存储 Token；联调地址由 Gradle 属性注入
+- 保留核心翻译/OCR/悬浮窗流程不变；收藏生词改为登录后使用
 
 - 修复字幕导航误判：播放控件未被收起时，OCR 会把 `03:19 11:50 7838 2548` 这类时间和
   点赞/评论数和字幕拼成一行，导致同一句字幕被当成新字幕。现在选行时排除纯数字 UI 行，

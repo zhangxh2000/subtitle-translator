@@ -212,4 +212,92 @@
     <string name="error_invalid_response">翻譯服務傳回內容異常</string>
     <string name="error_unknown">未知錯誤</string>
     <string name="error_unknown_with_detail">未知錯誤：%1$s</string>
+
+    <!-- 底部導覽 -->
+    <string name="nav_home">首頁</string>
+    <string name="nav_vocabulary">詞彙</string>
+    <string name="nav_history">歷史</string>
+    <string name="nav_profile">我的</string>
+
+    <!-- 登入 / 註冊 -->
+    <string name="auth_login_title">歡迎回來</string>
+    <string name="auth_login_subtitle">登入後可管理帳號並使用雲端功能。</string>
+    <string name="auth_register_title">建立帳號</string>
+    <string name="auth_register_subtitle">建立帳號以使用雲端功能。</string>
+    <string name="auth_email_label">電子郵件</string>
+    <string name="auth_password_label">密碼</string>
+    <string name="auth_display_name_label">暱稱（選填）</string>
+    <string name="auth_confirm_password_label">確認密碼</string>
+    <string name="auth_email_invalid">請輸入有效的電子郵件地址</string>
+    <string name="auth_password_required">請輸入密碼</string>
+    <string name="auth_password_too_short">密碼至少 10 位</string>
+    <string name="auth_password_too_long">密碼過長</string>
+    <string name="auth_password_mismatch">兩次輸入的密碼不一致</string>
+    <string name="auth_display_name_too_long">暱稱過長</string>
+    <string name="auth_terms_required">請先同意服務條款和隱私權政策</string>
+    <string name="auth_login_action">登入</string>
+    <string name="auth_register_action">註冊</string>
+    <string name="auth_logging_in">登入中…</string>
+    <string name="auth_registering">註冊中…</string>
+    <string name="auth_no_account">還沒有帳號？</string>
+    <string name="auth_have_account">已有帳號？</string>
+    <string name="auth_go_register">註冊</string>
+    <string name="auth_go_login">登入</string>
+    <string name="auth_terms_accept">我同意《服務條款》和《隱私權政策》</string>
+    <string name="auth_terms_version">版本 %1$s</string>
+    <string name="auth_terms_dialog_title">服務條款</string>
+    <string name="auth_terms_dialog_message">服務條款版本 %1$s。\n\n完整法律文本將在正式上線前提供。繼續即表示你已閱讀並同意本條款。</string>
+    <string name="auth_privacy_dialog_title">隱私權政策</string>
+    <string name="auth_privacy_dialog_message">隱私權政策版本 %1$s。\n\n完整法律文本將在正式上線前提供。繼續即表示你同意本隱私權政策。</string>
+    <string name="auth_terms_link">服務條款</string>
+    <string name="auth_privacy_link">隱私權政策</string>
+    <string name="auth_config_unavailable">無法載入伺服器設定，請檢查網路後重試。</string>
+    <string name="auth_config_retry">重試</string>
+    <string name="auth_legal_versions">條款 %1$s · 隱私 %2$s</string>
+    <string name="auth_close">關閉</string>
+
+    <!-- 我的 -->
+    <string name="profile_guest_title">訪客</string>
+    <string name="profile_guest_subtitle">登入後可管理帳號並使用雲端功能。</string>
+    <string name="profile_login_action">登入</string>
+    <string name="profile_register_action">註冊</string>
+    <string name="profile_account_section">帳號</string>
+    <string name="profile_settings">應用程式設定</string>
+    <string name="profile_email_unverified">電子郵件未驗證</string>
+    <string name="profile_email_verified">電子郵件已驗證</string>
+    <string name="profile_logout">登出</string>
+    <string name="profile_logout_confirm_title">登出？</string>
+    <string name="profile_logout_confirm_message">本地生詞仍保留在本裝置；重新登入前雲端同步將停止。</string>
+    <string name="profile_logout_confirm_action">登出</string>
+    <string name="profile_cancel">取消</string>
+    <string name="profile_cloud_sync">雲端同步</string>
+    <string name="profile_cloud_sync_desc">上線後可在不同裝置間同步生詞。</string>
+    <string name="profile_cloud_sync_coming_soon">即將推出</string>
+    <string name="profile_version">版本 %1$s</string>
+
+    <!-- 登入引導 -->
+    <string name="login_required_title">需要登入</string>
+    <string name="login_required_message">登入後即可繼續此操作。</string>
+    <string name="login_required_save_word_title">登入後收藏</string>
+    <string name="login_required_save_word_message">登入後可儲存生詞。</string>
+    <string name="login_required_cloud_sync_title">登入後同步</string>
+    <string name="login_required_cloud_sync_message">登入後可在裝置間同步生詞。</string>
+    <string name="login_required_action">去登入</string>
+    <string name="login_required_later">以後再說</string>
+
+    <!-- 認證錯誤 -->
+    <string name="error_auth_network">網路不可用，請檢查網路後重試。</string>
+    <string name="error_auth_invalid_credentials">電子郵件或密碼錯誤</string>
+    <string name="error_auth_email_registered">此電子郵件已註冊</string>
+    <string name="error_auth_validation">請檢查填寫的資訊</string>
+    <string name="error_auth_session_expired">登入已過期，請重新登入。</string>
+    <string name="error_auth_account_suspended">帳號不可用，請聯絡支援。</string>
+    <string name="error_auth_rate_limited">請求過於頻繁，請稍後再試。</string>
+    <string name="error_auth_server">伺服器暫時不可用，請稍後再試。</string>
+    <string name="error_auth_unknown">發生錯誤，請重試。</string>
+
+    <!-- 詞彙頁訪客提示 -->
+    <string name="vocabulary_login_banner">登入後可使用雲端功能</string>
+    <string name="vocabulary_login_action">登入</string>
+    <string name="auth_register_success">註冊成功，已自動登入。</string>
 </resources>

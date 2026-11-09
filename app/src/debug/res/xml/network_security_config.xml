@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug 联调覆盖：服务端尚未配置 HTTPS，允许明文请求。
+  release 使用 app/src/main/res/xml/network_security_config.xml，只放行当前联调 IP；
+  正式上线配置 HTTPS 后，应删除两处明文例外。
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

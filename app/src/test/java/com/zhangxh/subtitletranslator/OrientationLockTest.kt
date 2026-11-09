@@ -3,10 +3,10 @@ package com.zhangxh.subtitletranslator
 import android.content.ComponentName
 import android.content.pm.ActivityInfo
 import com.zhangxh.subtitletranslator.ui.DebugCaptureActivity
-import com.zhangxh.subtitletranslator.ui.HistoryActivity
 import com.zhangxh.subtitletranslator.ui.ImagePreviewActivity
 import com.zhangxh.subtitletranslator.ui.SettingsActivity
-import com.zhangxh.subtitletranslator.ui.VocabularyActivity
+import com.zhangxh.subtitletranslator.ui.auth.LoginActivity
+import com.zhangxh.subtitletranslator.ui.auth.RegisterActivity
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,8 +27,8 @@ class OrientationLockTest {
     private companion object {
         val ACTIVITIES = listOf(
             MainActivity::class.java,
-            HistoryActivity::class.java,
-            VocabularyActivity::class.java,
+            LoginActivity::class.java,
+            RegisterActivity::class.java,
             SettingsActivity::class.java,
             DebugCaptureActivity::class.java,
             ImagePreviewActivity::class.java

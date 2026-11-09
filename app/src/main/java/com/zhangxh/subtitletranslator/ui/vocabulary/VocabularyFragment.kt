@@ -1,4 +1,4 @@
-package com.zhangxh.subtitletranslator.ui
+package com.zhangxh.subtitletranslator.ui.vocabulary
 
 import android.content.res.ColorStateList
 import android.os.Bundle
@@ -11,26 +11,35 @@ import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.viewModels
+import androidx.core.view.isVisible
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.appbar.MaterialToolbar
 import com.zhangxh.subtitletranslator.R
+import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
 import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWord
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficulty
+import com.zhangxh.subtitletranslator.ui.VocabularyViewModel
+import com.zhangxh.subtitletranslator.ui.common.auth.LoginGate
 import com.zhangxh.subtitletranslator.ui.common.labelRes
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /**
- * 生词库界面
- * 只负责列表渲染；数据、朗读与增删由 [VocabularyViewModel] 处理。
+ * 词汇 Tab
+ *
+ * 列表对游客可见；游客顶部显示登录引导，收藏动作由悬浮窗统一拦截。
  */
-class VocabularyActivity : BaseActivity() {
+class VocabularyFragment : Fragment() {
 
+    private val viewModel: VocabularyViewModel by viewModels()
+    private lateinit var loginGate: LoginGate
     private lateinit var recyclerView: RecyclerView
     private lateinit var tvEmpty: TextView
-    private val viewModel: VocabularyViewModel by viewModels()
+    private lateinit var loginBanner: View
     private val adapter = VocabularyAdapter(
         onSpeak = { word -> viewModel.speak(word) },
         onDelete = { word -> viewModel.delete(word) }
@@ -38,26 +47,63 @@ class VocabularyActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_vocabulary)
+        val container = (requireActivity().application as SubtitleTranslatorApplication).container
+        loginGate = LoginGate(
+            fragment = this,
+            authManager = container.sessionManager,
+            coordinator = container.loginPromptCoordinator
+        )
+    }
 
-        recyclerView = findViewById(R.id.recyclerView)
-        tvEmpty = findViewById(R.id.tvEmpty)
-        recyclerView.layoutManager = LinearLayoutManager(this)
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View = inflater.inflate(R.layout.fragment_vocabulary, container, false)
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        recyclerView = view.findViewById(R.id.recyclerView)
+        tvEmpty = view.findViewById(R.id.tvEmpty)
+        loginBanner = view.findViewById(R.id.loginBanner)
+
+        recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = adapter
 
-        findViewById<View>(R.id.btnBack)?.setOnClickListener { finish() }
-        findViewById<View>(R.id.btnClear)?.setOnClickListener { viewModel.clear() }
-
-        viewModel.uiState.observe(this) { state ->
-            adapter.setData(state.items)
-            tvEmpty.visibility = if (state.isEmpty) View.VISIBLE else View.GONE
-            recyclerView.visibility = if (state.isEmpty) View.GONE else View.VISIBLE
-        }
-        viewModel.messages.observe(this) { event ->
-            event.getContentIfNotHandled()?.let { message ->
-                Toast.makeText(this, message.resolve(this), Toast.LENGTH_SHORT).show()
+        view.findViewById<MaterialToolbar>(R.id.toolbar).apply {
+            inflateMenu(R.menu.vocabulary_menu)
+            setOnMenuItemClickListener { item ->
+                if (item.itemId == R.id.action_clear) {
+                    viewModel.clear()
+                    true
+                } else {
+                    false
+                }
             }
         }
+        view.findViewById<View>(R.id.btnBannerLogin).setOnClickListener {
+            loginGate.launchLoginDirectly()
+        }
+
+        viewModel.uiState.observe(viewLifecycleOwner) { state ->
+            adapter.setData(state.items)
+            tvEmpty.isVisible = state.isEmpty
+            recyclerView.isVisible = !state.isEmpty
+        }
+        viewModel.isLoggedIn.observe(viewLifecycleOwner) { loggedIn ->
+            loginBanner.isVisible = !loggedIn
+        }
+        viewModel.messages.observe(viewLifecycleOwner) { event ->
+            event.getContentIfNotHandled()?.let { message ->
+                Toast.makeText(requireContext(), message.resolve(requireContext()), Toast.LENGTH_SHORT)
+                    .show()
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.refresh()
     }
 
     private class VocabularyAdapter(
@@ -98,7 +144,6 @@ class VocabularyActivity : BaseActivity() {
                 tvWord.text = item.word
                 tvPhonetic.text = item.phonetic
 
-                // 释义：词性用强调色，释义本身保持中性色
                 val meaningsText = SpannableStringBuilder()
                 item.meanings.forEachIndexed { index, meaning ->
                     if (index > 0) meaningsText.append("\n")
@@ -119,9 +164,7 @@ class VocabularyActivity : BaseActivity() {
                 tvMeanings.text = meaningsText
                 tvMeanings.visibility = if (meaningsText.isEmpty()) View.GONE else View.VISIBLE
 
-                // 难度标签：低饱和底色 + 同色系文字
-                val difficulty = item.difficulty
-                val (backgroundRes, textRes) = when (difficulty) {
+                val (backgroundRes, textRes) = when (item.difficulty) {
                     WordDifficulty.HARD ->
                         R.color.difficulty_hard_bg to R.color.difficulty_hard_text
                     WordDifficulty.MEDIUM ->
@@ -129,7 +172,7 @@ class VocabularyActivity : BaseActivity() {
                     else ->
                         R.color.difficulty_easy_bg to R.color.difficulty_easy_text
                 }
-                tvDifficulty.text = tvDifficulty.context.getString(difficulty.labelRes())
+                tvDifficulty.text = tvDifficulty.context.getString(item.difficulty.labelRes())
                 tvDifficulty.backgroundTintList = ColorStateList.valueOf(
                     tvDifficulty.context.getColor(backgroundRes)
                 )

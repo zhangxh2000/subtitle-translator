@@ -3,13 +3,12 @@ package com.zhangxh.subtitletranslator.ui
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
-import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
-import com.google.android.material.switchmaterial.SwitchMaterial
+import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.materialswitch.MaterialSwitch
+import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.data.accessibility.AccessibilityAccess
 import com.zhangxh.subtitletranslator.data.media.NotificationAccess
@@ -34,12 +33,16 @@ class SettingsActivity : BaseActivity() {
     private val engines = TranslationEngine.entries
     private val preprocessModes = OcrPreprocessMode.entries
 
-    private lateinit var spinnerSource: Spinner
-    private lateinit var spinnerTarget: Spinner
-    private lateinit var spinnerDifficulty: Spinner
-    private lateinit var spinnerEngine: Spinner
-    private lateinit var spinnerPreprocess: Spinner
-    private lateinit var switchDebugCapture: SwitchMaterial
+    private lateinit var inputSource: MaterialAutoCompleteTextView
+    private lateinit var inputTarget: MaterialAutoCompleteTextView
+    private lateinit var inputDifficulty: MaterialAutoCompleteTextView
+    private lateinit var inputEngine: MaterialAutoCompleteTextView
+    private lateinit var inputPreprocess: MaterialAutoCompleteTextView
+    private lateinit var switchDebugCapture: MaterialSwitch
+    private lateinit var languageLabels: List<String>
+    private lateinit var difficultyLabels: List<String>
+    private lateinit var engineLabels: List<String>
+    private lateinit var preprocessLabels: List<String>
     private lateinit var tvEngineHint: TextView
     private lateinit var tvPreprocessHint: TextView
     private lateinit var tvMediaAccessStatus: TextView
@@ -63,7 +66,10 @@ class SettingsActivity : BaseActivity() {
             }
         }
 
-        findViewById<View>(R.id.btnBack)?.setOnClickListener { finish() }
+        findViewById<MaterialToolbar>(R.id.toolbar).apply {
+            setNavigationContentDescription(R.string.action_back)
+            setNavigationOnClickListener { finish() }
+        }
         findViewById<View>(R.id.btnViewDebugCaptures)?.setOnClickListener {
             startActivity(Intent(this, DebugCaptureActivity::class.java))
         }
@@ -105,11 +111,11 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun bindViews() {
-        spinnerSource = findViewById(R.id.spinnerSource)
-        spinnerTarget = findViewById(R.id.spinnerTarget)
-        spinnerDifficulty = findViewById(R.id.spinnerDifficulty)
-        spinnerEngine = findViewById(R.id.spinnerEngine)
-        spinnerPreprocess = findViewById(R.id.spinnerPreprocess)
+        inputSource = findViewById(R.id.inputSource)
+        inputTarget = findViewById(R.id.inputTarget)
+        inputDifficulty = findViewById(R.id.inputDifficulty)
+        inputEngine = findViewById(R.id.inputEngine)
+        inputPreprocess = findViewById(R.id.inputPreprocess)
         switchDebugCapture = findViewById(R.id.switchDebugCapture)
         tvEngineHint = findViewById(R.id.tvEngineHint)
         tvPreprocessHint = findViewById(R.id.tvPreprocessHint)
@@ -118,67 +124,52 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun setupAdapters() {
-        val languageAdapter = ArrayAdapter(
-            this,
-            android.R.layout.simple_spinner_item,
-            languages.map { language ->
-                getString(
-                    R.string.language_option,
-                    getString(language.displayNameRes()),
-                    language.name
-                )
-            }
-        ).apply {
-            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        languageLabels = languages.map { language ->
+            getString(
+                R.string.language_option,
+                getString(language.displayNameRes()),
+                language.name
+            )
         }
-        spinnerSource.adapter = languageAdapter
-        spinnerTarget.adapter = languageAdapter
+        difficultyLabels = difficultyFilters.map { getString(it.labelRes()) }
+        engineLabels = engines.map { getString(it.labelRes()) }
+        preprocessLabels = preprocessModes.map { getString(it.labelRes()) }
 
-        spinnerDifficulty.adapter = spinnerAdapter(
-            difficultyFilters.map { getString(it.labelRes()) }
-        )
-        spinnerEngine.adapter = spinnerAdapter(engines.map { getString(it.labelRes()) })
-        spinnerPreprocess.adapter = spinnerAdapter(
-            preprocessModes.map { getString(it.labelRes()) }
-        )
-    }
-
-    private fun spinnerAdapter(labels: List<String>) = ArrayAdapter(
-        this,
-        android.R.layout.simple_spinner_item,
-        labels
-    ).apply {
-        setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        inputSource.setSimpleItems(languageLabels.toTypedArray())
+        inputTarget.setSimpleItems(languageLabels.toTypedArray())
+        inputDifficulty.setSimpleItems(difficultyLabels.toTypedArray())
+        inputEngine.setSimpleItems(engineLabels.toTypedArray())
+        inputPreprocess.setSimpleItems(preprocessLabels.toTypedArray())
     }
 
     private fun setupListeners() {
-        spinnerSource.onItemSelectedListener = spinnerListener { position ->
-            val language = languages[position]
-            if (language.code != viewModel.uiState.value?.sourceLang?.code) {
+        inputSource.setOnItemClickListener { _, _, position, _ ->
+            val language = languages.getOrNull(position) ?: return@setOnItemClickListener
+            if (!isBinding && language.code != viewModel.uiState.value?.sourceLang?.code) {
                 viewModel.setSourceLang(language)
             }
         }
-        spinnerTarget.onItemSelectedListener = spinnerListener { position ->
-            val language = languages[position]
-            if (language.code != viewModel.uiState.value?.targetLang?.code) {
+        inputTarget.setOnItemClickListener { _, _, position, _ ->
+            val language = languages.getOrNull(position) ?: return@setOnItemClickListener
+            if (!isBinding && language.code != viewModel.uiState.value?.targetLang?.code) {
                 viewModel.setTargetLang(language)
             }
         }
-        spinnerDifficulty.onItemSelectedListener = spinnerListener { position ->
-            val filter = difficultyFilters[position]
-            if (filter != viewModel.uiState.value?.difficultyFilter) {
+        inputDifficulty.setOnItemClickListener { _, _, position, _ ->
+            val filter = difficultyFilters.getOrNull(position) ?: return@setOnItemClickListener
+            if (!isBinding && filter != viewModel.uiState.value?.difficultyFilter) {
                 viewModel.setDifficultyFilter(filter)
             }
         }
-        spinnerEngine.onItemSelectedListener = spinnerListener { position ->
-            val engine = engines[position]
-            if (engine != viewModel.uiState.value?.translationEngine) {
+        inputEngine.setOnItemClickListener { _, _, position, _ ->
+            val engine = engines.getOrNull(position) ?: return@setOnItemClickListener
+            if (!isBinding && engine != viewModel.uiState.value?.translationEngine) {
                 viewModel.setTranslationEngine(engine)
             }
         }
-        spinnerPreprocess.onItemSelectedListener = spinnerListener { position ->
-            val mode = preprocessModes[position]
-            if (mode != viewModel.uiState.value?.preprocessMode) {
+        inputPreprocess.setOnItemClickListener { _, _, position, _ ->
+            val mode = preprocessModes.getOrNull(position) ?: return@setOnItemClickListener
+            if (!isBinding && mode != viewModel.uiState.value?.preprocessMode) {
                 viewModel.setPreprocessMode(mode)
             }
         }
@@ -190,28 +181,24 @@ class SettingsActivity : BaseActivity() {
         }
     }
 
-    private fun spinnerListener(onSelected: (Int) -> Unit) =
-        object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: AdapterView<*>?,
-                view: View?,
-                position: Int,
-                id: Long
-            ) {
-                if (!isBinding) onSelected(position)
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
-        }
-
     private fun render(state: SettingsUiState) {
         isBinding = true
         try {
-            spinnerSource.selectIfNeeded(languages.indexOf(state.sourceLang))
-            spinnerTarget.selectIfNeeded(languages.indexOf(state.targetLang))
-            spinnerDifficulty.selectIfNeeded(difficultyFilters.indexOf(state.difficultyFilter))
-            spinnerEngine.selectIfNeeded(engines.indexOf(state.translationEngine))
-            spinnerPreprocess.selectIfNeeded(preprocessModes.indexOf(state.preprocessMode))
+            inputSource.setTextSilently(
+                languageLabels.getOrNull(languages.indexOf(state.sourceLang))
+            )
+            inputTarget.setTextSilently(
+                languageLabels.getOrNull(languages.indexOf(state.targetLang))
+            )
+            inputDifficulty.setTextSilently(
+                difficultyLabels.getOrNull(difficultyFilters.indexOf(state.difficultyFilter))
+            )
+            inputEngine.setTextSilently(
+                engineLabels.getOrNull(engines.indexOf(state.translationEngine))
+            )
+            inputPreprocess.setTextSilently(
+                preprocessLabels.getOrNull(preprocessModes.indexOf(state.preprocessMode))
+            )
 
             switchDebugCapture.isChecked = state.debugCaptureEnabled
 
@@ -222,8 +209,8 @@ class SettingsActivity : BaseActivity() {
         }
     }
 
-    private fun Spinner.selectIfNeeded(index: Int) {
-        val target = index.coerceAtLeast(0)
-        if (selectedItemPosition != target) setSelection(target)
+    private fun MaterialAutoCompleteTextView.setTextSilently(text: String?) {
+        val value = text.orEmpty()
+        if (this.text?.toString() != value) setText(value, false)
     }
 }
