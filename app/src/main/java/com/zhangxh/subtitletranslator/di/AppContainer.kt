@@ -12,7 +12,7 @@ import com.zhangxh.subtitletranslator.data.auth.LoginPromptCoordinator
 import com.zhangxh.subtitletranslator.data.auth.SessionStore
 import com.zhangxh.subtitletranslator.data.auth.TokenRefresher
 import com.zhangxh.subtitletranslator.data.config.RemoteConfigRepository
-import com.zhangxh.subtitletranslator.data.history.PrefsTranslationHistoryRepository
+import com.zhangxh.subtitletranslator.data.history.SqliteTranslationHistoryRepository
 import com.zhangxh.subtitletranslator.data.remote.AuthApi
 import com.zhangxh.subtitletranslator.data.remote.RetrofitFactory
 import com.zhangxh.subtitletranslator.domain.auth.AuthRepository
@@ -67,7 +67,7 @@ class AppContainer(context: Context) {
 
     /** 翻译历史与登录无关，游客也会正常记录 */
     val translationHistory: ITranslationHistoryRepository =
-        PrefsTranslationHistoryRepository(context)
+        SqliteTranslationHistoryRepository(context)
 
     /** 应用启动时在后台恢复会话，不阻塞首帧 */
     fun restoreSession() {

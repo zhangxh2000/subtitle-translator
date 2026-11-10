@@ -147,6 +147,18 @@
     <string name="history_yesterday_at">Yesterday %1$s</string>
     <string name="history_date_at">%1$s %2$s</string>
     <string name="history_meta">%1$s · %2$s</string>
+    <string name="history_all_title">All translation records</string>
+    <string name="history_today_label">Today</string>
+    <plurals name="history_detail_title_today">
+        <item quantity="one">Today · %1$d translation</item>
+        <item quantity="other">Today · %1$d translations</item>
+    </plurals>
+    <plurals name="history_detail_title_date">
+        <item quantity="one">%1$s · %1$d translation</item>
+        <item quantity="other">%1$s · %2$d translations</item>
+    </plurals>
+    <string name="history_sentence_saved">Sentence saved</string>
+    <string name="history_sentence_not_saved">Sentence not saved</string>
     <plurals name="history_subtitle_count">
         <item quantity="one">%1$d subtitle</item>
         <item quantity="other">%1$d subtitles</item>

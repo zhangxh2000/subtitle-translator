@@ -3,6 +3,7 @@ package com.zhangxh.subtitletranslator.ui.history
 import android.os.Looper
 import com.zhangxh.subtitletranslator.domain.history.ITranslationHistoryRepository
 import com.zhangxh.subtitletranslator.domain.history.TranslationDayHistory
+import com.zhangxh.subtitletranslator.domain.history.TranslationRecord
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -20,12 +21,20 @@ class TranslationHistoryViewModelTest {
 
         var requestedLimit: Int? = null
 
-        override suspend fun record(originalText: String, timestamp: Long) = true
+        override suspend fun record(
+            originalText: String,
+            translatedText: String,
+            timestamp: Long
+        ) = true
 
         override suspend fun recentDays(limit: Int): List<TranslationDayHistory> {
             requestedLimit = limit
             return items.take(limit)
         }
+
+        override suspend fun recordsForDay(dayStart: Long): List<TranslationRecord> = emptyList()
+
+        override suspend fun allRecords(): List<TranslationRecord> = emptyList()
 
         override suspend fun clear() = true
     }

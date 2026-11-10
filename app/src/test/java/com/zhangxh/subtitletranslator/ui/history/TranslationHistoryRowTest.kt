@@ -2,6 +2,7 @@ package com.zhangxh.subtitletranslator.ui.history
 
 import com.zhangxh.subtitletranslator.domain.history.TranslationDayHistory
 import com.zhangxh.subtitletranslator.domain.history.startOfDay
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -46,6 +47,29 @@ class TranslationHistoryRowTest {
         assertTrue(olderMeta, olderMeta.contains("1 subtitle"))
         assertTrue(olderMeta, olderMeta.contains(" · "))
         assertTrue(olderMeta, !olderMeta.startsWith("Today"))
+    }
+
+    @Test
+    fun `detail title uses today or the date and the translation count`() {
+        val context = RuntimeEnvironment.getApplication()
+        val today = LocalDate.now()
+        val now = today.atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val todayStart = startOfDay(now)
+
+        assertEquals(
+            "Today · 3 translations",
+            TranslationHistoryRow.formatDetailTitle(context, todayStart, 3, now)
+        )
+        assertEquals(
+            "Today · 1 translation",
+            TranslationHistoryRow.formatDetailTitle(context, todayStart, 1, now)
+        )
+
+        val older = today.minusDays(3)
+            .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val olderTitle = TranslationHistoryRow.formatDetailTitle(context, older, 2, now)
+        assertTrue(olderTitle, olderTitle.endsWith("· 2 translations"))
+        assertTrue(olderTitle, !olderTitle.startsWith("Today"))
     }
 
     @Test

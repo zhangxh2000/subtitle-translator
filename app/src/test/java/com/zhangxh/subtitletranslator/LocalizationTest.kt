@@ -176,6 +176,10 @@ class LocalizationTest {
             R.string.home_view_all,
             R.string.history_title,
             R.string.history_empty_title,
+            R.string.history_all_title,
+            R.string.history_today_label,
+            R.string.history_sentence_saved,
+            R.string.history_sentence_not_saved,
             R.string.history_today_at,
             R.string.history_yesterday_at,
             R.string.vocabulary_title,
@@ -239,6 +243,28 @@ class LocalizationTest {
             "12 條字幕",
             contextFor("zh-Hant").resources.getQuantityString(
                 R.plurals.history_subtitle_count, 12, 12
+            )
+        )
+    }
+
+    @Test
+    fun `history detail title plurals are localized`() {
+        assertEquals(
+            "Today · 1 translation",
+            contextFor("en").resources.getQuantityString(
+                R.plurals.history_detail_title_today, 1, 1
+            )
+        )
+        assertEquals(
+            "今天翻译 12 次",
+            contextFor("zh-Hans").resources.getQuantityString(
+                R.plurals.history_detail_title_today, 12, 12
+            )
+        )
+        assertEquals(
+            "11-09 翻譯 3 次",
+            contextFor("zh-Hant").resources.getQuantityString(
+                R.plurals.history_detail_title_date, 3, "11-09", 3
             )
         )
     }

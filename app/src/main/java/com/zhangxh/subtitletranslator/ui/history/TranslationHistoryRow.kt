@@ -31,6 +31,38 @@ object TranslationHistoryRow {
         view.setOnClickListener(onClick?.let { action -> View.OnClickListener { action() } })
     }
 
+    /** 详情页标题里的日期：今天用「今天」，其他日期用 MM-dd */
+    fun formatDayLabel(
+        context: Context,
+        dayStart: Long,
+        now: Long = System.currentTimeMillis()
+    ): String = if (isSameDay(dayStart, now)) {
+        context.getString(R.string.history_today_label)
+    } else {
+        SimpleDateFormat("MM-dd", Locale.getDefault()).format(Date(dayStart))
+    }
+
+    /** 某一天的详情标题：今天/日期 + 翻译次数 */
+    fun formatDetailTitle(
+        context: Context,
+        dayStart: Long,
+        count: Int,
+        now: Long = System.currentTimeMillis()
+    ): String = if (isSameDay(dayStart, now)) {
+        context.resources.getQuantityString(
+            R.plurals.history_detail_title_today,
+            count,
+            count
+        )
+    } else {
+        context.resources.getQuantityString(
+            R.plurals.history_detail_title_date,
+            count,
+            formatDayLabel(context, dayStart, now),
+            count
+        )
+    }
+
     fun formatHistoryMeta(
         context: Context,
         item: TranslationDayHistory,

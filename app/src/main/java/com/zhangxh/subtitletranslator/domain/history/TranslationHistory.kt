@@ -17,16 +17,31 @@ data class TranslationDayHistory(
     val lastSubtitle: String
 )
 
+/** 一条具体的字幕识别/翻译记录，用于按天查看详情 */
+data class TranslationRecord(
+    val id: Long,
+    val originalText: String,
+    val translatedText: String,
+    val translatedAt: Long
+)
+
 interface ITranslationHistoryRepository {
 
     /** 记录一条成功翻译的字幕；空白文本会被忽略 */
     suspend fun record(
         originalText: String,
+        translatedText: String = "",
         timestamp: Long = System.currentTimeMillis()
     ): Boolean
 
     /** 按天倒序返回，最近的一天在最前 */
     suspend fun recentDays(limit: Int = Int.MAX_VALUE): List<TranslationDayHistory>
+
+    /** 某一天的所有记录，时间倒序 */
+    suspend fun recordsForDay(dayStart: Long): List<TranslationRecord>
+
+    /** 全部记录，时间倒序 */
+    suspend fun allRecords(): List<TranslationRecord>
 
     suspend fun clear(): Boolean
 }

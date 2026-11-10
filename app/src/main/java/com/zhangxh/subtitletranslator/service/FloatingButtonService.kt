@@ -886,7 +886,10 @@ class FloatingButtonService : Service() {
 
                 if (result?.isSuccess == true) {
                     showTranslationOverlay(result)
-                    historyRepository.record(result.originalText)
+                    historyRepository.record(
+                        originalText = result.originalText,
+                        translatedText = result.translatedText
+                    )
                 } else {
                     Log.e(TAG, "翻译失败: ${result?.error}")
                     val message = result?.error?.toUiText()

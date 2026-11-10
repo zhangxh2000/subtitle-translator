@@ -42,6 +42,7 @@ class LayoutInflationTest {
             R.layout.activity_translation_history,
             R.layout.item_word_entry,
             R.layout.item_translation_day,
+            R.layout.item_translation_record,
             R.layout.item_vocabulary,
             R.layout.item_debug_capture,
             R.layout.floating_button,

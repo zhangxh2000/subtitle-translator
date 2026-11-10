@@ -142,6 +142,18 @@
     <string name="history_yesterday_at">昨天 %1$s</string>
     <string name="history_date_at">%1$s %2$s</string>
     <string name="history_meta">%1$s · %2$s</string>
+    <string name="history_all_title">全部翻译记录</string>
+    <string name="history_today_label">今天</string>
+    <plurals name="history_detail_title_today">
+        <item quantity="one">今天翻译 %1$d 次</item>
+        <item quantity="other">今天翻译 %1$d 次</item>
+    </plurals>
+    <plurals name="history_detail_title_date">
+        <item quantity="one">%1$s 翻译 %2$d 次</item>
+        <item quantity="other">%1$s 翻译 %2$d 次</item>
+    </plurals>
+    <string name="history_sentence_saved">句子已收藏</string>
+    <string name="history_sentence_not_saved">句子未收藏</string>
     <plurals name="history_subtitle_count">
         <item quantity="one">%1$d 条字幕</item>
         <item quantity="other">%1$d 条字幕</item>

@@ -1,0 +1,100 @@
+package com.zhangxh.subtitletranslator.ui.history
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
+import com.zhangxh.subtitletranslator.data.vocabulary.SqliteVocabularyRepository
+import com.zhangxh.subtitletranslator.domain.history.ITranslationHistoryRepository
+import com.zhangxh.subtitletranslator.domain.history.SavedWordMatcher
+import com.zhangxh.subtitletranslator.domain.history.normalizeSentenceForMatch
+import com.zhangxh.subtitletranslator.domain.vocabulary.IVocabularyRepository
+import kotlinx.coroutines.launch
+
+data class HistoryRecordUi(
+    val id: Long,
+    val originalText: String,
+    val translatedText: String,
+    val translatedAt: Long,
+    /** 原文中已收藏单词的区间，由 ViewModel 计算，Adapter 只负责加样式 */
+    val highlightRanges: List<IntRange>,
+    /** 这句话是否曾被收藏过（有生词的 context.source 与它一致） */
+    val collected: Boolean
+)
+
+data class HistoryDetailUiState(
+    val dayStart: Long? = null,
+    val records: List<HistoryRecordUi> = emptyList(),
+    val loading: Boolean = true
+)
+
+/**
+ * 某一天 / 全部翻译记录
+ *
+ * 记录本身来自历史库；高亮词和「句子已收藏」状态来自本地生词库：
+ * - 任何已收藏单词出现在句子里 → 高亮
+ * - 已收藏单词的 context.source 与这句话一致 → 右侧书签高亮
+ */
+class TranslationHistoryDetailViewModel(
+    application: Application,
+    private val dayStart: Long?,
+    private val historyRepository: ITranslationHistoryRepository =
+        (application as SubtitleTranslatorApplication).container.translationHistory,
+    private val vocabularyRepository: IVocabularyRepository =
+        SqliteVocabularyRepository(application)
+) : AndroidViewModel(application) {
+
+    private val _uiState = MutableLiveData(HistoryDetailUiState(dayStart = dayStart))
+    val uiState: LiveData<HistoryDetailUiState> = _uiState
+
+    init {
+        refresh()
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            val records = if (dayStart != null) {
+                historyRepository.recordsForDay(dayStart)
+            } else {
+                historyRepository.allRecords()
+            }
+            val words = vocabularyRepository.list()
+            val matcher = SavedWordMatcher(words.map { it.word })
+            val collectedSources = words
+                .mapNotNull { it.context?.source }
+                .filter { it.isNotBlank() }
+                .map(::normalizeSentenceForMatch)
+                .toSet()
+
+            _uiState.value = HistoryDetailUiState(
+                dayStart = dayStart,
+                records = records.map { record ->
+                    HistoryRecordUi(
+                        id = record.id,
+                        originalText = record.originalText,
+                        translatedText = record.translatedText,
+                        translatedAt = record.translatedAt,
+                        highlightRanges = matcher.findRanges(record.originalText),
+                        collected = normalizeSentenceForMatch(record.originalText) in collectedSources
+                    )
+                },
+                loading = false
+            )
+        }
+    }
+
+    override fun onCleared() {
+        (vocabularyRepository as? SqliteVocabularyRepository)?.close()
+        super.onCleared()
+    }
+
+    companion object {
+        fun factory(application: Application, dayStart: Long?) = viewModelFactory {
+            initializer { TranslationHistoryDetailViewModel(application, dayStart) }
+        }
+    }
+}

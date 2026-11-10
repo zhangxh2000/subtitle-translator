@@ -92,14 +92,18 @@ class HomeFragment : Fragment() {
                 showChevron = true,
                 showDivider = index != recent.lastIndex
             ) {
-                openHistory()
+                openHistory(day.dayStart)
             }
             historyContainer.addView(row)
         }
     }
 
-    private fun openHistory() {
-        startActivity(Intent(requireContext(), TranslationHistoryActivity::class.java))
+    private fun openHistory(dayStart: Long? = null) {
+        val intent = Intent(requireContext(), TranslationHistoryActivity::class.java)
+        if (dayStart != null) {
+            intent.putExtra(TranslationHistoryActivity.EXTRA_DAY_START, dayStart)
+        }
+        startActivity(intent)
     }
 
     private fun renderServiceState(running: Boolean) {
