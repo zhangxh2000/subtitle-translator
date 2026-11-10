@@ -136,10 +136,21 @@
     <string name="home_assistant_subtitle">Reads on-screen subtitles and shows translations in a floating window</string>
     <string name="home_service_running">Running in the background</string>
     <string name="home_help_link">How does it work?</string>
-    <string name="home_section_learning">Today\'s learning</string>
-    <string name="home_view_plan">View plan</string>
-    <string name="home_stat_collected">Saved words</string>
-    <string name="home_stat_review">Reviewed</string>
+    <string name="home_section_history">Recent translations</string>
+    <string name="home_view_all">View all</string>
+
+    <!-- Translation history -->
+    <string name="history_title">Translation history</string>
+    <string name="history_empty_title">No translation history yet</string>
+    <string name="history_empty_desc">Start subtitle translation and each successful translation will be grouped here by day.</string>
+    <string name="history_today_at">Today %1$s</string>
+    <string name="history_yesterday_at">Yesterday %1$s</string>
+    <string name="history_date_at">%1$s %2$s</string>
+    <string name="history_meta">%1$s · %2$s</string>
+    <plurals name="history_subtitle_count">
+        <item quantity="one">%1$d subtitle</item>
+        <item quantity="other">%1$d subtitles</item>
+    </plurals>
 
     <!-- Vocabulary -->
     <string name="vocabulary_title">Vocabulary</string>

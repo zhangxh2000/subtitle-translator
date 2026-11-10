@@ -190,7 +190,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/home_section_learning"
+                android:text="@string/home_section_history"
                 android:textColor="@color/text_primary"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -201,103 +201,74 @@
                 android:layout_weight="1" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnViewPlan"
+                android:id="@+id/btnViewHistory"
                 style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:minWidth="0dp"
                 android:paddingHorizontal="6dp"
-                android:text="@string/home_view_plan" />
+                android:text="@string/home_view_all"
+                app:icon="@drawable/ic_chevron_right"
+                app:iconGravity="textEnd" />
         </LinearLayout>
 
-        <LinearLayout
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/historyCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:orientation="horizontal">
+            app:cardBackgroundColor="?attr/colorSurfaceContainer"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp">
 
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
                 <LinearLayout
+                    android:id="@+id/historyContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
+                <LinearLayout
+                    android:id="@+id/historyEmpty"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
                     android:orientation="vertical"
-                    android:padding="14dp">
+                    android:paddingHorizontal="24dp"
+                    android:paddingVertical="26dp"
+                    android:visibility="gone">
 
                     <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
                         android:contentDescription="@null"
-                        android:src="@drawable/ic_bookmark"
-                        android:tint="@color/accent" />
+                        android:src="@drawable/ic_history"
+                        android:tint="@color/text_secondary" />
 
                     <TextView
-                        android:id="@+id/tvCollectedCount"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/history_empty_title"
                         android:textColor="@color/text_primary"
-                        android:textSize="24sp"
-                        android:textStyle="bold"
-                        tools:text="0" />
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
 
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="@string/home_stat_collected"
+                        android:layout_marginTop="4dp"
+                        android:gravity="center"
+                        android:lineSpacingMultiplier="1.3"
+                        android:text="@string/history_empty_desc"
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginStart="12dp"
-                android:layout_weight="1"
-                app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="14dp">
-
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:contentDescription="@null"
-                        android:src="@drawable/ic_school"
-                        android:tint="@color/accent" />
-
-                    <TextView
-                        android:id="@+id/tvTodayReview"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:textColor="@color/text_primary"
-                        android:textSize="24sp"
-                        android:textStyle="bold"
-                        tools:text="0/10" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="@string/home_stat_review"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="12sp" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-        </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
 </ScrollView>

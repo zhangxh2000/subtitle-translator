@@ -36,10 +36,11 @@ class MainScreenLayoutTest {
     }
 
     @Test
-    fun `home exposes start action and learning stats`() = withActivity { activity ->
+    fun `home exposes start action and recent translation history`() = withActivity { activity ->
         assertNotNull(activity.findViewById<View>(R.id.btnStartService))
-        assertNotNull(activity.findViewById<View>(R.id.tvCollectedCount))
-        assertNotNull(activity.findViewById<View>(R.id.tvTodayReview))
+        assertNotNull(activity.findViewById<View>(R.id.btnViewHistory))
+        assertNotNull(activity.findViewById<View>(R.id.historyContainer))
+        assertNotNull(activity.findViewById<View>(R.id.historyEmpty))
     }
 
     @Test

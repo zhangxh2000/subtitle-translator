@@ -172,7 +172,12 @@ class LocalizationTest {
             R.string.home_greeting,
             R.string.home_tagline,
             R.string.home_assistant_title,
-            R.string.home_section_learning,
+            R.string.home_section_history,
+            R.string.home_view_all,
+            R.string.history_title,
+            R.string.history_empty_title,
+            R.string.history_today_at,
+            R.string.history_yesterday_at,
             R.string.vocabulary_title,
             R.string.vocabulary_subtitle,
             R.string.vocabulary_search_hint,
@@ -208,6 +213,34 @@ class LocalizationTest {
                 )
             }
         }
+    }
+
+    @Test
+    fun `history subtitle count plural is localized`() {
+        assertEquals(
+            "1 subtitle",
+            contextFor("en").resources.getQuantityString(
+                R.plurals.history_subtitle_count, 1, 1
+            )
+        )
+        assertEquals(
+            "12 subtitles",
+            contextFor("en").resources.getQuantityString(
+                R.plurals.history_subtitle_count, 12, 12
+            )
+        )
+        assertEquals(
+            "12 条字幕",
+            contextFor("zh-Hans").resources.getQuantityString(
+                R.plurals.history_subtitle_count, 12, 12
+            )
+        )
+        assertEquals(
+            "12 條字幕",
+            contextFor("zh-Hant").resources.getQuantityString(
+                R.plurals.history_subtitle_count, 12, 12
+            )
+        )
     }
 
     @Test

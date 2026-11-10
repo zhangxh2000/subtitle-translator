@@ -131,10 +131,21 @@
     <string name="home_assistant_subtitle">识别屏幕字幕，在悬浮窗中显示译文</string>
     <string name="home_service_running">正在后台运行</string>
     <string name="home_help_link">它怎么用？</string>
-    <string name="home_section_learning">今日学习</string>
-    <string name="home_view_plan">查看计划</string>
-    <string name="home_stat_collected">已收词</string>
-    <string name="home_stat_review">已复习</string>
+    <string name="home_section_history">最近翻译</string>
+    <string name="home_view_all">查看全部</string>
+
+    <!-- 翻译历史 -->
+    <string name="history_title">翻译历史</string>
+    <string name="history_empty_title">还没有翻译记录</string>
+    <string name="history_empty_desc">启动字幕翻译后，每次成功翻译会按天汇总在这里。</string>
+    <string name="history_today_at">今天 %1$s</string>
+    <string name="history_yesterday_at">昨天 %1$s</string>
+    <string name="history_date_at">%1$s %2$s</string>
+    <string name="history_meta">%1$s · %2$s</string>
+    <plurals name="history_subtitle_count">
+        <item quantity="one">%1$d 条字幕</item>
+        <item quantity="other">%1$d 条字幕</item>
+    </plurals>
 
     <!-- 生词库 -->
     <string name="vocabulary_title">词汇</string>

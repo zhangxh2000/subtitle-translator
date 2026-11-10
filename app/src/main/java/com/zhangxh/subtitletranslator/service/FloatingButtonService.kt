@@ -52,6 +52,7 @@ import com.zhangxh.subtitletranslator.data.wordextractor.LocalWordExtractor
 import com.zhangxh.subtitletranslator.domain.TranslationCoordinator
 import com.zhangxh.subtitletranslator.domain.TranslationResult
 import com.zhangxh.subtitletranslator.domain.auth.AuthManager
+import com.zhangxh.subtitletranslator.domain.history.ITranslationHistoryRepository
 import com.zhangxh.subtitletranslator.domain.media.IMediaPlaybackController
 import com.zhangxh.subtitletranslator.domain.media.IPlaybackScanController
 import com.zhangxh.subtitletranslator.domain.media.PlaybackSnapshot
@@ -158,6 +159,7 @@ class FloatingButtonService : Service() {
     private var dictionaryProvider: DictionaryRepositoryProvider? = null
     private var pronouncer: IPronouncer? = null
     private var vocabularyRepository: SqliteVocabularyRepository? = null
+    private lateinit var historyRepository: ITranslationHistoryRepository
     private lateinit var settingsStore: SettingsStore
     private lateinit var authManager: AuthManager
     private lateinit var loginPromptCoordinator: LoginPromptCoordinator
@@ -234,6 +236,7 @@ class FloatingButtonService : Service() {
         val container = (application as SubtitleTranslatorApplication).container
         authManager = container.sessionManager
         loginPromptCoordinator = container.loginPromptCoordinator
+        historyRepository = container.translationHistory
         // 悬浮窗收藏是服务内的动作，用进程级登录结果继续/丢弃 pending 操作
         serviceScope.launch {
             loginPromptCoordinator.results.collect { success ->
@@ -883,6 +886,7 @@ class FloatingButtonService : Service() {
 
                 if (result?.isSuccess == true) {
                     showTranslationOverlay(result)
+                    historyRepository.record(result.originalText)
                 } else {
                     Log.e(TAG, "翻译失败: ${result?.error}")
                     val message = result?.error?.toUiText()

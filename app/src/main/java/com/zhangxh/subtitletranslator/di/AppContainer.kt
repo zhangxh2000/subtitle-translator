@@ -12,10 +12,12 @@ import com.zhangxh.subtitletranslator.data.auth.LoginPromptCoordinator
 import com.zhangxh.subtitletranslator.data.auth.SessionStore
 import com.zhangxh.subtitletranslator.data.auth.TokenRefresher
 import com.zhangxh.subtitletranslator.data.config.RemoteConfigRepository
+import com.zhangxh.subtitletranslator.data.history.PrefsTranslationHistoryRepository
 import com.zhangxh.subtitletranslator.data.remote.AuthApi
 import com.zhangxh.subtitletranslator.data.remote.RetrofitFactory
 import com.zhangxh.subtitletranslator.domain.auth.AuthRepository
 import com.zhangxh.subtitletranslator.domain.config.ConfigRepository
+import com.zhangxh.subtitletranslator.domain.history.ITranslationHistoryRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -62,6 +64,10 @@ class AppContainer(context: Context) {
     // 公开配置走无认证客户端：即使本地 Access Token 已过期，也不应因 /config 触发刷新
     val configRepository: ConfigRepository = RemoteConfigRepository(context, bareApi, gson)
     val loginPromptCoordinator = LoginPromptCoordinator()
+
+    /** 翻译历史与登录无关，游客也会正常记录 */
+    val translationHistory: ITranslationHistoryRepository =
+        PrefsTranslationHistoryRepository(context)
 
     /** 应用启动时在后台恢复会话，不阻塞首帧 */
     fun restoreSession() {

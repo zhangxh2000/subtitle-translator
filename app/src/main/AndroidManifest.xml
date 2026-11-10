@@ -78,6 +78,11 @@
             android:screenOrientation="portrait" />
 
         <activity
+            android:name=".ui.history.TranslationHistoryActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <activity
             android:name=".ui.DebugCaptureActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
