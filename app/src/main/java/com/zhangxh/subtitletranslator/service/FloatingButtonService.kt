@@ -43,7 +43,6 @@ import com.zhangxh.subtitletranslator.data.translator.TranslatorProvider
 import com.zhangxh.subtitletranslator.data.accessibility.A11ySeekController
 import com.zhangxh.subtitletranslator.data.accessibility.AccessibilityAccess
 import com.zhangxh.subtitletranslator.data.dictionary.DictionaryRepositoryProvider
-import com.zhangxh.subtitletranslator.data.history.TranslationHistoryStore
 import com.zhangxh.subtitletranslator.data.media.MediaSessionPlaybackController
 import com.zhangxh.subtitletranslator.data.media.NotificationAccess
 import com.zhangxh.subtitletranslator.data.settings.SettingsStore
@@ -65,6 +64,7 @@ import com.zhangxh.subtitletranslator.ui.common.messageRes
 import com.zhangxh.subtitletranslator.ui.common.toUiText
 import com.zhangxh.subtitletranslator.domain.wordextractor.EnglishDifficultyAssessor
 import com.zhangxh.subtitletranslator.domain.wordextractor.NoOpWordExtractor
+import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWordContext
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordEntry
 import com.zhangxh.subtitletranslator.ui.DebugCaptureActivity
 import com.zhangxh.subtitletranslator.ui.SettingsActivity
@@ -164,6 +164,7 @@ class FloatingButtonService : Service() {
 
     /** 游客点击收藏后等待登录成功的条目；成功后续跑保存，取消则丢弃 */
     private var pendingSaveEntry: WordEntry? = null
+    private var pendingSaveContext: SavedWordContext? = null
     private var mediaProjection: MediaProjection? = null
     private var isShowingTranslation = false
 
@@ -237,9 +238,11 @@ class FloatingButtonService : Service() {
         serviceScope.launch {
             loginPromptCoordinator.results.collect { success ->
                 val entry = pendingSaveEntry
+                val context = pendingSaveContext
                 pendingSaveEntry = null
+                pendingSaveContext = null
                 if (success && entry != null) {
-                    saveWordAfterLogin(entry)
+                    saveWordAfterLogin(entry, context)
                 }
             }
         }
@@ -615,9 +618,9 @@ class FloatingButtonService : Service() {
         val themedContext = ContextThemeWrapper(this, R.style.Theme_SubtitleTranslator)
         val menu = LayoutInflater.from(themedContext).inflate(R.layout.floating_menu, null)
 
-        menu.findViewById<View>(R.id.menuHistory)?.setOnClickListener {
+        menu.findViewById<View>(R.id.menuLearning)?.setOnClickListener {
             dismissQuickMenu()
-            openMainTab(MainActivity.TAB_HISTORY)
+            openMainTab(MainActivity.TAB_LEARNING)
         }
         menu.findViewById<View>(R.id.menuSettings)?.setOnClickListener {
             dismissQuickMenu()
@@ -879,8 +882,6 @@ class FloatingButtonService : Service() {
                 }
 
                 if (result?.isSuccess == true) {
-                    // 保存到历史记录（上限由 store 维护）
-                    TranslationHistoryStore.add(result)
                     showTranslationOverlay(result)
                 } else {
                     Log.e(TAG, "翻译失败: ${result?.error}")
@@ -1179,6 +1180,7 @@ class FloatingButtonService : Service() {
         isShowingTranslation = false
         currentResult = null
         pendingSaveEntry = null
+        pendingSaveContext = null
 
         // 只恢复由本服务暂停的媒体
         resumeMedia()
@@ -1355,18 +1357,25 @@ class FloatingButtonService : Service() {
      * 游客不允许收藏：先发起登录，成功后继续保存；已登录用户保持原来的 toggle 行为。
      */
     private fun toggleSavedWord(entry: WordEntry) {
+        val context = currentResult?.let {
+            SavedWordContext(
+                source = it.originalText.takeIf { text -> text.isNotBlank() },
+                translation = it.translatedText.takeIf { text -> text.isNotBlank() }
+            )
+        }
         if (!authManager.isLoggedIn()) {
-            requestLoginForSave(entry)
+            requestLoginForSave(entry, context)
             return
         }
         val repository = vocabularyRepository ?: return
-        serviceScope.launch { performToggle(repository, entry) }
+        serviceScope.launch { performToggle(repository, entry, context) }
     }
 
-    private fun requestLoginForSave(entry: WordEntry) {
+    private fun requestLoginForSave(entry: WordEntry, context: SavedWordContext?) {
         if (pendingSaveEntry != null) return
         if (!loginPromptCoordinator.tryBegin()) return
         pendingSaveEntry = entry
+        pendingSaveContext = context
         try {
             startActivity(
                 Intent(this, LoginActivity::class.java).apply {
@@ -1377,16 +1386,17 @@ class FloatingButtonService : Service() {
         } catch (e: Exception) {
             Log.e(TAG, "打开登录页失败", e)
             pendingSaveEntry = null
+            pendingSaveContext = null
             loginPromptCoordinator.finish(false)
             Toast.makeText(this, R.string.error_auth_unknown, Toast.LENGTH_SHORT).show()
         }
     }
 
     /** 登录成功后的收藏：只保存，不做 toggle，避免误删已经存在的词 */
-    private fun saveWordAfterLogin(entry: WordEntry) {
+    private fun saveWordAfterLogin(entry: WordEntry, context: SavedWordContext?) {
         val repository = vocabularyRepository ?: return
         serviceScope.launch {
-            val saved = repository.add(entry)
+            val saved = repository.add(entry, context)
             if (!saved) {
                 Log.e(TAG, "保存生词失败: ${entry.word}")
                 Toast.makeText(
@@ -1405,8 +1415,12 @@ class FloatingButtonService : Service() {
         }
     }
 
-    private suspend fun performToggle(repository: SqliteVocabularyRepository, entry: WordEntry) {
-        val result = repository.toggle(entry)
+    private suspend fun performToggle(
+        repository: SqliteVocabularyRepository,
+        entry: WordEntry,
+        context: SavedWordContext?
+    ) {
+        val result = repository.toggle(entry, context)
         if (!result.success) {
             Log.e(TAG, "保存生词失败: ${entry.word}")
             Toast.makeText(
@@ -1595,6 +1609,7 @@ class FloatingButtonService : Service() {
 
         // 取消协程作用域
         pendingSaveEntry = null
+        pendingSaveContext = null
         serviceScope.cancel()
 
         vocabularyRepository?.close()

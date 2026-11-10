@@ -6,8 +6,11 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.util.Log
 import com.zhangxh.subtitletranslator.domain.vocabulary.IVocabularyRepository
+import com.zhangxh.subtitletranslator.domain.vocabulary.LearningStatus
 import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWord
+import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWordContext
 import com.zhangxh.subtitletranslator.domain.vocabulary.ToggleResult
+import com.zhangxh.subtitletranslator.domain.vocabulary.VocabularyItemType
 import com.zhangxh.subtitletranslator.domain.vocabulary.VocabularyKey
 import com.zhangxh.subtitletranslator.domain.wordextractor.Meaning
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficulty
@@ -41,7 +44,10 @@ class SqliteVocabularyRepository(
     private val helper = VocabularyDatabaseHelper(context.applicationContext, databaseName)
     private val writeMutex = Mutex()
 
-    override suspend fun toggle(entry: WordEntry): ToggleResult = withContext(Dispatchers.IO) {
+    override suspend fun toggle(
+        entry: WordEntry,
+        context: SavedWordContext?
+    ): ToggleResult = withContext(Dispatchers.IO) {
         writeMutex.withLock {
             try {
                 val key = VocabularyKey.of(entry.word)
@@ -59,7 +65,7 @@ class SqliteVocabularyRepository(
                     )
                     if (deleted == 0) {
                         // insertWithOnConflict 返回 -1 也可能是别的实例刚插进去了，查一下确认
-                        insert(db, entry, key)
+                        insert(db, entry, key, context)
                         saved = exists(db, key)
                         success = saved
                     }
@@ -76,15 +82,66 @@ class SqliteVocabularyRepository(
         }
     }
 
-    override suspend fun add(entry: WordEntry): Boolean = withContext(Dispatchers.IO) {
+    override suspend fun add(
+        entry: WordEntry,
+        context: SavedWordContext?
+    ): Boolean = withContext(Dispatchers.IO) {
         writeMutex.withLock {
             try {
                 val key = VocabularyKey.of(entry.word) ?: return@withLock false
-                // 已存在时 CONFLICT_IGNORE 不覆盖，保留第一次收藏的展示写法与释义
-                insert(helper.writableDatabase, entry, key)
+                // 已存在时 CONFLICT_IGNORE 不覆盖，保留第一次收藏的展示写法、释义与上下文
+                insert(helper.writableDatabase, entry, key, context)
                 true
             } catch (e: Exception) {
                 Log.e(TAG, "保存生词失败: ${entry.word}", e)
+                false
+            }
+        }
+    }
+
+    override suspend fun find(word: String): SavedWord? = withContext(Dispatchers.IO) {
+        try {
+            val key = VocabularyKey.of(word) ?: return@withContext null
+            helper.readableDatabase.query(
+                VocabularyDatabaseHelper.TABLE,
+                null,
+                "${VocabularyDatabaseHelper.COL_WORD_KEY} = ? COLLATE NOCASE",
+                arrayOf(key),
+                null,
+                null,
+                null,
+                "1"
+            ).use { cursor ->
+                if (cursor.moveToFirst()) readRow(cursor) else null
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "查询生词失败: $word", e)
+            null
+        }
+    }
+
+    override suspend fun updateLearningState(
+        word: String,
+        status: LearningStatus,
+        familiarity: Int,
+        reviewedAt: Long
+    ): Boolean = withContext(Dispatchers.IO) {
+        writeMutex.withLock {
+            try {
+                val key = VocabularyKey.of(word) ?: return@withLock false
+                val values = ContentValues().apply {
+                    put(VocabularyDatabaseHelper.COL_LEARNING_STATUS, status.name)
+                    put(VocabularyDatabaseHelper.COL_FAMILIARITY, familiarity.coerceIn(0, 5))
+                    put(VocabularyDatabaseHelper.COL_LAST_REVIEWED_AT, reviewedAt)
+                }
+                helper.writableDatabase.update(
+                    VocabularyDatabaseHelper.TABLE,
+                    values,
+                    "${VocabularyDatabaseHelper.COL_WORD_KEY} = ? COLLATE NOCASE",
+                    arrayOf(key)
+                ) > 0
+            } catch (e: Exception) {
+                Log.e(TAG, "更新学习状态失败: $word", e)
                 false
             }
         }
@@ -181,7 +238,12 @@ class SqliteVocabularyRepository(
     /** 关闭数据库连接；关闭后不可再用 */
     fun close() = helper.close()
 
-    private fun insert(db: SQLiteDatabase, entry: WordEntry, key: String): Long {
+    private fun insert(
+        db: SQLiteDatabase,
+        entry: WordEntry,
+        key: String,
+        context: SavedWordContext?
+    ): Long {
         val values = ContentValues().apply {
             put(VocabularyDatabaseHelper.COL_WORD, entry.word.trim())
             put(VocabularyDatabaseHelper.COL_WORD_KEY, key)
@@ -189,6 +251,17 @@ class SqliteVocabularyRepository(
             put(VocabularyDatabaseHelper.COL_MEANINGS_JSON, encodeMeanings(entry.meanings))
             put(VocabularyDatabaseHelper.COL_DIFFICULTY, entry.difficulty.name)
             put(VocabularyDatabaseHelper.COL_CREATED_AT, System.currentTimeMillis())
+            if (context != null && context.isValid()) {
+                put(VocabularyDatabaseHelper.COL_CONTEXT_SOURCE, context.source?.take(1000))
+                put(
+                    VocabularyDatabaseHelper.COL_CONTEXT_TRANSLATION,
+                    context.translation?.take(1000)
+                )
+            }
+            put(
+                VocabularyDatabaseHelper.COL_ITEM_TYPE,
+                VocabularyItemType.infer(entry.word).name
+            )
         }
         return db.insertWithOnConflict(
             VocabularyDatabaseHelper.TABLE,
@@ -228,8 +301,39 @@ class SqliteVocabularyRepository(
             difficulty = difficulty,
             createdAt = cursor.getLong(
                 cursor.getColumnIndexOrThrow(VocabularyDatabaseHelper.COL_CREATED_AT)
+            ),
+            context = readContext(cursor),
+            learningStatus = LearningStatus.fromName(
+                cursor.getString(
+                    cursor.getColumnIndexOrThrow(VocabularyDatabaseHelper.COL_LEARNING_STATUS)
+                )
+            ),
+            familiarity = cursor.getInt(
+                cursor.getColumnIndexOrThrow(VocabularyDatabaseHelper.COL_FAMILIARITY)
+            ),
+            lastReviewedAt = cursor.getLong(
+                cursor.getColumnIndexOrThrow(VocabularyDatabaseHelper.COL_LAST_REVIEWED_AT)
+            ).takeIf { it > 0L },
+            itemType = VocabularyItemType.fromName(
+                cursor.getString(
+                    cursor.getColumnIndexOrThrow(VocabularyDatabaseHelper.COL_ITEM_TYPE)
+                )
             )
         )
+    }
+
+    private fun readContext(cursor: Cursor): SavedWordContext? {
+        val source = cursor.getString(
+            cursor.getColumnIndexOrThrow(VocabularyDatabaseHelper.COL_CONTEXT_SOURCE)
+        )?.takeIf { it.isNotBlank() }
+        val translation = cursor.getString(
+            cursor.getColumnIndexOrThrow(VocabularyDatabaseHelper.COL_CONTEXT_TRANSLATION)
+        )?.takeIf { it.isNotBlank() }
+        return if (source == null && translation == null) {
+            null
+        } else {
+            SavedWordContext(source, translation)
+        }
     }
 
     private fun encodeMeanings(meanings: List<Meaning>): String {

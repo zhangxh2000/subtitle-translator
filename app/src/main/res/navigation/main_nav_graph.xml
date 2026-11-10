@@ -15,9 +15,9 @@
         android:label="@string/nav_vocabulary" />
 
     <fragment
-        android:id="@+id/historyFragment"
-        android:name="com.zhangxh.subtitletranslator.ui.history.HistoryFragment"
-        android:label="@string/nav_history" />
+        android:id="@+id/learningFragment"
+        android:name="com.zhangxh.subtitletranslator.ui.learning.LearningFragment"
+        android:label="@string/nav_learning" />
 
     <fragment
         android:id="@+id/profileFragment"

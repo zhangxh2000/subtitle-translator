@@ -6,23 +6,32 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.ui.MainViewModel
+import com.zhangxh.subtitletranslator.ui.common.HelpBottomSheet
+import com.zhangxh.subtitletranslator.ui.learning.LearningViewModel
 
 /**
  * 首页
  *
- * 只保留核心入口：服务状态、启动/停止、简短使用说明。
- * 历史/词汇/设置由底部导航承载，不再在首页堆快捷入口。
+ * 一个主操作：开始字幕翻译；下方只保留今日学习概览。
+ * 翻译历史已移除，学习数据全部来自本地词库。
  */
 class HomeFragment : Fragment() {
 
-    private val viewModel: MainViewModel by activityViewModels()
-    private var statusContainer: View? = null
+    private val mainViewModel: MainViewModel by activityViewModels()
+    private val learningViewModel: LearningViewModel by viewModels()
+
     private var btnStartService: Button? = null
+    private var tvServiceState: TextView? = null
+    private var tvCollectedCount: TextView? = null
+    private var tvTodayReview: TextView? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -32,23 +41,47 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        statusContainer = view.findViewById(R.id.statusContainer)
         btnStartService = view.findViewById(R.id.btnStartService)
-        btnStartService?.setOnClickListener { viewModel.onStartStopClicked() }
+        tvServiceState = view.findViewById(R.id.tvServiceState)
+        tvCollectedCount = view.findViewById(R.id.tvCollectedCount)
+        tvTodayReview = view.findViewById(R.id.tvTodayReview)
 
-        viewModel.serviceRunning.observe(viewLifecycleOwner) { running ->
+        btnStartService?.setOnClickListener { mainViewModel.onStartStopClicked() }
+        view.findViewById<View>(R.id.btnProfileAvatar).setOnClickListener {
+            findNavController().navigate(R.id.profileFragment)
+        }
+        view.findViewById<View>(R.id.btnViewPlan).setOnClickListener {
+            findNavController().navigate(R.id.learningFragment)
+        }
+        view.findViewById<View>(R.id.btnHelp).setOnClickListener {
+            HelpBottomSheet().show(parentFragmentManager, "help")
+        }
+
+        mainViewModel.serviceRunning.observe(viewLifecycleOwner) { running ->
             renderServiceState(running)
         }
+        learningViewModel.stats.observe(viewLifecycleOwner) { stats ->
+            tvCollectedCount?.text = stats.total.toString()
+            tvTodayReview?.text = getString(
+                R.string.learning_progress_value,
+                stats.reviewedToday,
+                stats.dailyGoal
+            )
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        learningViewModel.refresh()
     }
 
     private fun renderServiceState(running: Boolean) {
         val context = context ?: return
-        statusContainer?.visibility = if (running) View.VISIBLE else View.GONE
         val button = btnStartService ?: return
+        tvServiceState?.visibility = if (running) View.VISIBLE else View.GONE
         button.text = getString(
             if (running) R.string.main_stop_service else R.string.main_start_service
         )
-        // MaterialButton 不能把 backgroundTintList 置空来“恢复默认”，否则会失去填充色
         button.backgroundTintList = ColorStateList.valueOf(
             ContextCompat.getColor(
                 context,

@@ -8,6 +8,7 @@
     <string name="action_clear">清空</string>
     <string name="action_delete">删除</string>
     <string name="action_pronounce">朗读</string>
+    <string name="action_more">更多操作</string>
     <string name="action_save_word">收藏</string>
     <string name="action_unsave_word">取消收藏</string>
     <string name="decorative_bullet" translatable="false">●</string>
@@ -24,10 +25,8 @@
     <string name="main_status_hint">点击悬浮球翻译字幕，长按打开菜单</string>
     <string name="main_start_service">启动字幕翻译</string>
     <string name="main_stop_service">停止字幕翻译</string>
-    <string name="main_history">翻译历史</string>
     <string name="main_vocabulary">生词库</string>
     <string name="main_settings">设置</string>
-    <string name="main_history_short">翻译历史</string>
     <string name="main_vocabulary_short">生词库</string>
     <string name="main_settings_short">设置</string>
     <string name="main_restart_hint">录屏权限已失效，请重新授权</string>
@@ -123,11 +122,44 @@
     <string name="language_es">西班牙语</string>
     <string name="language_option">%1$s (%2$s)</string>
 
-    <!-- 历史 -->
-    <string name="history_empty">暂无翻译记录</string>
-    <string name="history_cleared">历史记录已清空</string>
+    <!-- 首页 -->
+    <string name="home_greeting">很高兴又见到你</string>
+    <string name="home_tagline">把正在看的，翻译成看得懂的</string>
+    <string name="home_section_translation">字幕翻译</string>
+    <string name="home_core_feature">核心功能</string>
+    <string name="home_assistant_title">字幕翻译助手</string>
+    <string name="home_assistant_subtitle">识别屏幕字幕，在悬浮窗中显示译文</string>
+    <string name="home_service_running">正在后台运行</string>
+    <string name="home_help_link">它怎么用？</string>
+    <string name="home_section_learning">今日学习</string>
+    <string name="home_view_plan">查看计划</string>
+    <string name="home_stat_collected">已收词</string>
+    <string name="home_stat_review">已复习</string>
 
     <!-- 生词库 -->
+    <string name="vocabulary_title">词汇</string>
+    <string name="vocabulary_subtitle">从字幕里收集的词和短语</string>
+    <string name="vocabulary_stat_all">全部</string>
+    <string name="vocabulary_stat_words">单词</string>
+    <string name="vocabulary_stat_phrases">短语</string>
+    <string name="vocabulary_search_hint">搜索单词或字幕</string>
+    <string name="vocabulary_filter_all">全部</string>
+    <string name="vocabulary_filter_words">单词</string>
+    <string name="vocabulary_filter_phrases">短语</string>
+    <string name="vocabulary_sort">排序</string>
+    <string name="vocabulary_recent">最近收藏</string>
+    <string name="vocabulary_all">全部词汇</string>
+    <string name="vocabulary_sort_recent">最近收藏优先</string>
+    <string name="vocabulary_sort_alpha">按字母排序</string>
+    <string name="vocabulary_empty_title">还没有收藏的词汇</string>
+    <string name="vocabulary_empty_desc">在翻译结果中点击书签，就会保存到这里。</string>
+    <string name="vocabulary_no_results">没有匹配的词汇</string>
+    <string name="vocabulary_no_results_desc">换个关键词或筛选条件试试。</string>
+    <string name="vocabulary_meta">收藏于 %1$s · %2$s</string>
+    <string name="vocabulary_source_subtitle">来自字幕</string>
+    <string name="vocabulary_date_today">今天</string>
+    <string name="vocabulary_date_yesterday">昨天</string>
+    <string name="vocabulary_type_phrase">短语</string>
     <string name="vocabulary_empty">暂无生词\n\n在翻译结果中点击书签图标即可收藏</string>
     <string name="vocabulary_added_at">收藏于 %1$s</string>
     <string name="vocabulary_deleted">已删除“%1$s”</string>
@@ -216,8 +248,61 @@
     <!-- 底部导航 -->
     <string name="nav_home">首页</string>
     <string name="nav_vocabulary">词汇</string>
-    <string name="nav_history">历史</string>
+    <string name="nav_learning">学习</string>
     <string name="nav_profile">我的</string>
+
+    <!-- 学习 -->
+    <string name="learning_title">学习</string>
+    <string name="learning_subtitle">把收藏的字幕，变成记得住的词</string>
+    <string name="learning_goal_title">今日目标</string>
+    <string name="learning_in_progress">进行中</string>
+    <string name="learning_goal_done">已完成</string>
+    <string name="learning_goal_reviewed">个词已复习</string>
+    <string name="learning_progress_value">%1$d/%2$d</string>
+    <string name="learning_percent_value">%1$d%%</string>
+    <string name="learning_continue_review">继续复习</string>
+    <string name="learning_due">待复习</string>
+    <string name="learning_mastered">已掌握</string>
+    <string name="learning_empty">还没有收藏的词汇。在悬浮翻译窗中收藏单词，就会出现在这里。</string>
+    <string name="learning_methods">学习方式</string>
+    <string name="learning_word_cards">单词卡片</string>
+    <string name="learning_word_cards_desc">翻看全部收藏词汇</string>
+    <string name="learning_due_words">待复习</string>
+    <string name="learning_due_words_desc">复习尚未掌握的词汇</string>
+    <string name="learning_stats">学习统计</string>
+    <string name="learning_stats_desc">趋势与复习日历</string>
+    <string name="learning_coming_soon">即将上线</string>
+
+    <!-- 单词复习 -->
+    <string name="word_review_title">单词复习</string>
+    <string name="word_review_progress">%1$d / %2$d</string>
+    <string name="word_review_score">✓ %1$d · ↻ %2$d</string>
+    <string name="word_review_tap_hint">先回想释义，再点击卡片查看</string>
+    <string name="word_review_reveal">显示释义</string>
+    <string name="word_review_known">认识</string>
+    <string name="word_review_unknown">再复习</string>
+    <string name="word_review_finished_title">本轮完成</string>
+    <string name="word_review_finished_summary">认识 %1$d 个 · 待复习 %2$d 个</string>
+    <string name="word_review_again">再复习一轮</string>
+    <string name="word_review_done">完成</string>
+    <string name="word_review_empty_title">暂无待复习内容</string>
+    <string name="word_review_empty_desc">翻译时收藏一些单词，再回来用单词卡片复习。</string>
+    <string name="word_review_back">返回学习页</string>
+
+    <!-- 单词详情 -->
+    <string name="word_detail_title">词汇详情</string>
+    <string name="word_detail_context_title">字幕中的用法</string>
+    <string name="word_detail_examples_title">例句</string>
+    <string name="word_detail_delete">删除词汇</string>
+    <string name="word_detail_delete_confirm_title">删除这个词汇？</string>
+    <string name="word_detail_delete_confirm_message">将从本地词库中移除，且无法恢复。</string>
+    <string name="word_detail_no_meaning">暂无释义</string>
+    <string name="word_detail_not_found">该词汇已不在词库中</string>
+    <string name="word_status_new">新词</string>
+    <string name="word_status_learning">学习中</string>
+    <string name="word_status_reviewing">待复习</string>
+    <string name="word_status_mastered">已掌握</string>
+    <string name="word_status_archived">已归档</string>
 
     <!-- 登录 / 注册 -->
     <string name="auth_login_title">欢迎回来</string>
@@ -273,7 +358,34 @@
     <string name="profile_cloud_sync">云端同步</string>
     <string name="profile_cloud_sync_desc">上线后可在不同设备间同步生词。</string>
     <string name="profile_cloud_sync_coming_soon">即将上线</string>
+    <string name="profile_settings_section">设置</string>
+    <string name="profile_preferences">偏好设置</string>
+    <string name="profile_preferences_desc">翻译、OCR 与悬浮窗</string>
+    <string name="profile_language_settings">语言设置</string>
+    <string name="profile_language_desc">翻译方向与识别语言</string>
+    <string name="profile_about">关于我们</string>
+    <string name="profile_about_desc">版本、隐私政策与服务条款</string>
     <string name="profile_version">版本 %1$s</string>
+
+    <!-- 关于 -->
+    <string name="about_title">关于我们</string>
+    <string name="about_message">字幕翻译助手 %1$s\n\n识别屏幕上的字幕，并在悬浮窗中显示译文。</string>
+    <string name="about_terms_message">完整法律文本将在正式上线前提供。使用本应用即表示你已阅读并同意服务条款。</string>
+    <string name="about_privacy_message">完整隐私政策将在正式上线前提供。截图仅在本机用于识别与翻译；收藏的词汇保存在本地，除非你主动选择同步。</string>
+    <string name="about_ok">好的</string>
+
+    <!-- 使用说明 -->
+    <string name="help_title">怎么使用</string>
+    <string name="help_subtitle">从启动悬浮翻译，到复习收藏的词汇。</string>
+    <string name="help_step_1_title">启动助手</string>
+    <string name="help_step_1_desc">在首页点击「启动字幕翻译」，允许录屏和悬浮窗权限。</string>
+    <string name="help_step_2_title">打开视频</string>
+    <string name="help_step_2_desc">用任意会在屏幕上显示字幕的播放器播放视频。</string>
+    <string name="help_step_3_title">点击悬浮球</string>
+    <string name="help_step_3_desc">助手会截取字幕、翻译并在悬浮窗中显示结果；用左右箭头切换上下句。</string>
+    <string name="help_step_4_title">复习收藏的内容</string>
+    <string name="help_step_4_desc">收藏单词时会保留字幕上下文，可在「学习」页复习。</string>
+    <string name="help_close">知道了</string>
 
     <!-- 登录引导 -->
     <string name="login_required_title">需要登录</string>

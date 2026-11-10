@@ -12,6 +12,5 @@ data class TranslationResult(
     val translatedText: String = "",
     val difficultWords: List<WordEntry> = emptyList(),
     val isSuccess: Boolean = false,
-    val error: TranslationError? = null,
-    val timestamp: Long = System.currentTimeMillis()
+    val error: TranslationError? = null
 )

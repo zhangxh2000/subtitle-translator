@@ -2,50 +2,29 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:paddingStart="@dimen/word_card_padding"
-    android:paddingTop="@dimen/word_card_padding"
-    android:paddingEnd="@dimen/word_card_padding_end"
-    android:paddingBottom="@dimen/word_card_padding"
-    android:layout_marginTop="@dimen/word_card_spacing"
-    android:background="@drawable/bg_card">
-
-    <!-- 与 item_word_entry 相同的对齐约定：单词行被 40dp 按钮撑高，标签下移 (40-24)/2 = 8dp -->
-    <TextView
-        android:id="@+id/tvDifficulty"
-        android:layout_width="wrap_content"
-        android:layout_height="24dp"
-        android:layout_marginTop="8dp"
-        android:minWidth="32dp"
-        android:paddingHorizontal="8dp"
-        android:gravity="center"
-        android:textSize="11sp"
-        android:textStyle="bold"
-        android:textColor="@color/difficulty_medium_text"
-        android:background="@drawable/bg_difficulty_tag" />
+    android:background="?attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+    android:orientation="vertical">
 
     <LinearLayout
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:layout_marginStart="12dp"
-        android:orientation="vertical">
+        android:gravity="top"
+        android:orientation="horizontal"
+        android:paddingTop="14dp">
 
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:baselineAligned="false">
+            android:layout_weight="1"
+            android:orientation="vertical">
 
-            <!-- 文本区可压缩，窄屏上按钮不会被长单词/音标推出卡片（同 item_word_entry） -->
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:baselineAligned="false">
+                android:orientation="horizontal">
 
                 <TextView
                     android:id="@+id/tvWord"
@@ -53,56 +32,77 @@
                     android:layout_height="wrap_content"
                     android:maxLines="1"
                     android:ellipsize="end"
-                    android:textAppearance="@style/TextAppearance.SubtitleTranslator.Word" />
+                    android:textColor="@color/text_primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/tvPhonetic"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:layout_marginStart="8dp"
-                    android:maxLines="1"
+                    android:layout_weight="1"
                     android:ellipsize="end"
-                    android:textAppearance="@style/TextAppearance.SubtitleTranslator.Phonetic" />
+                    android:maxLines="1"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tvType"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="@string/vocabulary_type_phrase"
+                    android:textColor="@color/accent_dim"
+                    android:textSize="11sp"
+                    android:visibility="gone" />
             </LinearLayout>
 
-            <ImageButton
-                android:id="@+id/btnPronounce"
-                android:layout_width="@dimen/word_icon_size"
-                android:layout_height="@dimen/word_icon_size"
-                android:padding="@dimen/word_icon_padding"
-                android:scaleType="fitCenter"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_volume_up"
-                android:contentDescription="@string/action_pronounce" />
+            <TextView
+                android:id="@+id/tvMeanings"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:textColor="@color/accent_dim"
+                android:textSize="14sp"
+                android:textStyle="bold" />
 
-            <ImageButton
-                android:id="@+id/btnDelete"
-                android:layout_width="@dimen/word_icon_size"
-                android:layout_height="@dimen/word_icon_size"
-                android:padding="@dimen/word_icon_padding"
-                android:scaleType="fitCenter"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_delete"
-                android:contentDescription="@string/action_delete" />
+            <TextView
+                android:id="@+id/tvContext"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/tvMeta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
         </LinearLayout>
 
-        <!-- 补回卡片右侧少掉的 8dp，让释义文字的视觉右留白仍与左侧一致 -->
-        <TextView
-            android:id="@+id/tvMeanings"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:layout_marginEnd="@dimen/word_icon_padding"
-            android:textAppearance="@style/TextAppearance.SubtitleTranslator.Meaning" />
-
-        <TextView
-            android:id="@+id/tvAddedAt"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textSize="11sp"
-            android:textColor="@color/text_secondary" />
+        <ImageButton
+            android:id="@+id/btnMore"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/action_more"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_more_vert" />
     </LinearLayout>
 
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="14dp"
+        android:background="@color/divider" />
 </LinearLayout>

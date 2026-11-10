@@ -10,6 +10,8 @@ import com.zhangxh.subtitletranslator.ui.auth.LoginActivity
 import com.zhangxh.subtitletranslator.ui.auth.RegisterActivity
 import com.zhangxh.subtitletranslator.ui.ImagePreviewActivity
 import com.zhangxh.subtitletranslator.ui.SettingsActivity
+import com.zhangxh.subtitletranslator.ui.learning.WordReviewActivity
+import com.zhangxh.subtitletranslator.ui.vocabulary.WordDetailActivity
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -41,11 +43,13 @@ class WindowInsetsTest {
             RegisterActivity::class.java,
             DebugCaptureActivity::class.java,
             ImagePreviewActivity::class.java,
+            WordDetailActivity::class.java,
+            WordReviewActivity::class.java,
             MainActivity::class.java
         )
 
-        /** 主界面根布局自带 24dp 内边距，用来验证 insets 是叠加而非覆盖 */
-        const val MAIN_ACTIVITY_PADDING_DP = 24
+        /** 首页内容根布局自带 20dp 内边距，用来验证 insets 是叠加而非覆盖 */
+        const val HOME_PADDING_DP = 20
     }
 
     private fun systemBarInsets(): WindowInsetsCompat =
@@ -113,8 +117,8 @@ class WindowInsetsTest {
 
             val homeRoot = activity.findViewById<ViewGroup>(R.id.homeRoot)
             val ownPadding =
-                (MAIN_ACTIVITY_PADDING_DP * homeRoot.resources.displayMetrics.density).toInt()
-            assertEquals("首页根布局应保留 24dp 内边距", ownPadding, homeRoot.paddingLeft)
+                (HOME_PADDING_DP * homeRoot.resources.displayMetrics.density).toInt()
+            assertEquals("首页内容应保留 20dp 内边距", ownPadding, homeRoot.paddingLeft)
         } finally {
             controller.destroy()
         }

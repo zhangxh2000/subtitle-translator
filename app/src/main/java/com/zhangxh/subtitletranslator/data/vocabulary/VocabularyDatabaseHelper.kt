@@ -20,7 +20,7 @@ class VocabularyDatabaseHelper(
         private const val TAG = "VocabularyDatabase"
 
         const val DATABASE_NAME = "vocabulary.db"
-        const val DATABASE_VERSION = 1
+        const val DATABASE_VERSION = 2
 
         const val TABLE = "saved_words"
         const val COL_ID = "_id"
@@ -30,6 +30,12 @@ class VocabularyDatabaseHelper(
         const val COL_MEANINGS_JSON = "meanings_json"
         const val COL_DIFFICULTY = "difficulty"
         const val COL_CREATED_AT = "created_at"
+        const val COL_CONTEXT_SOURCE = "context_source"
+        const val COL_CONTEXT_TRANSLATION = "context_translation"
+        const val COL_LEARNING_STATUS = "learning_status"
+        const val COL_FAMILIARITY = "familiarity"
+        const val COL_LAST_REVIEWED_AT = "last_reviewed_at"
+        const val COL_ITEM_TYPE = "item_type"
     }
 
     init {
@@ -47,7 +53,13 @@ class VocabularyDatabaseHelper(
                 $COL_PHONETIC TEXT NOT NULL DEFAULT '',
                 $COL_MEANINGS_JSON TEXT NOT NULL DEFAULT '[]',
                 $COL_DIFFICULTY TEXT NOT NULL DEFAULT 'MEDIUM',
-                $COL_CREATED_AT INTEGER NOT NULL
+                $COL_CREATED_AT INTEGER NOT NULL,
+                $COL_CONTEXT_SOURCE TEXT,
+                $COL_CONTEXT_TRANSLATION TEXT,
+                $COL_LEARNING_STATUS TEXT NOT NULL DEFAULT 'NEW',
+                $COL_FAMILIARITY INTEGER NOT NULL DEFAULT 0,
+                $COL_LAST_REVIEWED_AT INTEGER,
+                $COL_ITEM_TYPE TEXT NOT NULL DEFAULT 'WORD'
             )
             """.trimIndent()
         )
@@ -62,7 +74,24 @@ class VocabularyDatabaseHelper(
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // v1 不会走到这里。以后升级只做增量迁移，绝不 DROP 用户数据。
         Log.d(TAG, "onUpgrade $oldVersion -> $newVersion")
+        // 只做增量迁移，绝不 DROP 用户数据。
+        if (oldVersion < 2) {
+            db.execSQL("ALTER TABLE $TABLE ADD COLUMN $COL_CONTEXT_SOURCE TEXT")
+            db.execSQL("ALTER TABLE $TABLE ADD COLUMN $COL_CONTEXT_TRANSLATION TEXT")
+            db.execSQL(
+                "ALTER TABLE $TABLE ADD COLUMN $COL_LEARNING_STATUS " +
+                    "TEXT NOT NULL DEFAULT 'NEW'"
+            )
+            db.execSQL(
+                "ALTER TABLE $TABLE ADD COLUMN $COL_FAMILIARITY " +
+                    "INTEGER NOT NULL DEFAULT 0"
+            )
+            db.execSQL("ALTER TABLE $TABLE ADD COLUMN $COL_LAST_REVIEWED_AT INTEGER")
+            db.execSQL(
+                "ALTER TABLE $TABLE ADD COLUMN $COL_ITEM_TYPE " +
+                    "TEXT NOT NULL DEFAULT 'WORD'"
+            )
+        }
     }
 }

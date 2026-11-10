@@ -12,10 +12,11 @@
 - ⏯️ **智能控制**：自动暂停/恢复视频播放
 - ⏮️ **字幕导航**：翻译面板里可跳上一句/下一句；通过 MediaSession 精确 seek，自动识别字幕边界（需通知使用权）
 - 📋 **一键复制**：长按原文/译文/单词即可复制到剪贴板
-- 📜 **翻译历史**：保存最近 50 条翻译记录，方便复习
+- 📚 **词汇本**：收藏时保留字幕上下文，支持搜索、单词/短语筛选和排序
+- 🎓 **学习中心**：本地单词卡片复习，认识累计 3 次自动标记为已掌握；每日复习目标与进度
 - ⚙️ **语言设置**：支持多语言对切换（英/日/韩/法/德/西等）
 - 👤 **账号体系**：邮箱注册/登录、Token 自动刷新、启动恢复登录态；游客可正常翻译，收藏需要登录
-- 🧭 **Material 3 导航**：首页 / 词汇 / 历史 / 我的四个底部入口；设置作为“我的”子页面
+- 🧭 **Material 3 导航**：首页 / 词汇 / 学习 / 我的四个底部入口；设置与关于在“我的”页
 - ☁️ **云端同步（预留）**：已接入用户会话与鉴权骨架，生词同步等待服务端接口上线后启用
 
 ## 技术架构
@@ -45,7 +46,7 @@
 
 - `ui/`：Activity 只负责渲染和系统交互；每个页面配套 `XxxViewModel`，用 `by viewModels()` 获取。
 - ViewModel 负责业务状态与数据编排：用 `viewModelScope` 执行异步任务，通过 `LiveData` 暴露状态、`Event` 暴露一次性事件。
-- `data/`：可写数据库（生词库）、文件（调试截图）、SharedPreferences（`SettingsStore`）、翻译历史（`TranslationHistoryStore`）等数据源。
+- `data/`：可写数据库（生词库与学习状态）、文件（调试截图）、SharedPreferences（`SettingsStore`）、鉴权会话等数据源。
 - `domain/`：与 Android 无关的接口和模型。
 
 强制规则见 [`CLAUDE.md`](CLAUDE.md)。
@@ -78,7 +79,9 @@
 
 ### 5. UI 层 (`ui/`)
 - `MainActivity`：Material 3 壳 + 底部导航 + 系统权限编排
-- `HomeFragment` / `VocabularyFragment` / `HistoryFragment` / `ProfileFragment`：四个 Tab
+- `HomeFragment` / `VocabularyFragment` / `LearningFragment` / `ProfileFragment`：四个 Tab
+- `WordDetailActivity`：词汇详情、字幕上下文、例句、删除
+- `WordReviewActivity`：单词卡片复习（认识 / 再复习）
 - `LoginActivity` / `RegisterActivity`：邮箱密码登录与注册
 - `SettingsActivity`：语言、引擎、OCR、媒体/无障碍权限等设置
 - `TranslationOverlayView`：翻译结果悬浮窗
@@ -100,9 +103,9 @@
 6. 查看翻译结果和重点词汇，长按可复制；底部可切换上一句/下一句
 7. 再次点击按钮关闭翻译并恢复播放
 
-> 底部导航：首页 / 词汇 / 历史 / 我的。游客可以正常翻译和浏览本地词汇；
+> 底部导航：首页 / 词汇 / 学习 / 我的。游客可以正常翻译和浏览本地词汇；
 > 点击悬浮窗的书签收藏会先进入登录页，登录成功后自动继续保存。
-> 登录入口在「我的」；设置入口也在「我的」。
+> 登录、偏好设置、语言设置和「关于我们」都在「我的」页。
 
 > 字幕导航依赖播放器的 MediaSession：YouTube、VLC 等支持精确 seek 的播放器可用；
 > 暂停状态下 seek 不刷新画面的播放器，会自动静音播放一小段来渲染目标帧。
@@ -120,7 +123,7 @@
   `GET /me`、`GET /config`。
 - Token：Access 15 分钟、Refresh 30 天，刷新时轮换；401 最多刷新并重试一次；
   刷新遇到网络错误时保留本地登录态，不会把人踢下线。
-- 游客：可以翻译、查看历史、浏览本地词汇；**收藏生词需要登录**。
+- 游客：可以翻译、浏览本地词汇和使用学习功能；**收藏生词需要登录**。
   悬浮窗里点书签会打开登录页，登录成功后自动继续保存。
 - 注册需要同意服务端返回版本的条款/隐私政策。完整法律文本尚未提供，当前为占位说明，
   上线前必须替换为正式文本。
@@ -132,7 +135,7 @@
 | 操作 | 效果 |
 |---|---|
 | 单击 | 翻译字幕 / 收起翻译结果 |
-| 长按 | 打开快捷菜单：翻译历史、设置、停止字幕翻译 |
+| 长按 | 打开快捷菜单：学习、设置、停止字幕翻译 |
 | 拖动 | 移动按钮位置（会自动记忆） |
 
 **退出（停止字幕翻译）** 有三个入口，任选其一：
@@ -174,9 +177,12 @@ subtitle-translator/
 │   │   ├── translator/ ocr/ screenshot/ dictionary/ wordextractor/
 │   ├── service/                        # 悬浮窗/媒体/无障碍服务
 │   └── ui/
-│       ├── home/ vocabulary/ history/ profile/  # 4 个底部 Tab
+│       ├── home/ vocabulary/ learning/ profile/  # 4 个底部 Tab
+│       ├── vocabulary/WordDetailActivity.kt      # 词汇详情
+│       ├── learning/WordReviewActivity.kt        # 单词卡片复习
 │       ├── auth/                       # Login/Register + ViewModel
 │       ├── common/auth/                # LoginGate、登录引导 BottomSheet
+│       ├── common/HelpBottomSheet.kt   # 首页使用说明
 │       ├── SettingsActivity.kt
 │       └── overlay/                    # 翻译结果悬浮窗
 ├── app/src/main/assets/dictionary.db   # 词典数据库（由脚本生成后入库）
@@ -308,7 +314,7 @@ python3 scripts/import_ecdict.py --csv ecdict.csv --lemma lemma.en.txt
 - **ML Kit Text Recognition**：文字识别
 - **Kotlin Coroutines**：异步处理
 - **AppCompat / Material**：兼容支持
-- **RecyclerView**：历史记录列表
+- **RecyclerView**：词汇列表
 - **ECDICT**：离线词典数据（MIT License，见上文「词典数据」）
 - **JUnit / Robolectric**：单元测试（仅测试期依赖）
 
@@ -325,7 +331,7 @@ python3 scripts/import_ecdict.py --csv ecdict.csv --lemma lemma.en.txt
 - [x] 支持更多语言对
 - [ ] 接入百度/Google/DeepL 等云端翻译 API
 - [x] 本地词典扩展（内置 ECDICT 离线词典）
-- [x] 翻译历史记录
+- [x] 本地单词卡片复习与每日目标
 - [ ] 悬浮窗样式自定义
 - [ ] 自动识别字幕语言
 - [ ] 翻译结果语音朗读
@@ -341,6 +347,13 @@ python3 scripts/import_ecdict.py --csv ecdict.csv --lemma lemma.en.txt
 4. 悬浮窗位置会自动记忆，下次启动时恢复上次位置
 
 ## 最近更新
+
+- 界面改版：底部导航调整为首页/词汇/学习/我的，移除翻译历史；新增学习 Tab
+  （每日目标、待复习、已掌握、单词卡片复习）、词汇详情页（字幕上下文/例句）、
+  首页学习概览与使用说明、我的页偏好设置/语言设置/关于我们
+- 生词库升级：收藏时保存字幕原文与译文；新增学习状态、熟悉度、最近复习时间、
+  单词/短语类型；数据库版本 1 → 2 增量迁移，保留已有收藏
+- 增补学习统计、复习流程、词汇搜索/筛选/排序与数据库迁移的单元测试
 
 - 接入用户体系与 Material 3 导航：底部首页/词汇/历史/我的；新增邮箱注册、登录、
   Token 自动刷新、启动恢复会话、退出登录；游客收藏会被统一登录拦截，登录成功后继续原操作
@@ -370,7 +383,7 @@ python3 scripts/import_ecdict.py --csv ecdict.csv --lemma lemma.en.txt
   （`values-b+zh+Hant`）；翻译引擎报错改为错误码、由 UI 层本地化，调试记录兼容旧格式
 
 - 架构改造：全部界面切换为 MVVM —— Activity 只做渲染与系统交互，权限编排、设置持久化、
-  数据读写全部移入 ViewModel；设置项抽到 `SettingsStore`，翻译历史抽到 `TranslationHistoryStore`；
+  数据读写全部移入 ViewModel；设置项抽到 `SettingsStore`（当时的翻译历史模块已在后续改版中移除）；
   新增 `CLAUDE.md` 记录架构约束
 
 - 翻译引擎做成设置项可选：新增百度翻译（自填密钥）与 Google 翻译（免密钥公开接口），

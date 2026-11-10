@@ -7,6 +7,8 @@ import com.zhangxh.subtitletranslator.ui.ImagePreviewActivity
 import com.zhangxh.subtitletranslator.ui.SettingsActivity
 import com.zhangxh.subtitletranslator.ui.auth.LoginActivity
 import com.zhangxh.subtitletranslator.ui.auth.RegisterActivity
+import com.zhangxh.subtitletranslator.ui.learning.WordReviewActivity
+import com.zhangxh.subtitletranslator.ui.vocabulary.WordDetailActivity
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,7 +33,9 @@ class OrientationLockTest {
             RegisterActivity::class.java,
             SettingsActivity::class.java,
             DebugCaptureActivity::class.java,
-            ImagePreviewActivity::class.java
+            ImagePreviewActivity::class.java,
+            WordDetailActivity::class.java,
+            WordReviewActivity::class.java
         )
     }
 

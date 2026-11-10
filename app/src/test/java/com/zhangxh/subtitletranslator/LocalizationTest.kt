@@ -38,8 +38,9 @@ class LocalizationTest {
     @Test
     fun `traditional chinese uses traditional wording`() {
         assertEquals("設定", contextFor("zh-Hant").getString(R.string.main_settings))
-        assertEquals("翻譯歷史", contextFor("zh-Hant").getString(R.string.main_history))
+        assertEquals("學習", contextFor("zh-Hant").getString(R.string.learning_title))
         assertEquals("生詞庫", contextFor("zh-Hant").getString(R.string.main_vocabulary))
+        assertEquals("偏好設定", contextFor("zh-Hant").getString(R.string.profile_preferences))
     }
 
     @Test
@@ -58,7 +59,6 @@ class LocalizationTest {
             R.string.main_step_3,
             R.string.main_step_4,
             R.string.main_step_5,
-            R.string.main_history_short,
             R.string.main_vocabulary_short,
             R.string.main_settings_short
         )
@@ -125,7 +125,7 @@ class LocalizationTest {
         val keys = listOf(
             R.string.nav_home,
             R.string.nav_vocabulary,
-            R.string.nav_history,
+            R.string.nav_learning,
             R.string.nav_profile,
             R.string.auth_login_title,
             R.string.auth_login_subtitle,
@@ -151,6 +151,50 @@ class LocalizationTest {
             R.string.error_auth_invalid_credentials,
             R.string.error_auth_session_expired,
             R.string.error_auth_server
+        )
+        val english = contextFor("en")
+        listOf("zh-Hans", "zh-Hant").forEach { tag ->
+            val localized = contextFor(tag)
+            keys.forEach { id ->
+                val name = english.resources.getResourceEntryName(id)
+                assertNotEquals(
+                    "$tag 的 $name 回退成了英文，说明缺少翻译",
+                    english.getString(id),
+                    localized.getString(id)
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `home vocabulary learning and about copy is translated`() {
+        val keys = listOf(
+            R.string.home_greeting,
+            R.string.home_tagline,
+            R.string.home_assistant_title,
+            R.string.home_section_learning,
+            R.string.vocabulary_title,
+            R.string.vocabulary_subtitle,
+            R.string.vocabulary_search_hint,
+            R.string.vocabulary_empty_title,
+            R.string.vocabulary_meta,
+            R.string.learning_title,
+            R.string.learning_subtitle,
+            R.string.learning_goal_title,
+            R.string.learning_continue_review,
+            R.string.word_review_title,
+            R.string.word_review_known,
+            R.string.word_review_unknown,
+            R.string.word_review_finished_summary,
+            R.string.word_detail_title,
+            R.string.word_detail_context_title,
+            R.string.word_status_mastered,
+            R.string.profile_preferences,
+            R.string.profile_language_settings,
+            R.string.profile_about,
+            R.string.about_title,
+            R.string.help_title,
+            R.string.help_step_1_desc
         )
         val english = contextFor("en")
         listOf("zh-Hans", "zh-Hant").forEach { tag ->

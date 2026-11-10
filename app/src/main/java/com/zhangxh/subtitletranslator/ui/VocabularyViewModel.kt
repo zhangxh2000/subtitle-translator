@@ -1,38 +1,53 @@
 package com.zhangxh.subtitletranslator.ui
 
 import android.app.Application
+import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
 import com.zhangxh.subtitletranslator.R
-import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
 import com.zhangxh.subtitletranslator.data.speech.AndroidTtsPronouncer
 import com.zhangxh.subtitletranslator.data.vocabulary.SqliteVocabularyRepository
-import com.zhangxh.subtitletranslator.domain.auth.AuthManager
-import com.zhangxh.subtitletranslator.domain.auth.AuthState
 import com.zhangxh.subtitletranslator.domain.speech.PronouncerError
 import com.zhangxh.subtitletranslator.domain.vocabulary.IVocabularyRepository
 import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWord
+import com.zhangxh.subtitletranslator.domain.vocabulary.VocabularyItemType
 import com.zhangxh.subtitletranslator.ui.common.Event
 import com.zhangxh.subtitletranslator.ui.common.UiText
 import com.zhangxh.subtitletranslator.ui.common.messageRes
 import kotlinx.coroutines.launch
+import java.util.Locale
+
+enum class VocabularyFilter {
+    ALL, WORD, PHRASE
+}
+
+enum class VocabularySort {
+    RECENT, ALPHABETICAL
+}
 
 data class VocabularyUiState(
     val items: List<SavedWord> = emptyList(),
-    val isEmpty: Boolean = true
+    val total: Int = 0,
+    val wordCount: Int = 0,
+    val phraseCount: Int = 0,
+    val query: String = "",
+    val filter: VocabularyFilter = VocabularyFilter.ALL,
+    val sort: VocabularySort = VocabularySort.RECENT,
+    val noData: Boolean = true,
+    val emptyResult: Boolean = true
 )
 
 /**
- * 生词库列表
+ * 个人词库
+ *
+ * 数据来自本地 SQLite；搜索、筛选、排序在内存中完成，适合当前词库规模。
+ * 复习状态由 LearningViewModel/WordReviewViewModel 维护。
  */
 class VocabularyViewModel @JvmOverloads constructor(
     application: Application,
-    private val repository: IVocabularyRepository = SqliteVocabularyRepository(application),
-    private val authManager: AuthManager =
-        (application as SubtitleTranslatorApplication).container.sessionManager
+    private val repository: IVocabularyRepository = SqliteVocabularyRepository(application)
 ) : AndroidViewModel(application) {
 
     private val pronouncer = AndroidTtsPronouncer(application) { error ->
@@ -45,29 +60,45 @@ class VocabularyViewModel @JvmOverloads constructor(
     private val _messages = MutableLiveData<Event<UiText>>()
     val messages: LiveData<Event<UiText>> = _messages
 
-    private val _isLoggedIn = MutableLiveData(authManager.isLoggedIn())
-    val isLoggedIn: LiveData<Boolean> = _isLoggedIn
+    private var allItems: List<SavedWord> = emptyList()
 
     init {
         refresh()
-        viewModelScope.launch {
-            authManager.state.collect { state ->
-                _isLoggedIn.value = state is AuthState.LoggedIn
-            }
-        }
     }
 
     fun refresh() {
         viewModelScope.launch {
-            val words = repository.list()
-            _uiState.value = VocabularyUiState(words, words.isEmpty())
+            allItems = repository.list()
+            publish()
         }
+    }
+
+    fun onQueryChanged(query: String) {
+        val current = _uiState.value ?: return
+        if (current.query == query) return
+        _uiState.value = current.copy(query = query)
+        publish()
+    }
+
+    fun setFilter(filter: VocabularyFilter) {
+        val current = _uiState.value ?: return
+        if (current.filter == filter) return
+        _uiState.value = current.copy(filter = filter)
+        publish()
+    }
+
+    fun setSort(sort: VocabularySort) {
+        val current = _uiState.value ?: return
+        if (current.sort == sort) return
+        _uiState.value = current.copy(sort = sort)
+        publish()
     }
 
     fun delete(word: String) {
         viewModelScope.launch {
             if (repository.remove(word)) {
-                refresh()
+                allItems = repository.list()
+                publish()
                 emitMessage(R.string.vocabulary_deleted, word)
             } else {
                 emitMessage(R.string.vocabulary_delete_failed)
@@ -78,7 +109,8 @@ class VocabularyViewModel @JvmOverloads constructor(
     fun clear() {
         viewModelScope.launch {
             if (repository.clear()) {
-                refresh()
+                allItems = emptyList()
+                publish()
                 emitMessage(R.string.vocabulary_cleared)
             } else {
                 emitMessage(R.string.vocabulary_clear_failed)
@@ -88,6 +120,56 @@ class VocabularyViewModel @JvmOverloads constructor(
 
     fun speak(word: String) {
         pronouncer.speak(word)
+    }
+
+    private fun publish() {
+        val state = _uiState.value ?: VocabularyUiState()
+        val query = state.query.trim().lowercase(Locale.getDefault())
+        val filtered = allItems.asSequence()
+            .filter { item ->
+                when (state.filter) {
+                    VocabularyFilter.ALL -> true
+                    VocabularyFilter.WORD -> item.itemType == VocabularyItemType.WORD
+                    VocabularyFilter.PHRASE -> item.itemType == VocabularyItemType.PHRASE
+                }
+            }
+            .filter { item -> query.isEmpty() || item.matches(query) }
+            .toList()
+
+        val sorted = when (state.sort) {
+            VocabularySort.RECENT -> filtered.sortedWith(
+                compareByDescending<SavedWord> { it.createdAt }.thenByDescending { it.id }
+            )
+            VocabularySort.ALPHABETICAL -> filtered.sortedBy {
+                it.word.lowercase(Locale.getDefault())
+            }
+        }
+
+        _uiState.value = state.copy(
+            items = sorted,
+            total = allItems.size,
+            wordCount = allItems.count { it.itemType == VocabularyItemType.WORD },
+            phraseCount = allItems.count { it.itemType == VocabularyItemType.PHRASE },
+            noData = allItems.isEmpty(),
+            emptyResult = sorted.isEmpty()
+        )
+    }
+
+    private fun SavedWord.matches(query: String): Boolean {
+        if (word.lowercase(Locale.getDefault()).contains(query)) return true
+        if (phonetic.lowercase(Locale.getDefault()).contains(query)) return true
+        if (meanings.any { meaning ->
+                meaning.partOfSpeech.lowercase(Locale.getDefault()).contains(query) ||
+                    meaning.definition.lowercase(Locale.getDefault()).contains(query) ||
+                    meaning.chineseDefinition.lowercase(Locale.getDefault()).contains(query) ||
+                    meaning.examples.any { it.lowercase(Locale.getDefault()).contains(query) }
+            }
+        ) {
+            return true
+        }
+        val context = context ?: return false
+        return context.source?.lowercase(Locale.getDefault())?.contains(query) == true ||
+            context.translation?.lowercase(Locale.getDefault())?.contains(query) == true
     }
 
     override fun onCleared() {

@@ -10,13 +10,30 @@ import com.zhangxh.subtitletranslator.domain.wordextractor.WordEntry
 interface IVocabularyRepository {
 
     /** 已收藏则删除，未收藏则插入；返回切换后的状态 */
-    suspend fun toggle(entry: WordEntry): ToggleResult
+    suspend fun toggle(
+        entry: WordEntry,
+        context: SavedWordContext? = null
+    ): ToggleResult
 
-    /** 幂等新增；已存在时保留第一次的展示写法与释义 */
-    suspend fun add(entry: WordEntry): Boolean
+    /** 幂等新增；已存在时保留第一次的展示写法、释义与上下文 */
+    suspend fun add(
+        entry: WordEntry,
+        context: SavedWordContext? = null
+    ): Boolean
 
     /** 按词删除（大小写不敏感）；词不存在也视为成功 */
     suspend fun remove(word: String): Boolean
+
+    /** 按词查询完整词条；不存在返回 null */
+    suspend fun find(word: String): SavedWord?
+
+    /** 更新复习状态；返回是否命中词条 */
+    suspend fun updateLearningState(
+        word: String,
+        status: LearningStatus,
+        familiarity: Int,
+        reviewedAt: Long
+    ): Boolean
 
     /** 全部生词，最新收藏的在前 */
     suspend fun list(): List<SavedWord>

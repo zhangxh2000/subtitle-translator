@@ -30,7 +30,7 @@ class MainActivity : BaseActivity() {
     companion object {
         const val EXTRA_RESTART_SERVICE = "extra_restart_service"
         const val EXTRA_OPEN_TAB = "extra_open_tab"
-        const val TAB_HISTORY = "history"
+        const val TAB_LEARNING = "learning"
         const val TAB_VOCABULARY = "vocabulary"
     }
 
@@ -84,7 +84,7 @@ class MainActivity : BaseActivity() {
             return
         }
         when (intent.getStringExtra(EXTRA_OPEN_TAB)) {
-            TAB_HISTORY -> navigateTo(R.id.historyFragment)
+            TAB_LEARNING -> navigateTo(R.id.learningFragment)
             TAB_VOCABULARY -> navigateTo(R.id.vocabularyFragment)
         }
     }

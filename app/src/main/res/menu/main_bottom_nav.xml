@@ -9,9 +9,9 @@
         android:icon="@drawable/ic_bookmark"
         android:title="@string/nav_vocabulary" />
     <item
-        android:id="@+id/historyFragment"
-        android:icon="@drawable/ic_history"
-        android:title="@string/nav_history" />
+        android:id="@+id/learningFragment"
+        android:icon="@drawable/ic_school"
+        android:title="@string/nav_learning" />
     <item
         android:id="@+id/profileFragment"
         android:icon="@drawable/ic_person"

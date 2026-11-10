@@ -36,6 +36,7 @@ class ProfileFragment : Fragment() {
     private lateinit var tvDisplayName: TextView
     private lateinit var tvEmail: TextView
     private lateinit var tvVerified: TextView
+    private lateinit var btnLogout: View
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,6 +63,7 @@ class ProfileFragment : Fragment() {
         tvDisplayName = view.findViewById(R.id.tvDisplayName)
         tvEmail = view.findViewById(R.id.tvEmail)
         tvVerified = view.findViewById(R.id.tvVerified)
+        btnLogout = view.findViewById(R.id.btnLogout)
 
         view.findViewById<View>(R.id.btnGuestLogin).setOnClickListener {
             loginGate.launchLoginDirectly()
@@ -69,9 +71,11 @@ class ProfileFragment : Fragment() {
         view.findViewById<View>(R.id.btnGuestRegister).setOnClickListener {
             startActivity(Intent(requireContext(), RegisterActivity::class.java))
         }
-        view.findViewById<View>(R.id.btnGuestSettings).setOnClickListener { openSettings() }
         view.findViewById<View>(R.id.btnSettings).setOnClickListener { openSettings() }
-        view.findViewById<View>(R.id.btnLogout).setOnClickListener { confirmLogout() }
+        view.findViewById<View>(R.id.btnPreferences).setOnClickListener { openSettings() }
+        view.findViewById<View>(R.id.btnLanguageSettings).setOnClickListener { openSettings() }
+        view.findViewById<View>(R.id.btnAbout).setOnClickListener { showAbout() }
+        btnLogout.setOnClickListener { confirmLogout() }
 
         view.findViewById<TextView>(R.id.tvVersion).text =
             getString(R.string.profile_version, BuildConfig.VERSION_NAME)
@@ -85,16 +89,19 @@ class ProfileFragment : Fragment() {
                 loading.isVisible = true
                 guestGroup.isVisible = false
                 userGroup.isVisible = false
+                btnLogout.isVisible = false
             }
             AuthState.Guest -> {
                 loading.isVisible = false
                 guestGroup.isVisible = true
                 userGroup.isVisible = false
+                btnLogout.isVisible = false
             }
             is AuthState.LoggedIn -> {
                 loading.isVisible = false
                 guestGroup.isVisible = false
                 userGroup.isVisible = true
+                btnLogout.isVisible = true
                 val user = auth.user
                 tvAvatar.text = user.initial
                 tvDisplayName.text = user.displayLabel
@@ -116,6 +123,28 @@ class ProfileFragment : Fragment() {
 
     private fun openSettings() {
         startActivity(Intent(requireContext(), SettingsActivity::class.java))
+    }
+
+    private fun showAbout() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.about_title)
+            .setMessage(getString(R.string.about_message, BuildConfig.VERSION_NAME))
+            .setNegativeButton(R.string.auth_terms_link) { _, _ ->
+                showLegalText(R.string.auth_terms_dialog_title, R.string.about_terms_message)
+            }
+            .setNeutralButton(R.string.auth_privacy_link) { _, _ ->
+                showLegalText(R.string.auth_privacy_dialog_title, R.string.about_privacy_message)
+            }
+            .setPositiveButton(R.string.about_ok, null)
+            .show()
+    }
+
+    private fun showLegalText(titleRes: Int, messageRes: Int) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(titleRes)
+            .setMessage(messageRes)
+            .setPositiveButton(R.string.about_ok, null)
+            .show()
     }
 
     private fun confirmLogout() {

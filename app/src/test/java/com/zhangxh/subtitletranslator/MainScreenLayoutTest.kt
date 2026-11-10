@@ -2,14 +2,10 @@ package com.zhangxh.subtitletranslator
 
 import android.graphics.Color
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Button
-import android.widget.LinearLayout
-import android.widget.ScrollView
 import androidx.core.content.ContextCompat
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -40,13 +36,10 @@ class MainScreenLayoutTest {
     }
 
     @Test
-    fun `primary action stays outside the scroll area`() = withActivity { activity ->
-        val scroll = activity.findViewById<ScrollView>(R.id.mainScroll)
-        val button = activity.findViewById<View>(R.id.btnStartService)
-        assertFalse(
-            "启动按钮必须固定在底部，不能随使用说明一起滚出屏幕",
-            button.isDescendantOf(scroll)
-        )
+    fun `home exposes start action and learning stats`() = withActivity { activity ->
+        assertNotNull(activity.findViewById<View>(R.id.btnStartService))
+        assertNotNull(activity.findViewById<View>(R.id.tvCollectedCount))
+        assertNotNull(activity.findViewById<View>(R.id.tvTodayReview))
     }
 
     @Test
@@ -68,35 +61,18 @@ class MainScreenLayoutTest {
     }
 
     @Test
-    fun `instruction card has five numbered steps and scrolls`() = withActivity { activity ->
-        val scroll = activity.findViewById<View>(R.id.mainScroll)
-        val card = activity.findViewById<LinearLayout>(R.id.instructionCard)
-        assertTrue("使用说明必须放在可滚动区域内", card.isDescendantOf(scroll))
-        assertEquals("使用说明应保持 5 个步骤", 5, card.childCount)
-    }
-
-    @Test
     fun `bottom navigation exposes four real destinations`() = withActivity { activity ->
         val navigation = activity.findViewById<BottomNavigationView>(R.id.bottom_nav)
         assertEquals("底部导航应包含 4 个入口", 4, navigation.menu.size())
         listOf(
             R.id.homeFragment,
             R.id.vocabularyFragment,
-            R.id.historyFragment,
+            R.id.learningFragment,
             R.id.profileFragment
         ).forEach { id ->
             assertNotNull("底部导航缺少入口 $id", navigation.menu.findItem(id))
         }
         assertEquals("默认应停留在首页", R.id.homeFragment, navigation.selectedItemId)
-    }
-
-    private fun View.isDescendantOf(ancestor: View): Boolean {
-        var parent = parent
-        while (parent is ViewGroup) {
-            if (parent === ancestor) return true
-            parent = parent.parent
-        }
-        return false
     }
 
     /** WCAG 相对亮度对比度 */

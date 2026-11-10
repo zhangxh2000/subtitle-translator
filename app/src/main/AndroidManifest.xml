@@ -68,6 +68,16 @@
             android:screenOrientation="portrait" />
 
         <activity
+            android:name=".ui.vocabulary.WordDetailActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".ui.learning.WordReviewActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <activity
             android:name=".ui.DebugCaptureActivity"
             android:exported="false"
             android:screenOrientation="portrait" />

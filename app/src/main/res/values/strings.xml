@@ -8,6 +8,7 @@
     <string name="action_clear">Clear</string>
     <string name="action_delete">Delete</string>
     <string name="action_pronounce">Pronounce</string>
+    <string name="action_more">More actions</string>
     <string name="action_save_word">Save word</string>
     <string name="action_unsave_word">Remove from vocabulary</string>
     <string name="decorative_bullet" translatable="false">●</string>
@@ -29,10 +30,8 @@
     <string name="main_status_hint">Tap the floating ball to translate, long-press to open the menu</string>
     <string name="main_start_service">Start subtitle translation</string>
     <string name="main_stop_service">Stop subtitle translation</string>
-    <string name="main_history">Translation history</string>
     <string name="main_vocabulary">Vocabulary</string>
     <string name="main_settings">Settings</string>
-    <string name="main_history_short">History</string>
     <string name="main_vocabulary_short">Vocabulary</string>
     <string name="main_settings_short">Settings</string>
     <string name="main_restart_hint">Screen recording permission expired. Please authorize again.</string>
@@ -128,11 +127,44 @@
     <string name="language_es">Spanish</string>
     <string name="language_option">%1$s</string>
 
-    <!-- History -->
-    <string name="history_empty">No translation history yet</string>
-    <string name="history_cleared">History cleared</string>
+    <!-- Home -->
+    <string name="home_greeting">Good to see you</string>
+    <string name="home_tagline">Translate what you\'re watching</string>
+    <string name="home_section_translation">Translation</string>
+    <string name="home_core_feature">CORE FEATURE</string>
+    <string name="home_assistant_title">Subtitle assistant</string>
+    <string name="home_assistant_subtitle">Reads on-screen subtitles and shows translations in a floating window</string>
+    <string name="home_service_running">Running in the background</string>
+    <string name="home_help_link">How does it work?</string>
+    <string name="home_section_learning">Today\'s learning</string>
+    <string name="home_view_plan">View plan</string>
+    <string name="home_stat_collected">Saved words</string>
+    <string name="home_stat_review">Reviewed</string>
 
     <!-- Vocabulary -->
+    <string name="vocabulary_title">Vocabulary</string>
+    <string name="vocabulary_subtitle">Words and phrases saved from subtitles</string>
+    <string name="vocabulary_stat_all">All</string>
+    <string name="vocabulary_stat_words">Words</string>
+    <string name="vocabulary_stat_phrases">Phrases</string>
+    <string name="vocabulary_search_hint">Search words or subtitles</string>
+    <string name="vocabulary_filter_all">All</string>
+    <string name="vocabulary_filter_words">Words</string>
+    <string name="vocabulary_filter_phrases">Phrases</string>
+    <string name="vocabulary_sort">Sort</string>
+    <string name="vocabulary_recent">Recently saved</string>
+    <string name="vocabulary_all">All words</string>
+    <string name="vocabulary_sort_recent">Newest first</string>
+    <string name="vocabulary_sort_alpha">Alphabetical</string>
+    <string name="vocabulary_empty_title">No saved words yet</string>
+    <string name="vocabulary_empty_desc">Tap the bookmark on a translation result to keep it here.</string>
+    <string name="vocabulary_no_results">Nothing matches</string>
+    <string name="vocabulary_no_results_desc">Try another keyword or filter.</string>
+    <string name="vocabulary_meta">Saved %1$s · %2$s</string>
+    <string name="vocabulary_source_subtitle">from subtitles</string>
+    <string name="vocabulary_date_today">today</string>
+    <string name="vocabulary_date_yesterday">yesterday</string>
+    <string name="vocabulary_type_phrase">PHRASE</string>
     <string name="vocabulary_empty">No saved words yet\n\nTap the bookmark icon on a translation result to save words</string>
     <string name="vocabulary_added_at">Saved %1$s</string>
     <string name="vocabulary_deleted">Deleted “%1$s”</string>
@@ -221,8 +253,61 @@
     <!-- 底部导航 -->
     <string name="nav_home">Home</string>
     <string name="nav_vocabulary">Vocabulary</string>
-    <string name="nav_history">History</string>
+    <string name="nav_learning">Learning</string>
     <string name="nav_profile">Profile</string>
+
+    <!-- Learning -->
+    <string name="learning_title">Learning</string>
+    <string name="learning_subtitle">Turn saved subtitles into words you remember</string>
+    <string name="learning_goal_title">Today\'s goal</string>
+    <string name="learning_in_progress">IN PROGRESS</string>
+    <string name="learning_goal_done">DONE</string>
+    <string name="learning_goal_reviewed">words reviewed</string>
+    <string name="learning_progress_value">%1$d/%2$d</string>
+    <string name="learning_percent_value">%1$d%%</string>
+    <string name="learning_continue_review">Continue review</string>
+    <string name="learning_due">Due for review</string>
+    <string name="learning_mastered">Mastered</string>
+    <string name="learning_empty">No saved words yet. Save a word from the floating translation window and it will show up here.</string>
+    <string name="learning_methods">Learning methods</string>
+    <string name="learning_word_cards">Word cards</string>
+    <string name="learning_word_cards_desc">Flip through all saved words</string>
+    <string name="learning_due_words">Due review</string>
+    <string name="learning_due_words_desc">Review words that are not mastered</string>
+    <string name="learning_stats">Learning stats</string>
+    <string name="learning_stats_desc">Trends and a review calendar</string>
+    <string name="learning_coming_soon">Coming soon</string>
+
+    <!-- Word review -->
+    <string name="word_review_title">Word review</string>
+    <string name="word_review_progress">%1$d / %2$d</string>
+    <string name="word_review_score">✓ %1$d · ↻ %2$d</string>
+    <string name="word_review_tap_hint">Recall the meaning, then tap the card to check</string>
+    <string name="word_review_reveal">Show meaning</string>
+    <string name="word_review_known">I know it</string>
+    <string name="word_review_unknown">Review again</string>
+    <string name="word_review_finished_title">Round complete</string>
+    <string name="word_review_finished_summary">Known %1$d · To review %2$d</string>
+    <string name="word_review_again">Review again</string>
+    <string name="word_review_done">Done</string>
+    <string name="word_review_empty_title">Nothing to review</string>
+    <string name="word_review_empty_desc">Save words while translating, then come back to review them with word cards.</string>
+    <string name="word_review_back">Back to Learning</string>
+
+    <!-- Word detail -->
+    <string name="word_detail_title">Word details</string>
+    <string name="word_detail_context_title">From the subtitles</string>
+    <string name="word_detail_examples_title">Examples</string>
+    <string name="word_detail_delete">Delete word</string>
+    <string name="word_detail_delete_confirm_title">Delete this word?</string>
+    <string name="word_detail_delete_confirm_message">It will be removed from your local vocabulary. This can\'t be undone.</string>
+    <string name="word_detail_no_meaning">No definition available</string>
+    <string name="word_detail_not_found">This word is no longer in your vocabulary</string>
+    <string name="word_status_new">New</string>
+    <string name="word_status_learning">Learning</string>
+    <string name="word_status_reviewing">Needs review</string>
+    <string name="word_status_mastered">Mastered</string>
+    <string name="word_status_archived">Archived</string>
 
     <!-- 登录 / 注册 -->
     <string name="auth_login_title">Welcome back</string>
@@ -278,7 +363,34 @@
     <string name="profile_cloud_sync">Cloud sync</string>
     <string name="profile_cloud_sync_desc">Sync your vocabulary across devices when it launches.</string>
     <string name="profile_cloud_sync_coming_soon">Coming soon</string>
+    <string name="profile_settings_section">SETTINGS</string>
+    <string name="profile_preferences">Preferences</string>
+    <string name="profile_preferences_desc">Translation, OCR and floating window</string>
+    <string name="profile_language_settings">Language</string>
+    <string name="profile_language_desc">Translation direction and recognition language</string>
+    <string name="profile_about">About</string>
+    <string name="profile_about_desc">Version, privacy policy and terms</string>
     <string name="profile_version">Version %1$s</string>
+
+    <!-- About -->
+    <string name="about_title">About</string>
+    <string name="about_message">Subtitle Translator %1$s\n\nReads on-screen subtitles and translates them in a floating window.</string>
+    <string name="about_terms_message">The full legal text will be provided before release. By using this app, you confirm that you have read and accept the Terms of Service.</string>
+    <string name="about_privacy_message">The full privacy policy will be provided before release. Screenshots are processed on your device for recognition and translation; saved words stay in local storage unless you choose to sync them.</string>
+    <string name="about_ok">OK</string>
+
+    <!-- Help -->
+    <string name="help_title">How to use</string>
+    <string name="help_subtitle">From starting the floating assistant to reviewing words.</string>
+    <string name="help_step_1_title">Start the assistant</string>
+    <string name="help_step_1_desc">Tap “Start subtitle translation” on Home and allow screen capture and display over other apps.</string>
+    <string name="help_step_2_title">Open a video</string>
+    <string name="help_step_2_desc">Play a video in any player that shows subtitles on screen.</string>
+    <string name="help_step_3_title">Tap the floating ball</string>
+    <string name="help_step_3_desc">The assistant captures the subtitle, translates it and shows the result in the floating window. Use the arrows to move between lines.</string>
+    <string name="help_step_4_title">Review what you save</string>
+    <string name="help_step_4_desc">Bookmark a word to keep its subtitle context, then review it in the Learning tab.</string>
+    <string name="help_close">Got it</string>
 
     <!-- 登录引导 -->
     <string name="login_required_title">Sign in required</string>

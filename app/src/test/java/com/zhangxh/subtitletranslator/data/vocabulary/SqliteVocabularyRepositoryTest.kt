@@ -1,6 +1,9 @@
 package com.zhangxh.subtitletranslator.data.vocabulary
 
 import android.content.Context
+import com.zhangxh.subtitletranslator.domain.vocabulary.LearningStatus
+import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWordContext
+import com.zhangxh.subtitletranslator.domain.vocabulary.VocabularyItemType
 import com.zhangxh.subtitletranslator.domain.wordextractor.Meaning
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficulty
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordEntry
@@ -163,6 +166,102 @@ class SqliteVocabularyRepositoryTest {
         runBlocking { repository.add(entry("empty", meanings = emptyList())) }
 
         assertTrue(runBlocking { repository.list() }.single().meanings.isEmpty())
+    }
+
+    /** 收藏时带字幕上下文；短语自动识别，学习状态可更新 */
+    @Test
+    fun `context learning state and item type round trip`() {
+        val phrase = entry("give up")
+        runBlocking {
+            repository.add(
+                phrase,
+                SavedWordContext(
+                    source = "I won't give up.",
+                    translation = "我不会放弃。"
+                )
+            )
+        }
+
+        val saved = runBlocking { repository.list() }.single()
+        assertEquals(VocabularyItemType.PHRASE, saved.itemType)
+        assertEquals("I won't give up.", saved.context?.source)
+        assertEquals("我不会放弃。", saved.context?.translation)
+        assertEquals(LearningStatus.NEW, saved.learningStatus)
+        assertEquals(0, saved.familiarity)
+
+        val reviewedAt = 1_700_000_000_000L
+        assertTrue(
+            runBlocking {
+                repository.updateLearningState(
+                    word = "give up",
+                    status = LearningStatus.MASTERED,
+                    familiarity = 3,
+                    reviewedAt = reviewedAt
+                )
+            }
+        )
+
+        val updated = requireNotNull(runBlocking { repository.find("GIVE UP") })
+        assertEquals(LearningStatus.MASTERED, updated.learningStatus)
+        assertEquals(3, updated.familiarity)
+        assertEquals(reviewedAt, updated.lastReviewedAt)
+        assertEquals("我不会放弃。", updated.context?.translation)
+    }
+
+    @Test
+    fun `word item type is inferred for single words`() {
+        runBlocking { repository.add(entry("hello")) }
+        assertEquals(
+            VocabularyItemType.WORD,
+            runBlocking { repository.list() }.single().itemType
+        )
+    }
+
+    /** 版本 1 的旧库升级后保留原数据，并补上新列默认值 */
+    @Test
+    fun `version one database migrates without losing data`() {
+        repository.close()
+        context.deleteDatabase(VocabularyDatabaseHelper.DATABASE_NAME)
+
+        val legacy = context.openOrCreateDatabase(
+            VocabularyDatabaseHelper.DATABASE_NAME,
+            Context.MODE_PRIVATE,
+            null
+        )
+        legacy.execSQL(
+            """
+            CREATE TABLE saved_words (
+                _id INTEGER PRIMARY KEY AUTOINCREMENT,
+                word TEXT NOT NULL,
+                word_key TEXT NOT NULL COLLATE NOCASE,
+                phonetic TEXT NOT NULL DEFAULT '',
+                meanings_json TEXT NOT NULL DEFAULT '[]',
+                difficulty TEXT NOT NULL DEFAULT 'MEDIUM',
+                created_at INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        legacy.execSQL(
+            "CREATE UNIQUE INDEX idx_saved_words_word_key " +
+                "ON saved_words(word_key COLLATE NOCASE)"
+        )
+        legacy.execSQL(
+            "INSERT INTO saved_words " +
+                "(word, word_key, phonetic, meanings_json, difficulty, created_at) " +
+                "VALUES ('legacy', 'legacy', '', '[]', 'EASY', 12345)"
+        )
+        legacy.version = 1
+        legacy.close()
+
+        repository = SqliteVocabularyRepository(context)
+        val migrated = runBlocking { repository.list() }.single()
+        assertEquals("legacy", migrated.word)
+        assertEquals(12345L, migrated.createdAt)
+        assertEquals(LearningStatus.NEW, migrated.learningStatus)
+        assertEquals(0, migrated.familiarity)
+        assertEquals(null, migrated.lastReviewedAt)
+        assertEquals(null, migrated.context)
+        assertEquals(VocabularyItemType.WORD, migrated.itemType)
     }
 
     /** 关掉再重开（相当于进程重启）数据还在 */

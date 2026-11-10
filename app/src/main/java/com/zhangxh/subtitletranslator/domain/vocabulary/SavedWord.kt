@@ -12,7 +12,12 @@ data class SavedWord(
     val phonetic: String,
     val meanings: List<Meaning>,
     val difficulty: WordDifficulty,
-    val createdAt: Long
+    val createdAt: Long,
+    val context: SavedWordContext? = null,
+    val learningStatus: LearningStatus = LearningStatus.NEW,
+    val familiarity: Int = 0,
+    val lastReviewedAt: Long? = null,
+    val itemType: VocabularyItemType = VocabularyItemType.WORD
 )
 
 /**

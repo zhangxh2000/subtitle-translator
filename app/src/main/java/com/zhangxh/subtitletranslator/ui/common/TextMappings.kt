@@ -9,6 +9,7 @@ import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
 import com.zhangxh.subtitletranslator.domain.speech.PronouncerError
 import com.zhangxh.subtitletranslator.domain.translator.Language
 import com.zhangxh.subtitletranslator.domain.translator.TranslationEngine
+import com.zhangxh.subtitletranslator.domain.vocabulary.LearningStatus
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficulty
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficultyFilter
 import com.zhangxh.subtitletranslator.util.CaptureOrientation
@@ -57,6 +58,15 @@ fun OcrPreprocessMode.descriptionRes(): Int = when (this) {
     OcrPreprocessMode.GRAYSCALE -> R.string.preprocess_grayscale_desc
     OcrPreprocessMode.ADAPTIVE -> R.string.preprocess_adaptive_desc
     OcrPreprocessMode.FIXED -> R.string.preprocess_fixed_desc
+}
+
+@StringRes
+fun LearningStatus.labelRes(): Int = when (this) {
+    LearningStatus.NEW -> R.string.word_status_new
+    LearningStatus.LEARNING -> R.string.word_status_learning
+    LearningStatus.REVIEWING -> R.string.word_status_reviewing
+    LearningStatus.MASTERED -> R.string.word_status_mastered
+    LearningStatus.ARCHIVED -> R.string.word_status_archived
 }
 
 @StringRes
