@@ -8,7 +8,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
-import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -35,7 +34,6 @@ class HomeFragment : Fragment() {
     private val historyViewModel: TranslationHistoryViewModel by viewModels()
 
     private var btnStartService: Button? = null
-    private var tvServiceState: TextView? = null
     private lateinit var historyContainer: LinearLayout
     private lateinit var historyEmpty: View
 
@@ -48,7 +46,6 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         btnStartService = view.findViewById(R.id.btnStartService)
-        tvServiceState = view.findViewById(R.id.tvServiceState)
         historyContainer = view.findViewById(R.id.historyContainer)
         historyEmpty = view.findViewById(R.id.historyEmpty)
 
@@ -109,9 +106,8 @@ class HomeFragment : Fragment() {
     private fun renderServiceState(running: Boolean) {
         val context = context ?: return
         val button = btnStartService ?: return
-        tvServiceState?.visibility = if (running) View.VISIBLE else View.GONE
         button.text = getString(
-            if (running) R.string.main_stop_service else R.string.main_start_service
+            if (running) R.string.home_stop_translation else R.string.home_start_translation
         )
         button.backgroundTintList = ColorStateList.valueOf(
             ContextCompat.getColor(
@@ -129,6 +125,6 @@ class HomeFragment : Fragment() {
 
     private companion object {
         /** 首页只展示最近几天，完整列表在历史页 */
-        const val RECENT_HISTORY_DAYS = 3
+        const val RECENT_HISTORY_DAYS = 2
     }
 }

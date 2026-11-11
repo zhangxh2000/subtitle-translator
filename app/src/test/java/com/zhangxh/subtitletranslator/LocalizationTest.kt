@@ -169,8 +169,9 @@ class LocalizationTest {
     @Test
     fun `home vocabulary learning and about copy is translated`() {
         val keys = listOf(
-            R.string.home_greeting,
             R.string.home_tagline,
+            R.string.home_start_translation,
+            R.string.home_stop_translation,
             R.string.home_assistant_title,
             R.string.home_section_history,
             R.string.home_view_all,

@@ -23,7 +23,6 @@
     <string name="main_step_5">长按悬浮按钮打开菜单</string>
     <string name="main_status_running">字幕翻译运行中</string>
     <string name="main_status_hint">点击悬浮球翻译字幕，长按打开菜单</string>
-    <string name="main_start_service">启动字幕翻译</string>
     <string name="main_stop_service">停止字幕翻译</string>
     <string name="main_vocabulary">生词库</string>
     <string name="main_settings">设置</string>
@@ -123,21 +122,18 @@
     <string name="language_option">%1$s (%2$s)</string>
 
     <!-- 首页 -->
-    <string name="home_greeting">很高兴又见到你</string>
-    <string name="home_tagline">把正在看的，翻译成看得懂的</string>
-    <string name="home_section_translation">字幕翻译</string>
-    <string name="home_core_feature">核心功能</string>
-    <string name="home_assistant_title">字幕翻译助手</string>
-    <string name="home_assistant_subtitle">识别屏幕字幕，在悬浮窗中显示译文</string>
-    <string name="home_service_running">正在后台运行</string>
-    <string name="home_help_link">它怎么用？</string>
+    <string name="home_tagline">让每一次观看，都成为学习</string>
+    <string name="home_assistant_title">实时字幕翻译</string>
+    <string name="home_assistant_subtitle">看视频时，自动识别字幕并翻译</string>
+    <string name="home_start_translation">开始翻译</string>
+    <string name="home_stop_translation">停止翻译</string>
     <string name="home_section_history">最近翻译</string>
     <string name="home_view_all">查看全部</string>
 
     <!-- 翻译历史 -->
     <string name="history_title">翻译历史</string>
     <string name="history_empty_title">还没有翻译记录</string>
-    <string name="history_empty_desc">启动字幕翻译后，每次成功翻译会按天汇总在这里。</string>
+    <string name="history_empty_desc">开始翻译后，字幕记录会显示在这里。</string>
     <string name="history_today_at">今天 %1$s</string>
     <string name="history_yesterday_at">昨天 %1$s</string>
     <string name="history_date_at">%1$s %2$s</string>

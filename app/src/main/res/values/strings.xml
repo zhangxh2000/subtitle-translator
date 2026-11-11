@@ -28,7 +28,6 @@
     <string name="main_step_number_5" translatable="false">5</string>
     <string name="main_status_running">Subtitle translation is running</string>
     <string name="main_status_hint">Tap the floating ball to translate, long-press to open the menu</string>
-    <string name="main_start_service">Start subtitle translation</string>
     <string name="main_stop_service">Stop subtitle translation</string>
     <string name="main_vocabulary">Vocabulary</string>
     <string name="main_settings">Settings</string>
@@ -128,21 +127,18 @@
     <string name="language_option">%1$s</string>
 
     <!-- Home -->
-    <string name="home_greeting">Good to see you</string>
-    <string name="home_tagline">Translate what you\'re watching</string>
-    <string name="home_section_translation">Translation</string>
-    <string name="home_core_feature">CORE FEATURE</string>
-    <string name="home_assistant_title">Subtitle assistant</string>
-    <string name="home_assistant_subtitle">Reads on-screen subtitles and shows translations in a floating window</string>
-    <string name="home_service_running">Running in the background</string>
-    <string name="home_help_link">How does it work?</string>
+    <string name="home_tagline">Learn while you watch</string>
+    <string name="home_assistant_title">Live subtitle translation</string>
+    <string name="home_assistant_subtitle">Translate subtitles while you watch</string>
+    <string name="home_start_translation">Start translation</string>
+    <string name="home_stop_translation">Stop translation</string>
     <string name="home_section_history">Recent translations</string>
     <string name="home_view_all">View all</string>
 
     <!-- Translation history -->
     <string name="history_title">Translation history</string>
     <string name="history_empty_title">No translation history yet</string>
-    <string name="history_empty_desc">Start subtitle translation and each successful translation will be grouped here by day.</string>
+    <string name="history_empty_desc">Your translated subtitles will appear here.</string>
     <string name="history_today_at">Today %1$s</string>
     <string name="history_yesterday_at">Yesterday %1$s</string>
     <string name="history_date_at">%1$s %2$s</string>
