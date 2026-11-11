@@ -16,8 +16,5 @@
 - ViewModel 不生成面向用户的字符串：使用 `UiText(资源 ID, 参数)`；domain/data 层使用错误码（`AppError`），由 `ui/common/TextMappings.kt` 映射成本地化文案。
 - 枚举的展示名称一律通过 `TextMappings` 映射，持久化仍使用枚举名。
 
-## 测试
-
-- 新增或修改业务逻辑必须补单元测试（JUnit4 + Robolectric）。
-- ViewModel 测试直接构造实例并观察 LiveData；数据层测试使用 Robolectric 沙箱。
-- 涉及界面结构的约束（滚动结构、点击区尺寸、对齐）用回归用例固定，不要只靠肉眼验收。
+## 多线程,异步
+- 使用协程，flow等现代技术，不要使用RXJava
