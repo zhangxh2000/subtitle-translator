@@ -5,7 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
-import com.zhangxh.subtitletranslator.data.vocabulary.SqliteVocabularyRepository
+import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
 import com.zhangxh.subtitletranslator.domain.vocabulary.IVocabularyRepository
 import com.zhangxh.subtitletranslator.domain.vocabulary.LearningStats
 import kotlinx.coroutines.launch
@@ -17,7 +17,8 @@ import kotlinx.coroutines.launch
  */
 class LearningViewModel @JvmOverloads constructor(
     application: Application,
-    private val repository: IVocabularyRepository = SqliteVocabularyRepository(application)
+    private val repository: IVocabularyRepository =
+        (application as SubtitleTranslatorApplication).container.vocabularyRepository
 ) : AndroidViewModel(application) {
 
     private val _stats = MutableLiveData(LearningStats())
@@ -33,8 +34,4 @@ class LearningViewModel @JvmOverloads constructor(
         }
     }
 
-    override fun onCleared() {
-        (repository as? SqliteVocabularyRepository)?.close()
-        super.onCleared()
-    }
 }

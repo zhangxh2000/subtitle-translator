@@ -8,8 +8,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
 
-    <!-- 网络权限（用于下载语言包） -->
+    <!-- 网络权限（用于下载语言包与生词同步） -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 读取网络状态：生词同步只在网络真正可用时发起，恢复后自动补发 -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- 通知权限（Android 13+） -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

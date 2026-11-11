@@ -13,11 +13,18 @@ import com.zhangxh.subtitletranslator.data.auth.SessionStore
 import com.zhangxh.subtitletranslator.data.auth.TokenRefresher
 import com.zhangxh.subtitletranslator.data.config.RemoteConfigRepository
 import com.zhangxh.subtitletranslator.data.history.SqliteTranslationHistoryRepository
+import com.zhangxh.subtitletranslator.data.net.NetworkMonitor
 import com.zhangxh.subtitletranslator.data.remote.AuthApi
 import com.zhangxh.subtitletranslator.data.remote.RetrofitFactory
+import com.zhangxh.subtitletranslator.data.remote.VocabularyApi
+import com.zhangxh.subtitletranslator.data.vocabulary.SharedPrefsVocabularySyncStateStore
+import com.zhangxh.subtitletranslator.data.vocabulary.SqliteVocabularyRepository
+import com.zhangxh.subtitletranslator.data.vocabulary.VocabularySyncCoordinator
+import com.zhangxh.subtitletranslator.data.vocabulary.VocabularySyncManager
 import com.zhangxh.subtitletranslator.domain.auth.AuthRepository
 import com.zhangxh.subtitletranslator.domain.config.ConfigRepository
 import com.zhangxh.subtitletranslator.domain.history.ITranslationHistoryRepository
+import com.zhangxh.subtitletranslator.domain.vocabulary.IVocabularyRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -69,7 +76,43 @@ class AppContainer(context: Context) {
     val translationHistory: ITranslationHistoryRepository =
         SqliteTranslationHistoryRepository(context)
 
-    /** 应用启动时在后台恢复会话，不阻塞首帧 */
+    private val networkMonitor = NetworkMonitor(context)
+
+    /**
+     * 进程级单例生词仓库
+     *
+     * 浮窗服务与各页面共享同一个同步队列；每次本地写库后通知同步器，
+     * 由同步器合并短时间内的多次操作再静默推送到云端。
+     */
+    private val sqliteVocabularyRepository = SqliteVocabularyRepository(
+        context = context,
+        onLocalChange = { vocabularySyncCoordinator.trigger() }
+    )
+    val vocabularyRepository: IVocabularyRepository = sqliteVocabularyRepository
+
+    private val vocabularySyncManager = VocabularySyncManager(
+        api = authRetrofit.create(VocabularyApi::class.java),
+        store = sqliteVocabularyRepository,
+        stateStore = SharedPrefsVocabularySyncStateStore(context),
+        sessionManager = sessionManager,
+        networkStatus = networkMonitor
+    )
+
+    private val vocabularySyncCoordinator: VocabularySyncCoordinator by lazy {
+        VocabularySyncCoordinator(
+            authManager = sessionManager,
+            syncManager = vocabularySyncManager,
+            networkMonitor = networkMonitor,
+            scope = appScope
+        )
+    }
+
+    init {
+        // 登录、网络恢复、本地收藏都会触发；未登录时同步器直接返回，不产生网络请求
+        vocabularySyncCoordinator.start()
+    }
+
+    /** 应用启动时在后台恢复会话，不阻塞首帧；恢复成功会自动触发增量同步 */
     fun restoreSession() {
         appScope.launch {
             authRepository.restoreSession()

@@ -8,8 +8,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.zhangxh.subtitletranslator.R
+import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
 import com.zhangxh.subtitletranslator.data.speech.AndroidTtsPronouncer
-import com.zhangxh.subtitletranslator.data.vocabulary.SqliteVocabularyRepository
 import com.zhangxh.subtitletranslator.domain.vocabulary.IVocabularyRepository
 import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWord
 import com.zhangxh.subtitletranslator.ui.common.Event
@@ -31,7 +31,8 @@ data class WordDetailUiState(
 class WordDetailViewModel(
     application: Application,
     private val word: String,
-    private val repository: IVocabularyRepository = SqliteVocabularyRepository(application)
+    private val repository: IVocabularyRepository =
+        (application as SubtitleTranslatorApplication).container.vocabularyRepository
 ) : AndroidViewModel(application) {
 
     private val pronouncer = AndroidTtsPronouncer(application) { error ->
@@ -69,7 +70,6 @@ class WordDetailViewModel(
 
     override fun onCleared() {
         pronouncer.release()
-        (repository as? SqliteVocabularyRepository)?.close()
         super.onCleared()
     }
 

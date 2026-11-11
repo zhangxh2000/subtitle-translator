@@ -401,9 +401,6 @@
     <string name="profile_logout_confirm_message">本地生詞仍保留在本裝置；重新登入前雲端同步將停止。</string>
     <string name="profile_logout_confirm_action">登出</string>
     <string name="profile_cancel">取消</string>
-    <string name="profile_cloud_sync">雲端同步</string>
-    <string name="profile_cloud_sync_desc">上線後可在不同裝置間同步生詞。</string>
-    <string name="profile_cloud_sync_coming_soon">即將推出</string>
     <string name="profile_settings_section">設定</string>
     <string name="profile_preferences">偏好設定</string>
     <string name="profile_preferences_desc">翻譯、OCR 與懸浮視窗</string>
@@ -417,7 +414,7 @@
     <string name="about_title">關於我們</string>
     <string name="about_message">字幕翻譯助手 %1$s\n\n辨識螢幕上的字幕，並在懸浮視窗中顯示譯文。</string>
     <string name="about_terms_message">完整法律文本將在正式上線前提供。使用本應用程式即表示你已閱讀並同意服務條款。</string>
-    <string name="about_privacy_message">完整隱私權政策將在正式上線前提供。截圖僅在本機用於辨識與翻譯；收藏的詞彙保存在本地，除非你主動選擇同步。</string>
+    <string name="about_privacy_message">完整隱私權政策將在正式上線前提供。截圖僅在本機用於辨識與翻譯；收藏的詞彙保存在本地，僅在登入後自動同步到你的帳號。</string>
     <string name="about_ok">好的</string>
 
     <!-- 使用說明 -->

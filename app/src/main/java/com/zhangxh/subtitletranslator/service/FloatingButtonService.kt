@@ -47,7 +47,7 @@ import com.zhangxh.subtitletranslator.data.media.MediaSessionPlaybackController
 import com.zhangxh.subtitletranslator.data.media.NotificationAccess
 import com.zhangxh.subtitletranslator.data.settings.SettingsStore
 import com.zhangxh.subtitletranslator.data.speech.AndroidTtsPronouncer
-import com.zhangxh.subtitletranslator.data.vocabulary.SqliteVocabularyRepository
+import com.zhangxh.subtitletranslator.domain.vocabulary.IVocabularyRepository
 import com.zhangxh.subtitletranslator.data.wordextractor.LocalWordExtractor
 import com.zhangxh.subtitletranslator.domain.TranslationCoordinator
 import com.zhangxh.subtitletranslator.domain.TranslationResult
@@ -158,7 +158,7 @@ class FloatingButtonService : Service() {
     private var translationCoordinator: TranslationCoordinator? = null
     private var dictionaryProvider: DictionaryRepositoryProvider? = null
     private var pronouncer: IPronouncer? = null
-    private var vocabularyRepository: SqliteVocabularyRepository? = null
+    private var vocabularyRepository: IVocabularyRepository? = null
     private lateinit var historyRepository: ITranslationHistoryRepository
     private lateinit var settingsStore: SettingsStore
     private lateinit var authManager: AuthManager
@@ -229,11 +229,12 @@ class FloatingButtonService : Service() {
         lastX = prefs.getInt(KEY_LAST_X, 0)
         lastY = prefs.getInt(KEY_LAST_Y, 200)
 
+        val container = (application as SubtitleTranslatorApplication).container
         // 生词库独立于 MediaProjection 生命周期：投影重启、换视频都不该影响收藏
-        vocabularyRepository = SqliteVocabularyRepository(this)
+        // 与页面共享进程级实例，保证收藏后同一个同步队列能立即收到通知
+        vocabularyRepository = container.vocabularyRepository
         settingsStore = SettingsStore(this)
 
-        val container = (application as SubtitleTranslatorApplication).container
         authManager = container.sessionManager
         loginPromptCoordinator = container.loginPromptCoordinator
         historyRepository = container.translationHistory
@@ -1423,7 +1424,7 @@ class FloatingButtonService : Service() {
     }
 
     private suspend fun performToggle(
-        repository: SqliteVocabularyRepository,
+        repository: IVocabularyRepository,
         entry: WordEntry,
         context: SavedWordContext?
     ) {
@@ -1619,7 +1620,6 @@ class FloatingButtonService : Service() {
         pendingSaveContext = null
         serviceScope.cancel()
 
-        vocabularyRepository?.close()
         vocabularyRepository = null
     }
 

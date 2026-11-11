@@ -9,7 +9,6 @@ import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
 import com.zhangxh.subtitletranslator.data.accessibility.AccessibilityAccess
 import com.zhangxh.subtitletranslator.data.media.NotificationAccess
 import com.zhangxh.subtitletranslator.data.settings.SettingsStore
-import com.zhangxh.subtitletranslator.data.vocabulary.SqliteVocabularyRepository
 import com.zhangxh.subtitletranslator.domain.history.ITranslationHistoryRepository
 import com.zhangxh.subtitletranslator.domain.history.SavedWordMatcher
 import com.zhangxh.subtitletranslator.domain.translator.Language
@@ -59,7 +58,7 @@ class HomeViewModel @JvmOverloads constructor(
     private val historyRepository: ITranslationHistoryRepository =
         (application as SubtitleTranslatorApplication).container.translationHistory,
     private val vocabularyRepository: IVocabularyRepository =
-        SqliteVocabularyRepository(application),
+        (application as SubtitleTranslatorApplication).container.vocabularyRepository,
     private val settingsStore: SettingsStore = SettingsStore(application)
 ) : AndroidViewModel(application) {
 
@@ -138,11 +137,6 @@ class HomeViewModel @JvmOverloads constructor(
         if (current.selectedRecordIndex > 0) {
             _uiState.value = current.copy(selectedRecordIndex = current.selectedRecordIndex - 1)
         }
-    }
-
-    override fun onCleared() {
-        (vocabularyRepository as? SqliteVocabularyRepository)?.close()
-        super.onCleared()
     }
 
     private fun lastThreeDayStarts(now: Long): List<Long> {

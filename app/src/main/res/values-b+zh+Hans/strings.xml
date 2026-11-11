@@ -401,9 +401,6 @@
     <string name="profile_logout_confirm_message">本地生词仍保留在本设备；重新登录前云端同步将停止。</string>
     <string name="profile_logout_confirm_action">退出登录</string>
     <string name="profile_cancel">取消</string>
-    <string name="profile_cloud_sync">云端同步</string>
-    <string name="profile_cloud_sync_desc">上线后可在不同设备间同步生词。</string>
-    <string name="profile_cloud_sync_coming_soon">即将上线</string>
     <string name="profile_settings_section">设置</string>
     <string name="profile_preferences">偏好设置</string>
     <string name="profile_preferences_desc">翻译、OCR 与悬浮窗</string>
@@ -417,7 +414,7 @@
     <string name="about_title">关于我们</string>
     <string name="about_message">字幕翻译助手 %1$s\n\n识别屏幕上的字幕，并在悬浮窗中显示译文。</string>
     <string name="about_terms_message">完整法律文本将在正式上线前提供。使用本应用即表示你已阅读并同意服务条款。</string>
-    <string name="about_privacy_message">完整隐私政策将在正式上线前提供。截图仅在本机用于识别与翻译；收藏的词汇保存在本地，除非你主动选择同步。</string>
+    <string name="about_privacy_message">完整隐私政策将在正式上线前提供。截图仅在本机用于识别与翻译；收藏的词汇保存在本地，仅在登录后自动同步到你的账号。</string>
     <string name="about_ok">好的</string>
 
     <!-- 使用说明 -->

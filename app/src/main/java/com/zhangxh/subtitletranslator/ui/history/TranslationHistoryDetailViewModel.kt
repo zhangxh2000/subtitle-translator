@@ -8,7 +8,6 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
-import com.zhangxh.subtitletranslator.data.vocabulary.SqliteVocabularyRepository
 import com.zhangxh.subtitletranslator.domain.history.ITranslationHistoryRepository
 import com.zhangxh.subtitletranslator.domain.history.SavedWordMatcher
 import com.zhangxh.subtitletranslator.domain.history.normalizeSentenceForMatch
@@ -45,7 +44,7 @@ class TranslationHistoryDetailViewModel(
     private val historyRepository: ITranslationHistoryRepository =
         (application as SubtitleTranslatorApplication).container.translationHistory,
     private val vocabularyRepository: IVocabularyRepository =
-        SqliteVocabularyRepository(application)
+        (application as SubtitleTranslatorApplication).container.vocabularyRepository
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableLiveData(HistoryDetailUiState(dayStart = dayStart))
@@ -85,11 +84,6 @@ class TranslationHistoryDetailViewModel(
                 loading = false
             )
         }
-    }
-
-    override fun onCleared() {
-        (vocabularyRepository as? SqliteVocabularyRepository)?.close()
-        super.onCleared()
     }
 
     companion object {

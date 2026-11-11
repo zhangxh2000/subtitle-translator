@@ -262,6 +262,11 @@ class SqliteVocabularyRepositoryTest {
         assertEquals(null, migrated.lastReviewedAt)
         assertEquals(null, migrated.context)
         assertEquals(VocabularyItemType.WORD, migrated.itemType)
+
+        // v3 同步元数据：补 UUID 并排队等待首次上传
+        val pending = runBlocking { repository.pendingChanges(10) }
+        assertEquals(1, pending.size)
+        assertTrue("迁移后应补上 clientReferenceId", pending.single().clientReferenceId.isNotBlank())
     }
 
     /** 关掉再重开（相当于进程重启）数据还在 */

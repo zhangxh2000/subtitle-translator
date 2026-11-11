@@ -7,8 +7,8 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
 import com.zhangxh.subtitletranslator.data.speech.AndroidTtsPronouncer
-import com.zhangxh.subtitletranslator.data.vocabulary.SqliteVocabularyRepository
 import com.zhangxh.subtitletranslator.domain.vocabulary.IVocabularyRepository
 import com.zhangxh.subtitletranslator.domain.vocabulary.LearningStatus
 import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWord
@@ -49,7 +49,8 @@ data class ReviewUiState(
 class WordReviewViewModel(
     application: Application,
     private val mode: ReviewMode,
-    private val repository: IVocabularyRepository = SqliteVocabularyRepository(application)
+    private val repository: IVocabularyRepository =
+        (application as SubtitleTranslatorApplication).container.vocabularyRepository
 ) : AndroidViewModel(application) {
 
     private val pronouncer = AndroidTtsPronouncer(application) { error ->
@@ -164,7 +165,6 @@ class WordReviewViewModel(
 
     override fun onCleared() {
         pronouncer.release()
-        (repository as? SqliteVocabularyRepository)?.close()
         super.onCleared()
     }
 
