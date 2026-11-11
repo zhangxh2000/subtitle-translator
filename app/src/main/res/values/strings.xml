@@ -11,6 +11,8 @@
     <string name="action_more">More actions</string>
     <string name="action_save_word">Save word</string>
     <string name="action_unsave_word">Remove from vocabulary</string>
+    <string name="action_save_sentence">Save sentence</string>
+    <string name="action_unsave_sentence">Remove saved sentence</string>
     <string name="decorative_bullet" translatable="false">●</string>
 
     <!-- Main screen -->
@@ -254,6 +256,9 @@
     <string name="service_save_word_failed">Save failed. Please try again.</string>
     <string name="service_word_saved">Added to vocabulary</string>
     <string name="service_word_removed">Removed from vocabulary</string>
+    <string name="service_save_sentence_failed">Couldn\'t save sentence. Please try again.</string>
+    <string name="service_sentence_saved">Sentence saved</string>
+    <string name="service_sentence_removed">Sentence removed</string>
     <string name="clipboard_label_translation">Translation result</string>
     <string name="toast_copied">Copied to clipboard</string>
     <string name="media_notification_listener_label">Subtitle Translator media control</string>

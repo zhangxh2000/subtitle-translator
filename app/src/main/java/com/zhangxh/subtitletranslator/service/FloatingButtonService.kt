@@ -47,6 +47,7 @@ import com.zhangxh.subtitletranslator.data.media.MediaSessionPlaybackController
 import com.zhangxh.subtitletranslator.data.media.NotificationAccess
 import com.zhangxh.subtitletranslator.data.settings.SettingsStore
 import com.zhangxh.subtitletranslator.data.speech.AndroidTtsPronouncer
+import com.zhangxh.subtitletranslator.domain.sentence.ISentenceRepository
 import com.zhangxh.subtitletranslator.domain.vocabulary.IVocabularyRepository
 import com.zhangxh.subtitletranslator.data.wordextractor.LocalWordExtractor
 import com.zhangxh.subtitletranslator.domain.TranslationCoordinator
@@ -159,14 +160,19 @@ class FloatingButtonService : Service() {
     private var dictionaryProvider: DictionaryRepositoryProvider? = null
     private var pronouncer: IPronouncer? = null
     private var vocabularyRepository: IVocabularyRepository? = null
+    private var sentenceRepository: ISentenceRepository? = null
     private lateinit var historyRepository: ITranslationHistoryRepository
     private lateinit var settingsStore: SettingsStore
     private lateinit var authManager: AuthManager
     private lateinit var loginPromptCoordinator: LoginPromptCoordinator
 
-    /** 游客点击收藏后等待登录成功的条目；成功后续跑保存，取消则丢弃 */
-    private var pendingSaveEntry: WordEntry? = null
-    private var pendingSaveContext: SavedWordContext? = null
+    /** 游客点击收藏后等待登录成功的动作；成功后续跑保存，取消则丢弃 */
+    private sealed interface PendingSave {
+        data class Word(val entry: WordEntry, val context: SavedWordContext?) : PendingSave
+        data class Sentence(val source: String, val translation: String?) : PendingSave
+    }
+
+    private var pendingSave: PendingSave? = null
     private var mediaProjection: MediaProjection? = null
     private var isShowingTranslation = false
 
@@ -233,6 +239,7 @@ class FloatingButtonService : Service() {
         // 生词库独立于 MediaProjection 生命周期：投影重启、换视频都不该影响收藏
         // 与页面共享进程级实例，保证收藏后同一个同步队列能立即收到通知
         vocabularyRepository = container.vocabularyRepository
+        sentenceRepository = container.sentenceRepository
         settingsStore = SettingsStore(this)
 
         authManager = container.sessionManager
@@ -241,12 +248,14 @@ class FloatingButtonService : Service() {
         // 悬浮窗收藏是服务内的动作，用进程级登录结果继续/丢弃 pending 操作
         serviceScope.launch {
             loginPromptCoordinator.results.collect { success ->
-                val entry = pendingSaveEntry
-                val context = pendingSaveContext
-                pendingSaveEntry = null
-                pendingSaveContext = null
-                if (success && entry != null) {
-                    saveWordAfterLogin(entry, context)
+                val pending = pendingSave
+                pendingSave = null
+                if (success && pending != null) {
+                    when (pending) {
+                        is PendingSave.Word -> saveWordAfterLogin(pending.entry, pending.context)
+                        is PendingSave.Sentence ->
+                            saveSentenceAfterLogin(pending.source, pending.translation)
+                    }
                 }
             }
         }
@@ -1187,8 +1196,7 @@ class FloatingButtonService : Service() {
         removeOverlayView(animated = true)
         isShowingTranslation = false
         currentResult = null
-        pendingSaveEntry = null
-        pendingSaveContext = null
+        pendingSave = null
 
         // 只恢复由本服务暂停的媒体
         resumeMedia()
@@ -1269,6 +1277,9 @@ class FloatingButtonService : Service() {
             setOnSaveToggleListener { entry ->
                 toggleSavedWord(entry)
             }
+            setOnSentenceSaveToggleListener { source, translation ->
+                toggleSavedSentence(source, translation)
+            }
         }
         currentResult = result
 
@@ -1323,6 +1334,7 @@ class FloatingButtonService : Service() {
             overlayView?.let { view ->
                 // 收藏状态存在数据库里，异步查回来再点亮书签图标
                 refreshSavedStates(result.difficultWords, view)
+                refreshSentenceSavedState(result.originalText, view)
                 animateOverlayIn(view, params, baseY, slidePx)
             }
         } catch (e: Exception) {
@@ -1372,18 +1384,32 @@ class FloatingButtonService : Service() {
             )
         }
         if (!authManager.isLoggedIn()) {
-            requestLoginForSave(entry, context)
+            requestLoginForSave(PendingSave.Word(entry, context))
             return
         }
         val repository = vocabularyRepository ?: return
         serviceScope.launch { performToggle(repository, entry, context) }
     }
 
-    private fun requestLoginForSave(entry: WordEntry, context: SavedWordContext?) {
-        if (pendingSaveEntry != null) return
+    /**
+     * 收藏/取消收藏当前字幕整句
+     *
+     * 与生词收藏独立：不要求句中有生词，也不影响生词库。
+     */
+    private fun toggleSavedSentence(source: String, translation: String?) {
+        if (source.isBlank()) return
+        if (!authManager.isLoggedIn()) {
+            requestLoginForSave(PendingSave.Sentence(source, translation))
+            return
+        }
+        val repository = sentenceRepository ?: return
+        serviceScope.launch { performSentenceToggle(repository, source, translation) }
+    }
+
+    private fun requestLoginForSave(pending: PendingSave) {
+        if (pendingSave != null) return
         if (!loginPromptCoordinator.tryBegin()) return
-        pendingSaveEntry = entry
-        pendingSaveContext = context
+        pendingSave = pending
         try {
             startActivity(
                 Intent(this, LoginActivity::class.java).apply {
@@ -1393,8 +1419,7 @@ class FloatingButtonService : Service() {
             )
         } catch (e: Exception) {
             Log.e(TAG, "打开登录页失败", e)
-            pendingSaveEntry = null
-            pendingSaveContext = null
+            pendingSave = null
             loginPromptCoordinator.finish(false)
             Toast.makeText(this, R.string.error_auth_unknown, Toast.LENGTH_SHORT).show()
         }
@@ -1445,6 +1470,51 @@ class FloatingButtonService : Service() {
         Toast.makeText(this@FloatingButtonService, message, Toast.LENGTH_SHORT).show()
     }
 
+    /** 登录成功后的句子收藏：只保存，不做 toggle */
+    private fun saveSentenceAfterLogin(source: String, translation: String?) {
+        val repository = sentenceRepository ?: return
+        serviceScope.launch {
+            val saved = repository.add(source, translation)
+            if (!saved) {
+                Log.e(TAG, "保存句子失败")
+                Toast.makeText(
+                    this@FloatingButtonService,
+                    R.string.service_save_sentence_failed,
+                    Toast.LENGTH_SHORT
+                ).show()
+                return@launch
+            }
+            overlayView?.setSentenceSaved(true)
+            Toast.makeText(
+                this@FloatingButtonService,
+                R.string.service_sentence_saved,
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private suspend fun performSentenceToggle(
+        repository: ISentenceRepository,
+        source: String,
+        translation: String?
+    ) {
+        val result = repository.toggle(source, translation)
+        if (!result.success) {
+            Log.e(TAG, "保存句子失败")
+            Toast.makeText(
+                this@FloatingButtonService,
+                R.string.service_save_sentence_failed,
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+        overlayView?.setSentenceSaved(result.saved)
+        val message = getString(
+            if (result.saved) R.string.service_sentence_saved else R.string.service_sentence_removed
+        )
+        Toast.makeText(this@FloatingButtonService, message, Toast.LENGTH_SHORT).show()
+    }
+
     /**
      * 初始化弹层里每个生词的收藏图标状态
      */
@@ -1457,6 +1527,19 @@ class FloatingButtonService : Service() {
             // 查询期间弹层可能已关闭或被下一次翻译替换，旧结果不能写到新视图上
             if (overlayView === target) {
                 words.forEach { word -> target.setWordSaved(word, word in saved) }
+            }
+        }
+    }
+
+    /** 当前这句字幕是否已收藏 */
+    private fun refreshSentenceSavedState(source: String, target: TranslationOverlayView) {
+        if (source.isBlank()) return
+        val repository = sentenceRepository ?: return
+        serviceScope.launch {
+            val saved = repository.isSaved(source)
+            // 查询期间弹层可能已关闭或被下一次翻译替换，旧结果不能写到新视图上
+            if (overlayView === target) {
+                target.setSentenceSaved(saved)
             }
         }
     }
@@ -1616,11 +1699,11 @@ class FloatingButtonService : Service() {
         floatingView = null
 
         // 取消协程作用域
-        pendingSaveEntry = null
-        pendingSaveContext = null
+        pendingSave = null
         serviceScope.cancel()
 
         vocabularyRepository = null
+        sentenceRepository = null
     }
 
     /** 停止屏幕采集会话 */

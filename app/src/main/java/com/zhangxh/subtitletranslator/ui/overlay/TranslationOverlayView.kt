@@ -74,6 +74,7 @@ class TranslationOverlayView @JvmOverloads constructor(
     private var onCopyListener: ((String) -> Unit)? = null
     private var onPronounceListener: ((String) -> Unit)? = null
     private var onSaveToggleListener: ((WordEntry) -> Unit)? = null
+    private var onSentenceSaveToggleListener: ((String, String?) -> Unit)? = null
     private var onPreviousSubtitleListener: (() -> Unit)? = null
     private var onNextSubtitleListener: (() -> Unit)? = null
 
@@ -90,6 +91,7 @@ class TranslationOverlayView @JvmOverloads constructor(
         setupCollapseButton()
         setupCopyButtons()
         setupNavigationButtons()
+        setupSentenceSaveButton()
     }
 
     /**
@@ -140,6 +142,11 @@ class TranslationOverlayView @JvmOverloads constructor(
     fun setTranslationResult(result: TranslationResult) {
         // 原文
         findViewById<TextView>(R.id.tvOriginalText)?.text = result.originalText
+
+        // 整句收藏：没有原文时没有可收藏的对象
+        findViewById<android.widget.ImageButton>(R.id.btnSaveSentence)?.apply {
+            visibility = if (result.originalText.isBlank()) View.GONE else View.VISIBLE
+        }
 
         // 译文
         findViewById<TextView>(R.id.tvTranslatedText)?.text = result.translatedText
@@ -202,6 +209,15 @@ class TranslationOverlayView @JvmOverloads constructor(
         onSaveToggleListener = listener
     }
 
+    /**
+     * 设置整句收藏监听
+     *
+     * 回调带原文和译文：句子收藏不依赖句中是否有关键词。
+     */
+    fun setOnSentenceSaveToggleListener(listener: (String, String?) -> Unit) {
+        onSentenceSaveToggleListener = listener
+    }
+
     /** 跳到视频的上一条字幕 */
     fun setOnPreviousSubtitleListener(listener: () -> Unit) {
         onPreviousSubtitleListener = listener
@@ -235,6 +251,21 @@ class TranslationOverlayView @JvmOverloads constructor(
             if (saved) R.string.action_unsave_word else R.string.action_save_word
         )
         button.isSelected = saved
+    }
+
+    /**
+     * 更新整句收藏状态
+     *
+     * 收藏状态存在数据库里，服务异步查回来后再调用这里点亮图标。
+     */
+    fun setSentenceSaved(saved: Boolean) {
+        findViewById<android.widget.ImageButton>(R.id.btnSaveSentence)?.apply {
+            setImageResource(if (saved) R.drawable.ic_bookmark else R.drawable.ic_bookmark_border)
+            contentDescription = context.getString(
+                if (saved) R.string.action_unsave_sentence else R.string.action_save_sentence
+            )
+            isSelected = saved
+        }
     }
 
     /**
@@ -284,6 +315,20 @@ class TranslationOverlayView @JvmOverloads constructor(
                 onCopyListener?.invoke(text)
             }
             true
+        }
+    }
+
+    /**
+     * 整句收藏按钮：收藏/取消由服务决定，视图只负责把当前原文和译文带出去
+     */
+    private fun setupSentenceSaveButton() {
+        findViewById<android.widget.ImageButton>(R.id.btnSaveSentence)?.setOnClickListener {
+            val source = findViewById<TextView>(R.id.tvOriginalText)
+                ?.text?.toString()?.trim().orEmpty()
+            if (source.isEmpty()) return@setOnClickListener
+            val translation = findViewById<TextView>(R.id.tvTranslatedText)
+                ?.text?.toString()?.trim()?.takeIf { it.isNotEmpty() }
+            onSentenceSaveToggleListener?.invoke(source, translation)
         }
     }
 

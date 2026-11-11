@@ -1,5 +1,6 @@
 package com.zhangxh.subtitletranslator.domain.history
 
+import com.zhangxh.subtitletranslator.domain.common.normalizeSentence
 import java.util.Locale
 
 /**
@@ -8,8 +9,7 @@ import java.util.Locale
  * 一次构造、多次匹配：历史详情可能同时展示很多条记录，复用同一个正则避免重复编译。
  * 英文按 ASCII 词边界匹配，避免 `art` 命中 `start`；中文等非 ASCII 词不做边界限制。
  */
-fun normalizeSentenceForMatch(text: String): String =
-    text.trim().replace(Regex("\\s+"), " ").lowercase(Locale.ROOT)
+fun normalizeSentenceForMatch(text: String): String = normalizeSentence(text)
 
 class SavedWordMatcher(savedWords: Collection<String>) {
 

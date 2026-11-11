@@ -1,10 +1,19 @@
-# 生词批量增量同步接口（客户端契约）
+# 生词与句子收藏批量增量同步接口（客户端契约）
 
-本文档描述 Android 客户端已经接入、服务端待实现的同步协议。客户端实现位于：
+本文档描述 Android 客户端已经接入、服务端待实现的同步协议。生词收藏和句子收藏是两个
+**独立资源**，各自使用独立的端点、数据表和增量游标，但共用同一套同步模式。
 
-- `data/remote/VocabularyApi.kt` / `VocabularyDtos.kt`
-- `data/vocabulary/VocabularySyncManager.kt`
-- `data/vocabulary/VocabularySyncCoordinator.kt`
+客户端实现位于：
+
+- 公共同步调度：`data/sync/SyncCoordinator.kt`
+- 生词：
+  - `data/remote/VocabularyApi.kt` / `VocabularyDtos.kt`
+  - `data/vocabulary/VocabularySyncManager.kt`
+  - `data/vocabulary/SqliteVocabularyRepository.kt`
+- 句子：
+  - `data/remote/SentenceApi.kt` / `SentenceDtos.kt`
+  - `data/sentence/SentenceSyncManager.kt`
+  - `data/sentence/SqliteSentenceRepository.kt`
 
 ## 1. 设计目标
 
@@ -13,6 +22,8 @@
 - **一次往返**：同一个请求既推送本地变更，也按游标拉取云端增量，减少请求数。
 - **幂等**：客户端为每条记录生成 `clientReferenceId`，重试不会产生重复数据。
 - **删除可传播**：本地删除写墓碑（`deleted_at`），服务端确认后才物理清除。
+- **资源独立**：生词与句子分别同步、分别失败重试，互不阻塞；只收藏句子、不收藏任何
+  单词是合法状态。
 
 ## 2. 端点
 
@@ -22,7 +33,14 @@ Authorization: Bearer <access_token>
 Content-Type: application/json
 ```
 
-错误处理沿用现有认证接口：
+```
+POST /api/v1/sentences/sync
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+两个端点的请求/响应结构、错误处理和合并规则一致，只是 `data` 负载不同。错误处理沿用
+现有认证接口：
 
 | HTTP | 含义 | 客户端行为 |
 | --- | --- | --- |
@@ -37,7 +55,7 @@ Content-Type: application/json
 { "data": { ... } }
 ```
 
-## 3. 请求
+## 3. 生词请求
 
 ```json
 {
@@ -98,7 +116,7 @@ Content-Type: application/json
 
 `itemType` / `learningStatus` 为小写枚举名，`difficulty` 为大写枚举名（客户端历史数据格式）。
 
-## 4. 响应
+## 4. 生词响应
 
 ```json
 {
@@ -147,32 +165,144 @@ Content-Type: application/json
 5. **拉取过滤**：`changes` 返回 `updated_at > since` 的记录（含墓碑），按 `(updated_at, id)` 升序；`nextSince` 取本页最后一条的 `(updated_at, id)` 编码。
 6. **自己的变更**：客户端本次推送并被接受的记录，通常也会出现在 `changes` 里；客户端按 `clientReferenceId` / `remoteId` 合并，重复应用无副作用。
 
-## 6. 句子收藏的表示
+## 6. 句子收藏同步（独立资源）
 
-当前产品没有独立的“句子收藏”实体。收藏某个单词时，客户端会把该词出现的那句字幕写入
-`context.source` / `context.translation`；翻译历史页的句子书签状态由“是否存在某个生词
-的 `context.source` 等于这句话”推导。
+### 6.1 为什么不复用生词接口
 
-因此：
+句子收藏不是生词的附属字段，而是一个独立功能：
 
-- 同步词条时带上 `context` 字段，就同时同步了句子收藏状态；
-- 取消收藏最后一个来自该句子的单词，等价于取消该句子的收藏；
-- 服务端无需新建句子表，按词条的上下文字段存储即可。
+- **生命周期不同**：整句可以不依赖任何生词被收藏；取消收藏某个单词不应删除句子收藏，
+  删除句子收藏也不应影响单词。
+- **去重键不同**：句子按归一化后的原文去重；生词按 `(语言, 词形)` 去重，还带音标、释义、
+  难度和学习状态，两者没有公共主键。
+- **数据量/游标独立**：句子收藏往往远多于单词收藏，独立游标和独立重试可以避免一个资源
+  的失败阻塞另一个资源。
+- **服务端建模清晰**：单独一张 `saved_sentences` 表比在 `context` 里隐式携带句子更容易
+  查询、统计和清理。
 
-如果后续产品增加“只收藏句子、不收藏单词”的能力，需要新增独立实体和协议版本
-（`clientVersion = 2`），不要复用本协议的词条结构。
+因此客户端使用独立的 `POST /api/v1/sentences/sync`，只在协议**模式**上复用生词接口：
+统一包裹、`clientReferenceId` 幂等、墓碑、`updatedAt` 后写胜出、不透明游标、推送+拉取
+一次往返。
+
+### 6.2 端点
+
+```
+POST /api/v1/sentences/sync
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+错误处理和响应包裹与生词接口完全一致。
+
+### 6.3 请求
+
+```json
+{
+  "clientVersion": 1,
+  "since": null,
+  "limit": 100,
+  "changes": [
+    {
+      "clientReferenceId": "c4a1f0d2-8e6b-4b1a-9f0e-7d2c3b5a6e11",
+      "remoteId": null,
+      "operation": "upsert",
+      "updatedAt": "2026-11-11T09:15:20.456Z",
+      "data": {
+        "source": "You miss one hundred percent of the shots you don't take.",
+        "translation": "你不出手，就百分之百不会进球。",
+        "createdAt": "2026-11-11T09:15:20.456Z"
+      }
+    },
+    {
+      "clientReferenceId": "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b",
+      "remoteId": "6650a1b2c3d4e5f6a7b8c9d0",
+      "operation": "delete",
+      "updatedAt": "2026-11-12T02:30:00.000Z",
+      "data": null
+    }
+  ]
+}
+```
+
+句子负载字段：
+
+| 字段 | 说明 |
+| --- | --- |
+| `source` | 收藏时字幕原文，保留原始大小写和标点 |
+| `translation` | 同一条字幕的译文，可能为 `null` |
+| `createdAt` | 首次收藏时间，ISO-8601 UTC；句子没有学习状态，不需要 `updatedAt` 之外的业务字段 |
+
+`operation`、`updatedAt`、`clientReferenceId`、`remoteId`、`limit`、`since` 的语义与生词
+接口相同。
+
+### 6.4 响应
+
+结构与生词接口相同，`accepted` / `changes` 的 `data` 换成句子负载：
+
+```json
+{
+  "data": {
+    "serverTime": "2026-11-11T09:15:21Z",
+    "nextSince": "eyJ1cGRhdGVkQXQiOiIyMDI2LTExLTExVDA5OjE1OjIxWiIsImlkIjoiLi4uIn0",
+    "hasMore": false,
+    "accepted": [
+      {
+        "clientReferenceId": "c4a1f0d2-8e6b-4b1a-9f0e-7d2c3b5a6e11",
+        "remoteId": "6650a1b2c3d4e5f6a7b8c9d1",
+        "operation": "upsert",
+        "updatedAt": "2026-11-11T09:15:20.456Z",
+        "data": null
+      }
+    ],
+    "changes": [
+      {
+        "clientReferenceId": null,
+        "remoteId": "6650a1b2c3d4e5f6a7b8c9d2",
+        "operation": "upsert",
+        "updatedAt": "2026-11-10T12:00:00.000Z",
+        "data": {
+          "source": "Practice makes perfect.",
+          "translation": "熟能生巧。",
+          "createdAt": "2026-11-10T12:00:00.000Z"
+        }
+      }
+    ]
+  }
+}
+```
+
+### 6.5 服务端合并规则
+
+1. **幂等键**：`(user_id, client_reference_id)` 唯一，重复推送直接返回已有 `remoteId`。
+2. **去重**：同一用户下按 `source` 的归一化值去重。归一化规则必须与客户端
+   `domain/common/TextNormalization.kt` 一致：去掉首尾空白、把连续空白折叠为一个空格、
+   转小写（`Locale.ROOT`）。建议服务端存 `source_key` 列并加 `(user_id, source_key)` 唯一索引。
+3. **后写胜出**：只有 `updatedAt >= 库中 updated_at` 才应用；否则保留库中版本并在
+   `changes` 中返回权威版本。
+4. **删除写墓碑**：`operation=delete` 设置 `deleted_at`，保留行供增量拉取；同一
+   `source_key` 再次收藏时复用该行并清空 `deleted_at`。
+5. **独立游标**：`nextSince` 只覆盖句子资源的 `(updated_at, id)`，与生词游标互不混用。
+6. **译文可空**：用户只收藏原文、或翻译失败时 `translation` 为 `null`，服务端必须允许。
+
+### 6.6 客户端一次性回填
+
+升级到支持句子收藏的版本后，客户端会把历史生词里已有的 `context.source` /
+`context.translation` 复制成句子收藏（按归一化原文去重），然后走正常的句子同步上传。
+回填只在每台设备执行一次（`sentence_sync` SharedPreferences 的 `seeded_from_words`
+标记），不随账号切换重复执行；回填产生的记录和用户新收藏的句子在服务端没有区别。
 
 ## 7. 客户端触发策略
 
 | 时机 | 行为 |
 | --- | --- |
-| 登录 / 冷启动恢复登录态 | 立即同步一次；首次登录会先清空旧账号的 remoteId 映射并全量上传本地词库 |
-| 收藏 / 取消收藏 / 学习状态变化 | 本地写库后 500ms 防抖触发，短时间多次操作合并为一次请求 |
+| 登录 / 冷启动恢复登录态 | 两种资源各立即同步一次；首次登录会先清空旧账号的 remoteId 映射并全量上传本地数据 |
+| 收藏 / 取消收藏 / 生词学习状态变化 | 对应资源本地写库后 500ms 防抖触发；两个资源各自防抖、各自重试 |
 | 网络恢复 | 自动补发离线期间积压的 dirty 记录 |
 | 同步失败 | 2s、4s、8s… 指数退避，最长 5min；离线时等待网络回调，不空转 |
 
 没有手动同步按钮；用户不需要感知同步过程。游客状态下所有操作只落本地，登录后自动合并。
 
-**账号切换**：本地词库是设备级的，不按账号隔离。检测到登录用户变化时，客户端会清空
-上一账号的 `remoteId` 映射并把本地活跃词条重新标记为 dirty，随后作为新账号的数据上传。
-如果未来要求账号之间严格隔离，需要给本地表增加 `user_id` 列并调整合并策略。
+**账号切换**：本地生词库和句子库都是设备级的，不按账号隔离。检测到登录用户变化时，
+客户端会分别清空上一账号的 `remoteId` 映射并把本地活跃记录重新标记为 dirty，随后作为
+新账号的数据上传。如果未来要求账号之间严格隔离，需要给两张本地表都增加 `user_id` 列并
+调整合并策略。

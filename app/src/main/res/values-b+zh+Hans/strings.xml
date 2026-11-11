@@ -11,6 +11,8 @@
     <string name="action_more">更多操作</string>
     <string name="action_save_word">收藏</string>
     <string name="action_unsave_word">取消收藏</string>
+    <string name="action_save_sentence">收藏句子</string>
+    <string name="action_unsave_sentence">取消收藏句子</string>
     <string name="decorative_bullet" translatable="false">●</string>
 
     <!-- 主界面 -->
@@ -249,6 +251,9 @@
     <string name="service_save_word_failed">保存失败，请稍后重试</string>
     <string name="service_word_saved">已加入生词库</string>
     <string name="service_word_removed">已从生词库移除</string>
+    <string name="service_save_sentence_failed">收藏句子失败，请稍后重试</string>
+    <string name="service_sentence_saved">已收藏此句</string>
+    <string name="service_sentence_removed">已取消收藏此句</string>
     <string name="clipboard_label_translation">翻译结果</string>
     <string name="toast_copied">已复制到剪贴板</string>
     <string name="media_notification_listener_label">字幕翻译助手媒体控制</string>

@@ -62,15 +62,6 @@ data class RemoteVocabularyChange(
     val snapshot: VocabularySnapshot? = null
 )
 
-/** 一次同步的结果，决定调用方要不要退避重试 */
-sealed interface VocabularySyncResult {
-    data object Success : VocabularySyncResult
-    data object NotLoggedIn : VocabularySyncResult
-    data object Offline : VocabularySyncResult
-    data class Retryable(val reason: String) : VocabularySyncResult
-    data class Permanent(val reason: String) : VocabularySyncResult
-}
-
 fun SavedWord.toSnapshot(): VocabularySnapshot = VocabularySnapshot(
     word = word,
     phonetic = phonetic,

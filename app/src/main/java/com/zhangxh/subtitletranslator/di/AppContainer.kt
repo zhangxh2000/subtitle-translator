@@ -16,14 +16,21 @@ import com.zhangxh.subtitletranslator.data.history.SqliteTranslationHistoryRepos
 import com.zhangxh.subtitletranslator.data.net.NetworkMonitor
 import com.zhangxh.subtitletranslator.data.remote.AuthApi
 import com.zhangxh.subtitletranslator.data.remote.RetrofitFactory
+import com.zhangxh.subtitletranslator.data.remote.SentenceApi
 import com.zhangxh.subtitletranslator.data.remote.VocabularyApi
+import com.zhangxh.subtitletranslator.data.sentence.SentenceSyncManager
+import com.zhangxh.subtitletranslator.data.sentence.SharedPrefsSentenceSyncStateStore
+import com.zhangxh.subtitletranslator.data.sentence.SqliteSentenceRepository
+import com.zhangxh.subtitletranslator.data.sync.SyncCoordinator
 import com.zhangxh.subtitletranslator.data.vocabulary.SharedPrefsVocabularySyncStateStore
 import com.zhangxh.subtitletranslator.data.vocabulary.SqliteVocabularyRepository
-import com.zhangxh.subtitletranslator.data.vocabulary.VocabularySyncCoordinator
 import com.zhangxh.subtitletranslator.data.vocabulary.VocabularySyncManager
 import com.zhangxh.subtitletranslator.domain.auth.AuthRepository
 import com.zhangxh.subtitletranslator.domain.config.ConfigRepository
 import com.zhangxh.subtitletranslator.domain.history.ITranslationHistoryRepository
+import com.zhangxh.subtitletranslator.domain.sentence.ISentenceRepository
+import com.zhangxh.subtitletranslator.domain.sentence.SavedSentence
+import com.zhangxh.subtitletranslator.domain.sentence.SentenceKey
 import com.zhangxh.subtitletranslator.domain.vocabulary.IVocabularyRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -98,18 +105,75 @@ class AppContainer(context: Context) {
         networkStatus = networkMonitor
     )
 
-    private val vocabularySyncCoordinator: VocabularySyncCoordinator by lazy {
-        VocabularySyncCoordinator(
+    /**
+     * 句子收藏与生词库完全独立：自己的表、自己的同步队列和游标。
+     * 两个领域各有一个同步编排器，互不阻塞。
+     */
+    private val sentenceSyncStateStore = SharedPrefsSentenceSyncStateStore(context)
+    private val sqliteSentenceRepository = SqliteSentenceRepository(
+        context = context,
+        onLocalChange = { sentenceSyncCoordinator.trigger() }
+    )
+    val sentenceRepository: ISentenceRepository = sqliteSentenceRepository
+
+    private val sentenceSyncManager = SentenceSyncManager(
+        api = authRetrofit.create(SentenceApi::class.java),
+        store = sqliteSentenceRepository,
+        stateStore = sentenceSyncStateStore,
+        sessionManager = sessionManager,
+        networkStatus = networkMonitor
+    )
+
+    private val vocabularySyncCoordinator: SyncCoordinator by lazy {
+        SyncCoordinator(
+            tag = "VocabularySync",
             authManager = sessionManager,
-            syncManager = vocabularySyncManager,
             networkMonitor = networkMonitor,
-            scope = appScope
+            scope = appScope,
+            sync = vocabularySyncManager::sync
+        )
+    }
+
+    private val sentenceSyncCoordinator: SyncCoordinator by lazy {
+        SyncCoordinator(
+            tag = "SentenceSync",
+            authManager = sessionManager,
+            networkMonitor = networkMonitor,
+            scope = appScope,
+            sync = sentenceSyncManager::sync
         )
     }
 
     init {
         // 登录、网络恢复、本地收藏都会触发；未登录时同步器直接返回，不产生网络请求
         vocabularySyncCoordinator.start()
+        sentenceSyncCoordinator.start()
+        seedSentenceFavoritesFromWords()
+    }
+
+    /**
+     * 旧版本历史页的句子书签是从生词 context.source 推导的。
+     * 句子收藏改为独立实体后迁移一次，避免用户已经看到的收藏标记消失。
+     */
+    private fun seedSentenceFavoritesFromWords() {
+        appScope.launch {
+            if (sentenceSyncStateStore.isSeededFromWords()) return@launch
+            val seeds = sqliteVocabularyRepository.list()
+                .mapNotNull { word ->
+                    val context = word.context?.takeIf { it.isValid() } ?: return@mapNotNull null
+                    val source = context.source?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                    SavedSentence(
+                        source = source,
+                        translation = context.translation,
+                        createdAt = word.createdAt
+                    )
+                }
+                .distinctBy { SentenceKey.of(it.source) }
+            if (seeds.isNotEmpty()) {
+                Log.d(TAG, "迁移生词上下文到句子收藏: ${sqliteSentenceRepository.seed(seeds)} 条")
+            }
+            sentenceSyncStateStore.markSeededFromWords()
+        }
     }
 
     /** 应用启动时在后台恢复会话，不阻塞首帧；恢复成功会自动触发增量同步 */

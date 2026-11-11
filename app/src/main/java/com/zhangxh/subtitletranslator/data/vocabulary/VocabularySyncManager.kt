@@ -13,7 +13,7 @@ import com.zhangxh.subtitletranslator.domain.vocabulary.IVocabularySyncStateStor
 import com.zhangxh.subtitletranslator.domain.vocabulary.IVocabularySyncStore
 import com.zhangxh.subtitletranslator.domain.vocabulary.PendingVocabularyChange
 import com.zhangxh.subtitletranslator.domain.vocabulary.VocabularySyncOperation
-import com.zhangxh.subtitletranslator.domain.vocabulary.VocabularySyncResult
+import com.zhangxh.subtitletranslator.domain.sync.SyncResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -49,11 +49,11 @@ class VocabularySyncManager(
 
     private val mutex = Mutex()
 
-    suspend fun sync(): VocabularySyncResult = mutex.withLock {
+    suspend fun sync(): SyncResult = mutex.withLock {
         withContext(Dispatchers.IO) {
             val userId = (sessionManager.state.value as? AuthState.LoggedIn)?.user?.id
-                ?: return@withContext VocabularySyncResult.NotLoggedIn
-            if (!networkStatus.isOnline()) return@withContext VocabularySyncResult.Offline
+                ?: return@withContext SyncResult.NotLoggedIn
+            if (!networkStatus.isOnline()) return@withContext SyncResult.Offline
 
             try {
                 prepareAccount(userId)
@@ -65,10 +65,10 @@ class VocabularySyncManager(
                 classifyHttpError(e.code())
             } catch (e: IOException) {
                 Log.w(TAG, "同步网络异常: ${e.javaClass.simpleName}")
-                VocabularySyncResult.Retryable("network")
+                SyncResult.Retryable("network")
             } catch (e: Exception) {
                 Log.e(TAG, "同步异常", e)
-                VocabularySyncResult.Retryable(e.javaClass.simpleName)
+                SyncResult.Retryable(e.javaClass.simpleName)
             }
         }
     }
@@ -85,7 +85,7 @@ class VocabularySyncManager(
         stateStore.setLastUserId(userId)
     }
 
-    private suspend fun runPages(userId: String): VocabularySyncResult {
+    private suspend fun runPages(userId: String): SyncResult {
         var page = 0
         while (true) {
             val pending = store.pendingChanges(batchSize)
@@ -98,7 +98,7 @@ class VocabularySyncManager(
                 )
             )
             val data = response.data
-                ?: return VocabularySyncResult.Retryable("empty response")
+                ?: return SyncResult.Retryable("empty response")
 
             // 先合并云端版本，再清理已确认的本地变更：
             // 这样删除墓碑在合并期间仍然存在，旧的云端记录不会把刚删的词复活
@@ -108,7 +108,7 @@ class VocabularySyncManager(
 
             val nextSince = data.nextSince?.takeIf { it.isNotBlank() }
                 ?: data.serverTime?.takeIf { it.isNotBlank() }
-                ?: return VocabularySyncResult.Retryable("missing cursor")
+                ?: return SyncResult.Retryable("missing cursor")
             if (nextSince != since) stateStore.saveCursor(userId, nextSince)
             page++
 
@@ -116,15 +116,15 @@ class VocabularySyncManager(
             val hasMoreRemote = data.hasMore
             if (!hasMoreRemote && !hasMoreLocal) {
                 Log.d(TAG, "同步完成: pages=$page")
-                return VocabularySyncResult.Success
+                return SyncResult.Success
             }
             // 服务端拒绝/忽略了全部变更且游标没动：继续翻页只会打满空请求
             val madeProgress = acknowledged > 0 || remoteChanges.isNotEmpty() || nextSince != since
             if (!madeProgress) {
-                return VocabularySyncResult.Retryable("no progress")
+                return SyncResult.Retryable("no progress")
             }
             if (page >= maxPages) {
-                return VocabularySyncResult.Retryable("page limit reached")
+                return SyncResult.Retryable("page limit reached")
             }
         }
     }
@@ -171,12 +171,12 @@ class VocabularySyncManager(
         return cleared
     }
 
-    private fun classifyHttpError(code: Int): VocabularySyncResult = when (code) {
+    private fun classifyHttpError(code: Int): SyncResult = when (code) {
         // 刷新失败时会话已被清空，等下一次登录再同步
-        401, 403 -> VocabularySyncResult.NotLoggedIn
-        408, 429 -> VocabularySyncResult.Retryable("HTTP $code")
-        in 500..599 -> VocabularySyncResult.Retryable("HTTP $code")
+        401, 403 -> SyncResult.NotLoggedIn
+        408, 429 -> SyncResult.Retryable("HTTP $code")
+        in 500..599 -> SyncResult.Retryable("HTTP $code")
         // 其他 4xx 重试也不会成功，保留 dirty 等下次版本修复
-        else -> VocabularySyncResult.Permanent("HTTP $code")
+        else -> SyncResult.Permanent("HTTP $code")
     }
 }

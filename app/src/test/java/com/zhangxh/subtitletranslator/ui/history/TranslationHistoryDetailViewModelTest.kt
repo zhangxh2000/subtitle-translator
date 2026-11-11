@@ -1,9 +1,13 @@
 package com.zhangxh.subtitletranslator.ui.history
 
+import android.app.Application
 import android.os.Looper
 import com.zhangxh.subtitletranslator.domain.history.ITranslationHistoryRepository
 import com.zhangxh.subtitletranslator.domain.history.TranslationDayHistory
 import com.zhangxh.subtitletranslator.domain.history.TranslationRecord
+import com.zhangxh.subtitletranslator.domain.sentence.ISentenceRepository
+import com.zhangxh.subtitletranslator.domain.sentence.SavedSentence
+import com.zhangxh.subtitletranslator.domain.sentence.SentenceToggleResult
 import com.zhangxh.subtitletranslator.domain.vocabulary.IVocabularyRepository
 import com.zhangxh.subtitletranslator.domain.vocabulary.LearningStatus
 import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWord
@@ -22,7 +26,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+@Config(sdk = [33], application = Application::class)
 class TranslationHistoryDetailViewModelTest {
 
     private class FakeHistoryRepository(
@@ -72,6 +76,19 @@ class TranslationHistoryDetailViewModelTest {
         override suspend fun savedWords(words: List<String>) = emptySet<String>()
     }
 
+    private class FakeSentenceRepository(private val items: List<SavedSentence>) :
+        ISentenceRepository {
+
+        override suspend fun toggle(source: String, translation: String?) =
+            SentenceToggleResult(saved = false, success = true)
+
+        override suspend fun add(source: String, translation: String?) = true
+        override suspend fun remove(source: String) = true
+        override suspend fun isSaved(source: String) = items.any { it.source == source }
+        override suspend fun find(source: String) = items.firstOrNull { it.source == source }
+        override suspend fun list(): List<SavedSentence> = items
+    }
+
     private fun savedWord(word: String, source: String?) = SavedWord(
         id = 1,
         word = word,
@@ -99,11 +116,15 @@ class TranslationHistoryDetailViewModelTest {
         val vocabulary = FakeVocabularyRepository(
             listOf(savedWord("give up", "I  will never give up on you."))
         )
+        val sentences = FakeSentenceRepository(
+            listOf(SavedSentence("I  will never give up on you.", "我永远不会放弃你。"))
+        )
         val viewModel = TranslationHistoryDetailViewModel(
             RuntimeEnvironment.getApplication(),
             day,
             history,
-            vocabulary
+            vocabulary,
+            sentences
         )
         idle()
 
@@ -135,7 +156,8 @@ class TranslationHistoryDetailViewModelTest {
             RuntimeEnvironment.getApplication(),
             null,
             history,
-            FakeVocabularyRepository(emptyList())
+            FakeVocabularyRepository(emptyList()),
+            FakeSentenceRepository(emptyList())
         )
         idle()
 

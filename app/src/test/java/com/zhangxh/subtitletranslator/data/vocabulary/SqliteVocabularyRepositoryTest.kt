@@ -1,5 +1,6 @@
 package com.zhangxh.subtitletranslator.data.vocabulary
 
+import android.app.Application
 import android.content.Context
 import com.zhangxh.subtitletranslator.domain.vocabulary.LearningStatus
 import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWordContext
@@ -29,7 +30,7 @@ import org.robolectric.annotation.Config
  * 用真实的数据库文件（Robolectric 的沙箱里），每个用例前后删库，保证互不影响。
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+@Config(sdk = [33], application = Application::class)
 class SqliteVocabularyRepositoryTest {
 
     private lateinit var context: Context

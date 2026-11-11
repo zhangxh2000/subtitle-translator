@@ -1,5 +1,6 @@
 package com.zhangxh.subtitletranslator.data.vocabulary
 
+import android.app.Application
 import android.content.Context
 import com.zhangxh.subtitletranslator.data.auth.AuthSessionManager
 import com.zhangxh.subtitletranslator.data.auth.InMemorySessionStore
@@ -19,7 +20,7 @@ import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWordContext
 import com.zhangxh.subtitletranslator.domain.vocabulary.VocabularyItemType
 import com.zhangxh.subtitletranslator.domain.vocabulary.VocabularySnapshot
 import com.zhangxh.subtitletranslator.domain.vocabulary.VocabularySyncOperation
-import com.zhangxh.subtitletranslator.domain.vocabulary.VocabularySyncResult
+import com.zhangxh.subtitletranslator.domain.sync.SyncResult
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficulty
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordEntry
 import kotlinx.coroutines.runBlocking
@@ -41,7 +42,7 @@ import java.time.Instant
  * 覆盖：墓碑推送与确认、客户端版本保护、云端变更合并、一次完整的推送+拉取。
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+@Config(sdk = [33], application = Application::class)
 class VocabularySyncTest {
 
     private lateinit var context: Context
@@ -168,7 +169,7 @@ class VocabularySyncTest {
             networkStatus = NetworkStatus { true }
         )
 
-        assertEquals(VocabularySyncResult.Success, manager.sync())
+        assertEquals(SyncResult.Success, manager.sync())
         assertEquals(1, api.requests.size)
         assertFalse("已确认的本地变更应清掉 dirty", repository.hasPendingChanges())
         assertEquals("cloud", repository.find("cloud")?.word)
@@ -189,7 +190,7 @@ class VocabularySyncTest {
             networkStatus = NetworkStatus { true }
         )
 
-        assertEquals(VocabularySyncResult.NotLoggedIn, manager.sync())
+        assertEquals(SyncResult.NotLoggedIn, manager.sync())
         assertEquals(0, api.requests.size)
     }
 

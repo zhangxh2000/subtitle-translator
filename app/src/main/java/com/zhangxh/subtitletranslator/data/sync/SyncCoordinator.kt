@@ -1,10 +1,10 @@
-package com.zhangxh.subtitletranslator.data.vocabulary
+package com.zhangxh.subtitletranslator.data.sync
 
 import android.util.Log
 import com.zhangxh.subtitletranslator.data.net.NetworkMonitor
 import com.zhangxh.subtitletranslator.domain.auth.AuthManager
 import com.zhangxh.subtitletranslator.domain.auth.AuthState
-import com.zhangxh.subtitletranslator.domain.vocabulary.VocabularySyncResult
+import com.zhangxh.subtitletranslator.domain.sync.SyncResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -16,20 +16,21 @@ import kotlinx.coroutines.launch
 /**
  * 同步触发编排
  *
+ * 生词和句子各自持有一个实例，互不阻塞：
  * - 登录/恢复登录态：自动全量+增量同步一次
  * - 本地收藏/取消/学习状态变化：合并短时间内的多次写库，500ms 后静默推送
  * - 网络恢复：补发离线期间积压的 dirty 记录
  * - 失败：指数退避重试；离线时等待网络回调，不空转
  */
-class VocabularySyncCoordinator(
+class SyncCoordinator(
+    private val tag: String,
     private val authManager: AuthManager,
-    private val syncManager: VocabularySyncManager,
     private val networkMonitor: NetworkMonitor,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val sync: suspend () -> SyncResult
 ) {
 
     private companion object {
-        const val TAG = "VocabularySync"
         const val DEBOUNCE_MS = 500L
         const val MIN_BACKOFF_MS = 2_000L
         const val MAX_BACKOFF_MS = 5 * 60_000L
@@ -73,15 +74,15 @@ class VocabularySyncCoordinator(
     }
 
     private suspend fun runSync() {
-        when (val result = syncManager.sync()) {
-            is VocabularySyncResult.Retryable -> {
-                Log.d(TAG, "需要重试: ${result.reason}")
+        when (val result = sync()) {
+            is SyncResult.Retryable -> {
+                Log.d(tag, "需要重试: ${result.reason}")
                 scheduleRetry()
             }
-            VocabularySyncResult.Offline -> Unit // 网络恢复回调会再次触发
-            is VocabularySyncResult.Permanent,
-            VocabularySyncResult.NotLoggedIn,
-            VocabularySyncResult.Success -> backoffMs = MIN_BACKOFF_MS
+            SyncResult.Offline -> Unit // 网络恢复回调会再次触发
+            is SyncResult.Permanent,
+            SyncResult.NotLoggedIn,
+            SyncResult.Success -> backoffMs = MIN_BACKOFF_MS
         }
     }
 
