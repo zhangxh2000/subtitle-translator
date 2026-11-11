@@ -47,6 +47,18 @@ fun Language.displayNameRes(): Int = when (code) {
 }
 
 @StringRes
+fun Language.shortLabelRes(): Int = when (code) {
+    "en" -> R.string.language_short_en
+    "zh" -> R.string.language_short_zh
+    "ja" -> R.string.language_short_ja
+    "ko" -> R.string.language_short_ko
+    "fr" -> R.string.language_short_fr
+    "de" -> R.string.language_short_de
+    "es" -> R.string.language_short_es
+    else -> R.string.language_short_en
+}
+
+@StringRes
 fun OcrPreprocessMode.labelRes(): Int = when (this) {
     OcrPreprocessMode.GRAYSCALE -> R.string.preprocess_grayscale
     OcrPreprocessMode.ADAPTIVE -> R.string.preprocess_adaptive

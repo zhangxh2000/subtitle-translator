@@ -1,12 +1,6 @@
 package com.zhangxh.subtitletranslator.ui.history
 
 import android.content.res.ColorStateList
-import android.graphics.Typeface
-import android.text.SpannableString
-import android.text.Spanned
-import android.text.style.BackgroundColorSpan
-import android.text.style.ForegroundColorSpan
-import android.text.style.StyleSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -67,7 +61,11 @@ class TranslationRecordAdapter(
             } else {
                 time
             }
-            tvOriginal.text = highlight(item.originalText, item.highlightRanges)
+            tvOriginal.text = HighlightedText.build(
+                context,
+                item.originalText,
+                item.highlightRanges
+            )
             tvTranslation.isVisible = item.translatedText.isNotBlank()
             tvTranslation.text = item.translatedText
 
@@ -90,36 +88,5 @@ class TranslationRecordAdapter(
             divider.isVisible = !isLast
         }
 
-        private fun highlight(text: String, ranges: List<IntRange>): CharSequence {
-            if (ranges.isEmpty() || text.isEmpty()) return text
-            val context = itemView.context
-            val spannable = SpannableString(text)
-            ranges.forEach { range ->
-                val start = range.first.coerceIn(0, text.length)
-                val end = (range.last + 1).coerceIn(start, text.length)
-                if (start == end) return@forEach
-                spannable.setSpan(
-                    BackgroundColorSpan(
-                        ContextCompat.getColor(context, R.color.accent_container)
-                    ),
-                    start,
-                    end,
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-                spannable.setSpan(
-                    ForegroundColorSpan(ContextCompat.getColor(context, R.color.accent)),
-                    start,
-                    end,
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-                spannable.setSpan(
-                    StyleSpan(Typeface.BOLD),
-                    start,
-                    end,
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-            }
-            return spannable
-        }
     }
 }

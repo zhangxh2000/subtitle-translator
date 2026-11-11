@@ -77,7 +77,7 @@ class TranslationHistoryActivity : BaseActivity() {
             toolbar.setTitle(R.string.history_all_title)
             return
         }
-        toolbar.title = TranslationHistoryRow.formatDetailTitle(
+        toolbar.title = TranslationHistoryFormats.formatDetailTitle(
             context = this,
             dayStart = day,
             count = state.records.size
