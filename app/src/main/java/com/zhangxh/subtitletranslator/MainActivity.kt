@@ -2,8 +2,10 @@ package com.zhangxh.subtitletranslator
 
 import android.content.Context
 import android.content.Intent
+import android.media.projection.MediaProjectionConfig
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Toast
@@ -46,9 +48,8 @@ class MainActivity : BaseActivity() {
     private val mediaProjectionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        val succeeded = result.resultCode == RESULT_OK && result.data != null
+        // 授权结束后留在主界面：用户可确认服务状态后再自行切到视频应用
         viewModel.onMediaProjectionResult(result.resultCode, result.data)
-        if (succeeded) finish()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -123,9 +124,23 @@ class MainActivity : BaseActivity() {
         }
     }
 
+    /**
+     * 申请整屏录屏权限
+     *
+     * Android 14+ 默认允许用户只共享单个应用，系统会把所选应用拉到前台；
+     * 字幕按屏幕坐标裁剪，只需要整屏采集，所以显式限定默认显示，
+     * 避免授权过程中启动其他应用。
+     */
     private fun requestMediaProjection() {
         val manager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-        mediaProjectionLauncher.launch(manager.createScreenCaptureIntent())
+        val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            manager.createScreenCaptureIntent(
+                MediaProjectionConfig.createConfigForDefaultDisplay()
+            )
+        } else {
+            manager.createScreenCaptureIntent()
+        }
+        mediaProjectionLauncher.launch(intent)
     }
 
     private fun openOverlaySettings() {
