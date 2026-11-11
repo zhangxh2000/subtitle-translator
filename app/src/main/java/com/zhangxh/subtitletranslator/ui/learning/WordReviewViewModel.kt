@@ -32,6 +32,8 @@ data class ReviewUiState(
     val index: Int = 0,
     val total: Int = 0,
     val revealed: Boolean = false,
+    /** 是否展开原字幕提示；每张卡片默认收起，换词时重置 */
+    val contextVisible: Boolean = false,
     val finished: Boolean = false,
     val empty: Boolean = false,
     val knownCount: Int = 0,
@@ -98,6 +100,18 @@ class WordReviewViewModel(
 
     fun markUnknown() = mark(known = false)
 
+    /**
+     * 展开/收起收藏时记录的原字幕。
+     *
+     * 这是回忆提示，不要求先翻开释义；没有上下文的词直接忽略。
+     */
+    fun toggleContext() {
+        val state = _uiState.value ?: return
+        val word = state.current ?: return
+        if (state.finished || word.context?.isValid() != true) return
+        _uiState.value = state.copy(contextVisible = !state.contextVisible)
+    }
+
     fun speak() {
         _uiState.value?.current?.word?.let(pronouncer::speak)
     }
@@ -157,6 +171,7 @@ class WordReviewViewModel(
             index = nextIndex,
             total = state.total,
             revealed = false,
+            contextVisible = false,
             finished = nextIndex >= words.size,
             knownCount = state.knownCount + if (known) 1 else 0,
             unknownCount = state.unknownCount + if (known) 0 else 1

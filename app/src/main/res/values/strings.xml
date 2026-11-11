@@ -330,6 +330,8 @@
     <string name="word_review_score">✓ %1$d · ↻ %2$d</string>
     <string name="word_review_tap_hint">Recall the meaning, then tap the card to check</string>
     <string name="word_review_reveal">Show meaning</string>
+    <string name="word_review_show_context">Original subtitle</string>
+    <string name="word_review_hide_context">Hide original subtitle</string>
     <string name="word_review_known">I know it</string>
     <string name="word_review_unknown">Review again</string>
     <string name="word_review_finished_title">Round complete</string>

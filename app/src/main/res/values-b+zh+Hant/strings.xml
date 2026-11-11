@@ -325,6 +325,8 @@
     <string name="word_review_score">✓ %1$d · ↻ %2$d</string>
     <string name="word_review_tap_hint">先回想釋義，再點擊卡片查看</string>
     <string name="word_review_reveal">顯示釋義</string>
+    <string name="word_review_show_context">原字幕</string>
+    <string name="word_review_hide_context">收起原字幕</string>
     <string name="word_review_known">認識</string>
     <string name="word_review_unknown">再複習</string>
     <string name="word_review_finished_title">本輪完成</string>

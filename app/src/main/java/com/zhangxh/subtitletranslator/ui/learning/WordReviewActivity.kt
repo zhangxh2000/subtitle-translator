@@ -3,6 +3,7 @@ package com.zhangxh.subtitletranslator.ui.learning
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageButton
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
@@ -36,6 +37,7 @@ class WordReviewActivity : BaseActivity() {
     private lateinit var reviewContent: View
     private lateinit var emptyGroup: View
     private lateinit var finishedGroup: View
+    private lateinit var cardScroll: ScrollView
     private lateinit var cardWord: View
     private lateinit var tvProgress: TextView
     private lateinit var tvScore: TextView
@@ -48,10 +50,15 @@ class WordReviewActivity : BaseActivity() {
     private lateinit var tvContextSource: TextView
     private lateinit var tvContextTranslation: TextView
     private lateinit var judgementGroup: View
+    private lateinit var btnShowContext: MaterialButton
     private lateinit var btnReveal: MaterialButton
     private lateinit var btnKnown: MaterialButton
     private lateinit var btnUnknown: MaterialButton
     private lateinit var tvFinishedSummary: TextView
+
+    /** 当前卡片对应的词；换词时把滚动位置和上下文提示复位 */
+    private var lastWord: String? = null
+    private var contextWasVisible = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,6 +70,7 @@ class WordReviewActivity : BaseActivity() {
         }
 
         cardWord.setOnClickListener { viewModel.reveal() }
+        btnShowContext.setOnClickListener { viewModel.toggleContext() }
         btnReveal.setOnClickListener { viewModel.reveal() }
         btnKnown.setOnClickListener { viewModel.markKnown() }
         btnUnknown.setOnClickListener { viewModel.markUnknown() }
@@ -85,6 +93,7 @@ class WordReviewActivity : BaseActivity() {
         reviewContent = findViewById(R.id.reviewContent)
         emptyGroup = findViewById(R.id.emptyGroup)
         finishedGroup = findViewById(R.id.finishedGroup)
+        cardScroll = findViewById(R.id.cardScroll)
         cardWord = findViewById(R.id.cardWord)
         tvProgress = findViewById(R.id.tvProgress)
         tvScore = findViewById(R.id.tvScore)
@@ -97,6 +106,7 @@ class WordReviewActivity : BaseActivity() {
         tvContextSource = findViewById(R.id.tvContextSource)
         tvContextTranslation = findViewById(R.id.tvContextTranslation)
         judgementGroup = findViewById(R.id.judgementGroup)
+        btnShowContext = findViewById(R.id.btnShowContext)
         btnReveal = findViewById(R.id.btnReveal)
         btnKnown = findViewById(R.id.btnKnown)
         btnUnknown = findViewById(R.id.btnUnknown)
@@ -133,20 +143,40 @@ class WordReviewActivity : BaseActivity() {
         reviewProgress.max = state.total.coerceAtLeast(1)
         reviewProgress.setProgressCompat(state.index + 1, true)
 
+        if (word.word != lastWord) {
+            lastWord = word.word
+            contextWasVisible = false
+            cardScroll.scrollTo(0, 0)
+        }
+
         tvWord.text = word.word
         tvPhonetic.text = word.phonetic
         tvPhonetic.isVisible = word.phonetic.isNotBlank()
+
+        val hasContext = word.context?.isValid() == true
+        btnShowContext.isVisible = hasContext
+        btnShowContext.setText(
+            if (state.contextVisible) {
+                R.string.word_review_hide_context
+            } else {
+                R.string.word_review_show_context
+            }
+        )
 
         tvRevealHint.isVisible = !state.revealed
         tvMeanings.isVisible = state.revealed
         btnReveal.isVisible = !state.revealed
         judgementGroup.isVisible = state.revealed
-        if (state.revealed) {
-            tvMeanings.text = buildMeanings(word)
-            bindContext(word)
-        } else {
-            contextSection.isVisible = false
+        if (state.revealed) tvMeanings.text = buildMeanings(word)
+        // 释义没翻开时只给原文，避免翻译直接把答案说出来
+        bindContext(word, visible = hasContext && state.contextVisible, showTranslation = state.revealed)
+
+        if (state.contextVisible && !contextWasVisible) {
+            cardScroll.post {
+                cardScroll.smoothScrollTo(0, cardWord.height)
+            }
         }
+        contextWasVisible = state.contextVisible
     }
 
     private fun buildMeanings(word: SavedWord): String =
@@ -161,13 +191,16 @@ class WordReviewActivity : BaseActivity() {
             }
         }.ifBlank { getString(R.string.word_detail_no_meaning) }
 
-    private fun bindContext(word: SavedWord) {
+    private fun bindContext(word: SavedWord, visible: Boolean, showTranslation: Boolean) {
         val source = word.context?.source?.takeIf { it.isNotBlank() }
         val translation = word.context?.translation?.takeIf { it.isNotBlank() }
-        contextSection.isVisible = source != null || translation != null
+        val hasContext = source != null || translation != null
+        contextSection.isVisible = visible && hasContext
         tvContextSource.isVisible = source != null
         tvContextSource.text = source?.let { "“$it”" }.orEmpty()
-        tvContextTranslation.isVisible = translation != null
-        tvContextTranslation.text = translation.orEmpty()
+        // 只有原文时翻译永远显示；翻开释义后两者都给
+        val translationVisible = translation != null && (showTranslation || source == null)
+        tvContextTranslation.isVisible = translationVisible
+        tvContextTranslation.text = if (translationVisible) translation.orEmpty() else ""
     }
 }
