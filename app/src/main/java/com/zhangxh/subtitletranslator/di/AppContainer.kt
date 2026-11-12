@@ -12,7 +12,10 @@ import com.zhangxh.subtitletranslator.data.auth.LoginPromptCoordinator
 import com.zhangxh.subtitletranslator.data.auth.SessionStore
 import com.zhangxh.subtitletranslator.data.auth.TokenRefresher
 import com.zhangxh.subtitletranslator.data.config.RemoteConfigRepository
+import com.zhangxh.subtitletranslator.data.entitlement.EntitlementManager
 import com.zhangxh.subtitletranslator.data.history.SqliteTranslationHistoryRepository
+import com.zhangxh.subtitletranslator.data.membership.DefaultMembershipBackend
+import com.zhangxh.subtitletranslator.data.membership.MembershipRepositoryImpl
 import com.zhangxh.subtitletranslator.data.net.NetworkMonitor
 import com.zhangxh.subtitletranslator.data.remote.AuthApi
 import com.zhangxh.subtitletranslator.data.remote.RetrofitFactory
@@ -27,7 +30,9 @@ import com.zhangxh.subtitletranslator.data.vocabulary.SqliteVocabularyRepository
 import com.zhangxh.subtitletranslator.data.vocabulary.VocabularySyncManager
 import com.zhangxh.subtitletranslator.domain.auth.AuthRepository
 import com.zhangxh.subtitletranslator.domain.config.ConfigRepository
+import com.zhangxh.subtitletranslator.domain.entitlement.IEntitlementManager
 import com.zhangxh.subtitletranslator.domain.history.ITranslationHistoryRepository
+import com.zhangxh.subtitletranslator.domain.membership.IMembershipRepository
 import com.zhangxh.subtitletranslator.domain.sentence.ISentenceRepository
 import com.zhangxh.subtitletranslator.domain.sentence.SavedSentence
 import com.zhangxh.subtitletranslator.domain.sentence.SentenceKey
@@ -78,6 +83,18 @@ class AppContainer(context: Context) {
     // 公开配置走无认证客户端：即使本地 Access Token 已过期，也不应因 /config 触发刷新
     val configRepository: ConfigRepository = RemoteConfigRepository(context, bareApi, gson)
     val loginPromptCoordinator = LoginPromptCoordinator()
+
+    /**
+     * 会员状态与权限判断
+     *
+     * 当前渠道未接入订阅，所有登录用户都是免费账号；
+     * 后续替换 [membershipBackend] 即可接入 Google Play 或其它渠道，上层无需改动。
+     */
+    private val membershipBackend = DefaultMembershipBackend()
+    val membershipRepository: IMembershipRepository =
+        MembershipRepositoryImpl(membershipBackend, appScope)
+    val entitlementManager: IEntitlementManager =
+        EntitlementManager(sessionManager, membershipRepository, appScope)
 
     /** 翻译历史与登录无关，游客也会正常记录 */
     val translationHistory: ITranslationHistoryRepository =
