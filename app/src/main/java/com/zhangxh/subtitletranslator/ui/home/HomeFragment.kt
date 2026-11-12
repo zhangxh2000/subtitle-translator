@@ -260,7 +260,7 @@ class HomeFragment : Fragment() {
             tab.setTextColor(
                 ContextCompat.getColor(
                     requireContext(),
-                    if (selected) R.color.on_accent else R.color.text_secondary
+                    if (selected) R.color.day_tab_selected_text else R.color.text_secondary
                 )
             )
             tab.setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)

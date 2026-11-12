@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!--
-      固定使用 Material 3 深色主题（本期不做明暗切换）
-
-      产品是覆盖在视频上的沉浸式工具，深色是主视觉；所有自定义 drawable
-      也按深色设计。Material 3 组件通过下面的颜色角色统一取色。
-    -->
-    <style name="Theme.SubtitleTranslator" parent="Theme.Material3.Dark.NoActionBar">
+    <!-- 浅色 Material 3 主题；夜间模式在 values-night/themes.xml 单独覆盖。 -->
+    <style name="Theme.SubtitleTranslator" parent="Theme.Material3.Light.NoActionBar">
         <!-- 主色：设计 Token 里的强调色 -->
         <item name="colorPrimary">@color/accent</item>
         <item name="colorOnPrimary">@color/on_accent</item>
@@ -30,10 +25,11 @@
           状态栏：targetSdk 35（Android 15）起系统强制 edge-to-edge，
           statusBarColor 在 API 35 上已失效、状态栏透明，露出的是界面自身的背景色。
           这里显式设置，让低版本系统上的观感保持一致。
-          深色背景需要浅色状态栏图标。
+          状态栏和导航栏图标颜色随当前昼夜模式切换。
         -->
         <item name="android:statusBarColor">@color/screen_bg</item>
-        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightStatusBar">@bool/light_status_bar_icons</item>
+        <item name="android:windowLightNavigationBar">@bool/light_status_bar_icons</item>
         <item name="android:navigationBarColor">@color/screen_bg</item>
     </style>
 </resources>

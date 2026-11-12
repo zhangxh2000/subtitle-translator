@@ -58,7 +58,7 @@
 
     <style name="TextAppearance.SubtitleTranslator.Meaning" parent="TextAppearance.Material3.BodyMedium">
         <item name="android:textSize">14sp</item>
-        <item name="android:textColor">#FFE6E7EB</item>
+        <item name="android:textColor">@color/text_meaning</item>
         <item name="android:lineSpacingMultiplier">1.35</item>
     </style>
 

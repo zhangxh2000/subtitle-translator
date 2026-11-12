@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 深色沉浸式主题 Token；保持原有夜间配色。 -->
+    <color name="screen_bg">#FF101114</color>
+    <color name="panel_bg">#FF101114</color>
+    <color name="card_bg">#FF24252B</color>
+    <color name="card_bg_pressed">#FF2E3038</color>
+    <color name="surface_variant">#FF2A2C33</color>
+
+    <color name="text_primary">#FFF5F5F7</color>
+    <color name="text_secondary">#FFA5A7B0</color>
+    <color name="text_meaning">#FFE6E7EB</color>
+    <color name="divider">#FF34353B</color>
+    <color name="button_outline">#FF34353B</color>
+
+    <color name="card_stroke">#FF2E3138</color>
+    <color name="surface_tile">#FF1B1D23</color>
+    <color name="status_bg">#FF16200F</color>
+    <color name="status_stroke">#FF334C25</color>
+
+    <color name="accent">#FFB9E64B</color>
+    <color name="accent_dim">#FFCBE97F</color>
+    <color name="on_accent">#FF101114</color>
+    <color name="accent_container">#FF33430F</color>
+    <color name="on_accent_container">#FFD6F67A</color>
+    <color name="day_tab_selected_text">#FF101114</color>
+
+    <color name="stop_button">#FFB3261E</color>
+
+    <color name="difficulty_hard_bg">#FF3A2326</color>
+    <color name="difficulty_hard_text">#FFFF8A80</color>
+    <color name="difficulty_medium_bg">#FF3A3320</color>
+    <color name="difficulty_medium_text">#FFFFCC80</color>
+    <color name="difficulty_easy_bg">#FF233A2A</color>
+    <color name="difficulty_easy_text">#FFA5D6A7</color>
+</resources>
