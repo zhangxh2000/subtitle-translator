@@ -5,7 +5,6 @@ import android.content.Context
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.data.settings.SettingsStore
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
-import com.zhangxh.subtitletranslator.domain.translator.Language
 import com.zhangxh.subtitletranslator.domain.translator.TranslationEngine
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficultyFilter
 import org.junit.After
@@ -41,28 +40,6 @@ class SettingsViewModelTest {
 
     private fun prefs() =
         application.getSharedPreferences(SettingsStore.PREFS_NAME, Context.MODE_PRIVATE)
-
-    @Test
-    fun `rejects the same source and target language and reverts state`() {
-        // 默认目标是中文，把源语言也改成中文应被拒绝
-        viewModel.setSourceLang(Language.CHINESE)
-
-        val state = requireNotNull(viewModel.uiState.value)
-        assertEquals(Language.ENGLISH, state.sourceLang)
-        assertEquals("en", store.sourceLang)
-        assertEquals(
-            R.string.settings_error_same_language,
-            viewModel.messages.value?.peekContent()?.resId
-        )
-    }
-
-    @Test
-    fun `accepts a different target language and persists it`() {
-        viewModel.setTargetLang(Language.JAPANESE)
-
-        assertEquals(Language.JAPANESE, requireNotNull(viewModel.uiState.value).targetLang)
-        assertEquals("ja", store.targetLang)
-    }
 
     @Test
     fun `engine change updates derived state`() {

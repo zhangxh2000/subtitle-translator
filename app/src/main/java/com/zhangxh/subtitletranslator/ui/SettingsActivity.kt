@@ -4,7 +4,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.viewModels
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.materialswitch.MaterialSwitch
@@ -13,10 +12,8 @@ import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.data.accessibility.AccessibilityAccess
 import com.zhangxh.subtitletranslator.data.media.NotificationAccess
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
-import com.zhangxh.subtitletranslator.domain.translator.Language
 import com.zhangxh.subtitletranslator.domain.translator.TranslationEngine
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficultyFilter
-import com.zhangxh.subtitletranslator.ui.common.displayNameRes
 import com.zhangxh.subtitletranslator.ui.common.labelRes
 
 /**
@@ -28,18 +25,14 @@ class SettingsActivity : BaseActivity() {
 
     private val viewModel: SettingsViewModel by viewModels()
 
-    private val languages = Language.SUPPORTED
     private val difficultyFilters = WordDifficultyFilter.entries
     private val engines = TranslationEngine.entries
     private val preprocessModes = OcrPreprocessMode.entries
 
-    private lateinit var inputSource: MaterialAutoCompleteTextView
-    private lateinit var inputTarget: MaterialAutoCompleteTextView
     private lateinit var inputDifficulty: MaterialAutoCompleteTextView
     private lateinit var inputEngine: MaterialAutoCompleteTextView
     private lateinit var inputPreprocess: MaterialAutoCompleteTextView
     private lateinit var switchDebugCapture: MaterialSwitch
-    private lateinit var languageLabels: List<String>
     private lateinit var difficultyLabels: List<String>
     private lateinit var engineLabels: List<String>
     private lateinit var preprocessLabels: List<String>
@@ -60,11 +53,6 @@ class SettingsActivity : BaseActivity() {
         setupListeners()
 
         viewModel.uiState.observe(this) { state -> render(state) }
-        viewModel.messages.observe(this) { event ->
-            event.getContentIfNotHandled()?.let { message ->
-                Toast.makeText(this, message.resolve(this), Toast.LENGTH_SHORT).show()
-            }
-        }
 
         findViewById<MaterialToolbar>(R.id.toolbar).apply {
             setNavigationContentDescription(R.string.action_back)
@@ -111,8 +99,6 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun bindViews() {
-        inputSource = findViewById(R.id.inputSource)
-        inputTarget = findViewById(R.id.inputTarget)
         inputDifficulty = findViewById(R.id.inputDifficulty)
         inputEngine = findViewById(R.id.inputEngine)
         inputPreprocess = findViewById(R.id.inputPreprocess)
@@ -124,37 +110,16 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun setupAdapters() {
-        languageLabels = languages.map { language ->
-            getString(
-                R.string.language_option,
-                getString(language.displayNameRes()),
-                language.name
-            )
-        }
         difficultyLabels = difficultyFilters.map { getString(it.labelRes()) }
         engineLabels = engines.map { getString(it.labelRes()) }
         preprocessLabels = preprocessModes.map { getString(it.labelRes()) }
 
-        inputSource.setSimpleItems(languageLabels.toTypedArray())
-        inputTarget.setSimpleItems(languageLabels.toTypedArray())
         inputDifficulty.setSimpleItems(difficultyLabels.toTypedArray())
         inputEngine.setSimpleItems(engineLabels.toTypedArray())
         inputPreprocess.setSimpleItems(preprocessLabels.toTypedArray())
     }
 
     private fun setupListeners() {
-        inputSource.setOnItemClickListener { _, _, position, _ ->
-            val language = languages.getOrNull(position) ?: return@setOnItemClickListener
-            if (!isBinding && language.code != viewModel.uiState.value?.sourceLang?.code) {
-                viewModel.setSourceLang(language)
-            }
-        }
-        inputTarget.setOnItemClickListener { _, _, position, _ ->
-            val language = languages.getOrNull(position) ?: return@setOnItemClickListener
-            if (!isBinding && language.code != viewModel.uiState.value?.targetLang?.code) {
-                viewModel.setTargetLang(language)
-            }
-        }
         inputDifficulty.setOnItemClickListener { _, _, position, _ ->
             val filter = difficultyFilters.getOrNull(position) ?: return@setOnItemClickListener
             if (!isBinding && filter != viewModel.uiState.value?.difficultyFilter) {
@@ -184,12 +149,6 @@ class SettingsActivity : BaseActivity() {
     private fun render(state: SettingsUiState) {
         isBinding = true
         try {
-            inputSource.setTextSilently(
-                languageLabels.getOrNull(languages.indexOf(state.sourceLang))
-            )
-            inputTarget.setTextSilently(
-                languageLabels.getOrNull(languages.indexOf(state.targetLang))
-            )
             inputDifficulty.setTextSilently(
                 difficultyLabels.getOrNull(difficultyFilters.indexOf(state.difficultyFilter))
             )

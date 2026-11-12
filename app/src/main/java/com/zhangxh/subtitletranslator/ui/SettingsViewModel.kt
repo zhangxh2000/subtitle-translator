@@ -7,17 +7,12 @@ import androidx.lifecycle.MutableLiveData
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.data.settings.SettingsStore
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
-import com.zhangxh.subtitletranslator.domain.translator.Language
 import com.zhangxh.subtitletranslator.domain.translator.TranslationEngine
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficultyFilter
-import com.zhangxh.subtitletranslator.ui.common.Event
-import com.zhangxh.subtitletranslator.ui.common.UiText
 import com.zhangxh.subtitletranslator.ui.common.descriptionRes
 import com.zhangxh.subtitletranslator.ui.common.hintRes
 
 data class SettingsUiState(
-    val sourceLang: Language = Language.ENGLISH,
-    val targetLang: Language = Language.CHINESE,
     val translationEngine: TranslationEngine = TranslationEngine.DEFAULT,
     val difficultyFilter: WordDifficultyFilter = WordDifficultyFilter.DEFAULT,
     val preprocessMode: OcrPreprocessMode = OcrPreprocessMode.DEFAULT,
@@ -36,29 +31,6 @@ class SettingsViewModel @JvmOverloads constructor(
 
     private val _uiState = MutableLiveData(loadState())
     val uiState: LiveData<SettingsUiState> = _uiState
-
-    private val _messages = MutableLiveData<Event<UiText>>()
-    val messages: LiveData<Event<UiText>> = _messages
-
-    fun setSourceLang(language: Language) {
-        val current = _uiState.value ?: loadState()
-        if (language.code == current.targetLang.code) {
-            rejectSameLanguage(current)
-            return
-        }
-        store.sourceLang = language.code
-        emitState()
-    }
-
-    fun setTargetLang(language: Language) {
-        val current = _uiState.value ?: loadState()
-        if (language.code == current.sourceLang.code) {
-            rejectSameLanguage(current)
-            return
-        }
-        store.targetLang = language.code
-        emitState()
-    }
 
     fun setDifficultyFilter(filter: WordDifficultyFilter) {
         store.difficultyFilter = filter
@@ -80,12 +52,6 @@ class SettingsViewModel @JvmOverloads constructor(
         emitState()
     }
 
-    /** 拒绝同语言时重新发一次状态，让界面把 Spinner 回退到已保存值 */
-    private fun rejectSameLanguage(current: SettingsUiState) {
-        _messages.value = Event(UiText(R.string.settings_error_same_language))
-        _uiState.value = current
-    }
-
     private fun emitState() {
         _uiState.value = loadState()
     }
@@ -94,8 +60,6 @@ class SettingsViewModel @JvmOverloads constructor(
         val engine = store.translationEngine
         val preprocess = store.preprocessMode
         return SettingsUiState(
-            sourceLang = Language.fromCode(store.sourceLang),
-            targetLang = Language.fromCode(store.targetLang),
             translationEngine = engine,
             difficultyFilter = store.difficultyFilter,
             preprocessMode = preprocess,

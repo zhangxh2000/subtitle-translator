@@ -35,6 +35,7 @@ class LayoutInflationTest {
             R.layout.bottom_sheet_login_required,
             R.layout.bottom_sheet_help,
             R.layout.activity_settings,
+            R.layout.activity_language_settings,
             R.layout.activity_debug_capture,
             R.layout.activity_image_preview,
             R.layout.activity_word_detail,

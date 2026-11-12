@@ -9,6 +9,7 @@ import com.zhangxh.subtitletranslator.ui.DebugCaptureActivity
 import com.zhangxh.subtitletranslator.ui.auth.LoginActivity
 import com.zhangxh.subtitletranslator.ui.auth.RegisterActivity
 import com.zhangxh.subtitletranslator.ui.ImagePreviewActivity
+import com.zhangxh.subtitletranslator.ui.LanguageSettingsActivity
 import com.zhangxh.subtitletranslator.ui.SettingsActivity
 import com.zhangxh.subtitletranslator.ui.history.TranslationHistoryActivity
 import com.zhangxh.subtitletranslator.ui.learning.WordReviewActivity
@@ -40,6 +41,7 @@ class WindowInsetsTest {
 
         val ACTIVITIES = listOf(
             SettingsActivity::class.java,
+            LanguageSettingsActivity::class.java,
             LoginActivity::class.java,
             RegisterActivity::class.java,
             DebugCaptureActivity::class.java,

@@ -20,6 +20,7 @@ import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.ui.MainViewModel
+import com.zhangxh.subtitletranslator.ui.LanguageSettingsActivity
 import com.zhangxh.subtitletranslator.ui.SettingsActivity
 import com.zhangxh.subtitletranslator.ui.common.HelpBottomSheet
 import com.zhangxh.subtitletranslator.ui.common.shortLabelRes
@@ -124,7 +125,7 @@ class HomeFragment : Fragment() {
             if (!isBinding) mainViewModel.onStartStopClicked()
         }
         view.findViewById<View>(R.id.btnLanguage).setOnClickListener {
-            startActivity(Intent(requireContext(), SettingsActivity::class.java))
+            startActivity(Intent(requireContext(), LanguageSettingsActivity::class.java))
         }
         view.findViewById<View>(R.id.btnCheckPermissions).setOnClickListener {
             startActivity(Intent(requireContext(), SettingsActivity::class.java))

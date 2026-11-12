@@ -14,6 +14,7 @@ import com.zhangxh.subtitletranslator.BuildConfig
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
 import com.zhangxh.subtitletranslator.domain.auth.AuthState
+import com.zhangxh.subtitletranslator.ui.LanguageSettingsActivity
 import com.zhangxh.subtitletranslator.ui.SettingsActivity
 import com.zhangxh.subtitletranslator.ui.auth.RegisterActivity
 import com.zhangxh.subtitletranslator.ui.common.auth.LoginGate
@@ -71,9 +72,12 @@ class ProfileFragment : Fragment() {
         view.findViewById<View>(R.id.btnGuestRegister).setOnClickListener {
             startActivity(Intent(requireContext(), RegisterActivity::class.java))
         }
-        view.findViewById<View>(R.id.btnSettings).setOnClickListener { openSettings() }
-        view.findViewById<View>(R.id.btnPreferences).setOnClickListener { openSettings() }
-        view.findViewById<View>(R.id.btnLanguageSettings).setOnClickListener { openSettings() }
+        view.findViewById<View>(R.id.btnPreferences).setOnClickListener {
+            startActivity(Intent(requireContext(), SettingsActivity::class.java))
+        }
+        view.findViewById<View>(R.id.btnLanguageSettings).setOnClickListener {
+            startActivity(Intent(requireContext(), LanguageSettingsActivity::class.java))
+        }
         view.findViewById<View>(R.id.btnAbout).setOnClickListener { showAbout() }
         btnLogout.setOnClickListener { confirmLogout() }
 
@@ -119,10 +123,6 @@ class ProfileFragment : Fragment() {
                 )
             }
         }
-    }
-
-    private fun openSettings() {
-        startActivity(Intent(requireContext(), SettingsActivity::class.java))
     }
 
     private fun showAbout() {

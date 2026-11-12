@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.pm.ActivityInfo
 import com.zhangxh.subtitletranslator.ui.DebugCaptureActivity
 import com.zhangxh.subtitletranslator.ui.ImagePreviewActivity
+import com.zhangxh.subtitletranslator.ui.LanguageSettingsActivity
 import com.zhangxh.subtitletranslator.ui.SettingsActivity
 import com.zhangxh.subtitletranslator.ui.auth.LoginActivity
 import com.zhangxh.subtitletranslator.ui.auth.RegisterActivity
@@ -33,6 +34,7 @@ class OrientationLockTest {
             LoginActivity::class.java,
             RegisterActivity::class.java,
             SettingsActivity::class.java,
+            LanguageSettingsActivity::class.java,
             DebugCaptureActivity::class.java,
             ImagePreviewActivity::class.java,
             WordDetailActivity::class.java,
