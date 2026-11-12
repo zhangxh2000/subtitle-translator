@@ -254,6 +254,8 @@
     <string name="service_save_sentence_failed">收藏句子失敗，請稍後重試</string>
     <string name="service_sentence_saved">已收藏此句</string>
     <string name="service_sentence_removed">已取消收藏此句</string>
+    <string name="guest_quota_word_reached">遊客最多收藏 30 個單詞，登入後不限量並雲端備份</string>
+    <string name="guest_quota_phrase_reached">遊客最多收藏 20 個短語，登入後不限量並雲端備份</string>
     <string name="clipboard_label_translation">翻譯結果</string>
     <string name="toast_copied">已複製到剪貼簿</string>
     <string name="media_notification_listener_label">字幕翻譯助手媒體控制</string>
@@ -306,6 +308,8 @@
     <string name="learning_title">學習</string>
     <string name="learning_subtitle">把收藏的字幕，變成記得住的詞</string>
     <string name="learning_goal_title">今日目標</string>
+    <string name="learning_guest_title">登入後查看學習統計</string>
+    <string name="learning_guest_desc">記錄每日目標、待複習和掌握進度，並支援多裝置同步。</string>
     <string name="learning_in_progress">進行中</string>
     <string name="learning_goal_done">已完成</string>
     <string name="learning_goal_reviewed">個詞已複習</string>
@@ -440,8 +444,6 @@
     <!-- 登入引導 -->
     <string name="login_required_title">需要登入</string>
     <string name="login_required_message">登入後即可繼續此操作。</string>
-    <string name="login_required_save_word_title">登入後收藏</string>
-    <string name="login_required_save_word_message">登入後可儲存生詞。</string>
     <string name="login_required_cloud_sync_title">登入後同步</string>
     <string name="login_required_cloud_sync_message">登入後可在裝置間同步生詞。</string>
     <string name="login_required_action">去登入</string>

@@ -9,6 +9,7 @@ import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
 import com.zhangxh.subtitletranslator.data.accessibility.AccessibilityAccess
 import com.zhangxh.subtitletranslator.data.media.NotificationAccess
 import com.zhangxh.subtitletranslator.data.settings.SettingsStore
+import com.zhangxh.subtitletranslator.domain.entitlement.IEntitlementManager
 import com.zhangxh.subtitletranslator.domain.history.ITranslationHistoryRepository
 import com.zhangxh.subtitletranslator.domain.history.SavedWordMatcher
 import com.zhangxh.subtitletranslator.domain.translator.Language
@@ -39,6 +40,7 @@ data class HomeUiState(
     val selectedRecordIndex: Int = 0,
     val notificationAccess: Boolean = false,
     val accessibilityEnabled: Boolean = false,
+    val isGuest: Boolean = true,
     val loading: Boolean = true
 ) {
     val todayDelta: Int get() = todayTranslated - yesterdayTranslated
@@ -59,13 +61,24 @@ class HomeViewModel @JvmOverloads constructor(
         (application as SubtitleTranslatorApplication).container.translationHistory,
     private val vocabularyRepository: IVocabularyRepository =
         (application as SubtitleTranslatorApplication).container.vocabularyRepository,
-    private val settingsStore: SettingsStore = SettingsStore(application)
+    private val settingsStore: SettingsStore = SettingsStore(application),
+    private val entitlementManager: IEntitlementManager =
+        (application as SubtitleTranslatorApplication).container.entitlementManager
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableLiveData(HomeUiState())
     val uiState: LiveData<HomeUiState> = _uiState
 
     init {
+        viewModelScope.launch {
+            entitlementManager.entitlement.collect { entitlement ->
+                val current = _uiState.value ?: HomeUiState()
+                if (current.isGuest != entitlement.isGuest) {
+                    _uiState.value = current.copy(isGuest = entitlement.isGuest)
+                    refresh()
+                }
+            }
+        }
         refresh()
     }
 
@@ -108,6 +121,7 @@ class HomeViewModel @JvmOverloads constructor(
                 selectedRecordIndex = 0,
                 notificationAccess = NotificationAccess.isGranted(getApplication()),
                 accessibilityEnabled = AccessibilityAccess.isUsable(getApplication()),
+                isGuest = entitlementManager.entitlement.value.isGuest,
                 loading = false
             )
         }

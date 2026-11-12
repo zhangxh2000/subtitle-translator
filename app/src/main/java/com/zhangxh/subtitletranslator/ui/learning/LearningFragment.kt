@@ -11,7 +11,9 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.zhangxh.subtitletranslator.R
+import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
 import com.zhangxh.subtitletranslator.domain.vocabulary.LearningStats
+import com.zhangxh.subtitletranslator.ui.common.auth.LoginGate
 
 /**
  * 学习 Tab
@@ -22,7 +24,11 @@ import com.zhangxh.subtitletranslator.domain.vocabulary.LearningStats
 class LearningFragment : Fragment() {
 
     private val viewModel: LearningViewModel by viewModels()
+    private lateinit var loginGate: LoginGate
 
+    private lateinit var goalCard: View
+    private lateinit var statsRow: View
+    private lateinit var guestPrompt: View
     private lateinit var tvGoalState: TextView
     private lateinit var tvTodayProgress: TextView
     private lateinit var tvProgressPercent: TextView
@@ -30,6 +36,16 @@ class LearningFragment : Fragment() {
     private lateinit var tvDueCount: TextView
     private lateinit var tvMasteredCount: TextView
     private lateinit var tvEmpty: TextView
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val container = (requireActivity().application as SubtitleTranslatorApplication).container
+        loginGate = LoginGate(
+            fragment = this,
+            authManager = container.sessionManager,
+            coordinator = container.loginPromptCoordinator
+        )
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -39,6 +55,9 @@ class LearningFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        goalCard = view.findViewById(R.id.goalCard)
+        statsRow = view.findViewById(R.id.statsRow)
+        guestPrompt = view.findViewById(R.id.guestPrompt)
         tvGoalState = view.findViewById(R.id.tvGoalState)
         tvTodayProgress = view.findViewById(R.id.tvTodayProgress)
         tvProgressPercent = view.findViewById(R.id.tvProgressPercent)
@@ -56,8 +75,11 @@ class LearningFragment : Fragment() {
         view.findViewById<View>(R.id.btnDueWords).setOnClickListener {
             openReview(ReviewMode.DUE)
         }
+        view.findViewById<View>(R.id.btnGuestLogin).setOnClickListener {
+            loginGate.launchLoginDirectly()
+        }
 
-        viewModel.stats.observe(viewLifecycleOwner) { stats -> render(stats) }
+        viewModel.uiState.observe(viewLifecycleOwner) { state -> render(state) }
     }
 
     override fun onResume() {
@@ -72,7 +94,13 @@ class LearningFragment : Fragment() {
         )
     }
 
-    private fun render(stats: LearningStats) {
+    private fun render(state: LearningUiState) {
+        // 游客保留复习入口，只隐藏统计；登录后自动切换回来
+        goalCard.isVisible = !state.isGuest
+        statsRow.isVisible = !state.isGuest
+        guestPrompt.isVisible = state.isGuest
+
+        val stats = state.stats
         val goal = stats.dailyGoal.coerceAtLeast(1)
         val reviewed = stats.reviewedToday.coerceAtMost(goal)
         val percent = (reviewed * 100 / goal).coerceIn(0, 100)
@@ -89,6 +117,6 @@ class LearningFragment : Fragment() {
         )
         tvDueCount.text = stats.due.toString()
         tvMasteredCount.text = stats.mastered.toString()
-        tvEmpty.isVisible = stats.total == 0
+        tvEmpty.isVisible = !state.isGuest && stats.total == 0
     }
 }

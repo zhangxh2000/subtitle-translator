@@ -47,6 +47,7 @@ class HomeFragment : Fragment() {
     private lateinit var ivServiceStatus: ImageView
     private lateinit var tvLanguagePair: TextView
     private lateinit var tvPermissionStatus: TextView
+    private lateinit var statsRow: View
     private lateinit var tvTodayCount: TextView
     private lateinit var tvTodayDelta: TextView
     private lateinit var tvReviewCount: TextView
@@ -99,6 +100,7 @@ class HomeFragment : Fragment() {
         ivServiceStatus = view.findViewById(R.id.ivServiceStatus)
         tvLanguagePair = view.findViewById(R.id.tvLanguagePair)
         tvPermissionStatus = view.findViewById(R.id.tvPermissionStatus)
+        statsRow = view.findViewById(R.id.statsRow)
         tvTodayCount = view.findViewById(R.id.tvTodayCount)
         tvTodayDelta = view.findViewById(R.id.tvTodayDelta)
         tvReviewCount = view.findViewById(R.id.tvReviewCount)
@@ -193,6 +195,8 @@ class HomeFragment : Fragment() {
     }
 
     private fun renderStats(state: HomeUiState) {
+        // 游客不展示学习统计，历史记录仍可查看最近 3 天
+        statsRow.isVisible = !state.isGuest
         tvTodayCount.text = state.todayTranslated.toString()
 
         val delta = state.todayDelta

@@ -259,6 +259,8 @@
     <string name="service_save_sentence_failed">Couldn\'t save sentence. Please try again.</string>
     <string name="service_sentence_saved">Sentence saved</string>
     <string name="service_sentence_removed">Sentence removed</string>
+    <string name="guest_quota_word_reached">Guest limit: 30 words. Sign in for unlimited cloud saves.</string>
+    <string name="guest_quota_phrase_reached">Guest limit: 20 phrases. Sign in for unlimited cloud saves.</string>
     <string name="clipboard_label_translation">Translation result</string>
     <string name="toast_copied">Copied to clipboard</string>
     <string name="media_notification_listener_label">Subtitle Translator media control</string>
@@ -311,6 +313,8 @@
     <string name="learning_title">Learning</string>
     <string name="learning_subtitle">Turn saved subtitles into words you remember</string>
     <string name="learning_goal_title">Today\'s goal</string>
+    <string name="learning_guest_title">Sign in to see your learning stats</string>
+    <string name="learning_guest_desc">Track your daily goal, due words and progress, and sync them across devices.</string>
     <string name="learning_in_progress">IN PROGRESS</string>
     <string name="learning_goal_done">DONE</string>
     <string name="learning_goal_reviewed">words reviewed</string>
@@ -445,8 +449,6 @@
     <!-- 登录引导 -->
     <string name="login_required_title">Sign in required</string>
     <string name="login_required_message">Sign in to continue this action.</string>
-    <string name="login_required_save_word_title">Sign in to save words</string>
-    <string name="login_required_save_word_message">Sign in to save vocabulary to your account.</string>
     <string name="login_required_cloud_sync_title">Sign in to sync</string>
     <string name="login_required_cloud_sync_message">Sign in to sync your vocabulary across devices.</string>
     <string name="login_required_action">Sign in</string>

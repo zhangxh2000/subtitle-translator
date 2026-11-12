@@ -16,10 +16,6 @@ enum class LoginFeature(
     @StringRes val messageRes: Int
 ) {
     GENERIC(R.string.login_required_title, R.string.login_required_message),
-    SAVE_WORD(
-        R.string.login_required_save_word_title,
-        R.string.login_required_save_word_message
-    ),
     CLOUD_SYNC(
         R.string.login_required_cloud_sync_title,
         R.string.login_required_cloud_sync_message

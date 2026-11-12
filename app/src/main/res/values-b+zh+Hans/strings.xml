@@ -254,6 +254,8 @@
     <string name="service_save_sentence_failed">收藏句子失败，请稍后重试</string>
     <string name="service_sentence_saved">已收藏此句</string>
     <string name="service_sentence_removed">已取消收藏此句</string>
+    <string name="guest_quota_word_reached">游客最多收藏 30 个单词，登录后不限量并云端备份</string>
+    <string name="guest_quota_phrase_reached">游客最多收藏 20 个短语，登录后不限量并云端备份</string>
     <string name="clipboard_label_translation">翻译结果</string>
     <string name="toast_copied">已复制到剪贴板</string>
     <string name="media_notification_listener_label">字幕翻译助手媒体控制</string>
@@ -306,6 +308,8 @@
     <string name="learning_title">学习</string>
     <string name="learning_subtitle">把收藏的字幕，变成记得住的词</string>
     <string name="learning_goal_title">今日目标</string>
+    <string name="learning_guest_title">登录后查看学习统计</string>
+    <string name="learning_guest_desc">记录每日目标、待复习和掌握进度，并支持多设备同步。</string>
     <string name="learning_in_progress">进行中</string>
     <string name="learning_goal_done">已完成</string>
     <string name="learning_goal_reviewed">个词已复习</string>
@@ -440,8 +444,6 @@
     <!-- 登录引导 -->
     <string name="login_required_title">需要登录</string>
     <string name="login_required_message">登录后即可继续此操作。</string>
-    <string name="login_required_save_word_title">登录后收藏</string>
-    <string name="login_required_save_word_message">登录后可保存生词。</string>
     <string name="login_required_cloud_sync_title">登录后同步</string>
     <string name="login_required_cloud_sync_message">登录后可在设备间同步生词。</string>
     <string name="login_required_action">去登录</string>

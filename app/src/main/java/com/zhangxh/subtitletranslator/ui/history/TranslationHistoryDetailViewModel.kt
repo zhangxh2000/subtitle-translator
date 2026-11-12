@@ -8,12 +8,15 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
+import com.zhangxh.subtitletranslator.domain.entitlement.IEntitlementManager
 import com.zhangxh.subtitletranslator.domain.history.ITranslationHistoryRepository
 import com.zhangxh.subtitletranslator.domain.history.SavedWordMatcher
 import com.zhangxh.subtitletranslator.domain.history.normalizeSentenceForMatch
 import com.zhangxh.subtitletranslator.domain.sentence.ISentenceRepository
 import com.zhangxh.subtitletranslator.domain.vocabulary.IVocabularyRepository
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.util.TimeZone
 
 data class HistoryRecordUi(
     val id: Long,
@@ -47,7 +50,9 @@ class TranslationHistoryDetailViewModel(
     private val vocabularyRepository: IVocabularyRepository =
         (application as SubtitleTranslatorApplication).container.vocabularyRepository,
     private val sentenceRepository: ISentenceRepository =
-        (application as SubtitleTranslatorApplication).container.sentenceRepository
+        (application as SubtitleTranslatorApplication).container.sentenceRepository,
+    private val entitlementManager: IEntitlementManager =
+        (application as SubtitleTranslatorApplication).container.entitlementManager
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableLiveData(HistoryDetailUiState(dayStart = dayStart))
@@ -59,10 +64,17 @@ class TranslationHistoryDetailViewModel(
 
     fun refresh() {
         viewModelScope.launch {
-            val records = if (dayStart != null) {
+            val loaded = if (dayStart != null) {
                 historyRepository.recordsForDay(dayStart)
             } else {
                 historyRepository.allRecords()
+            }
+            // 游客只展示最近 3 个自然日；更早记录仍保留在本地，登录后自动可见
+            val records = if (entitlementManager.entitlement.value.isGuest) {
+                val cutoff = guestHistoryCutoff()
+                loaded.filter { it.translatedAt >= cutoff }
+            } else {
+                loaded
             }
             val words = vocabularyRepository.list()
             val matcher = SavedWordMatcher(words.map { it.word })
@@ -90,6 +102,13 @@ class TranslationHistoryDetailViewModel(
     companion object {
         fun factory(application: Application, dayStart: Long?) = viewModelFactory {
             initializer { TranslationHistoryDetailViewModel(application, dayStart) }
+        }
+
+        /** 今天往前共 3 个自然日的零点；按本地时区计算，和首页日期分组一致 */
+        private fun guestHistoryCutoff(now: Long = System.currentTimeMillis()): Long {
+            val zone = TimeZone.getDefault().toZoneId()
+            val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+            return today.minusDays(2).atStartOfDay(zone).toInstant().toEpochMilli()
         }
     }
 }

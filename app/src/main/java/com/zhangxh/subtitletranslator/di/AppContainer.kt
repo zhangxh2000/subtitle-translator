@@ -30,6 +30,7 @@ import com.zhangxh.subtitletranslator.data.vocabulary.SqliteVocabularyRepository
 import com.zhangxh.subtitletranslator.data.vocabulary.VocabularySyncManager
 import com.zhangxh.subtitletranslator.domain.auth.AuthRepository
 import com.zhangxh.subtitletranslator.domain.config.ConfigRepository
+import com.zhangxh.subtitletranslator.domain.entitlement.GuestQuotaChecker
 import com.zhangxh.subtitletranslator.domain.entitlement.IEntitlementManager
 import com.zhangxh.subtitletranslator.domain.history.ITranslationHistoryRepository
 import com.zhangxh.subtitletranslator.domain.membership.IMembershipRepository
@@ -132,6 +133,13 @@ class AppContainer(context: Context) {
         onLocalChange = { sentenceSyncCoordinator.trigger() }
     )
     val sentenceRepository: ISentenceRepository = sqliteSentenceRepository
+
+    /** 游客收藏额度：悬浮窗和页面共用同一套计数规则 */
+    val guestQuotaChecker = GuestQuotaChecker(
+        entitlementManager = entitlementManager,
+        vocabularyRepository = sqliteVocabularyRepository,
+        sentenceRepository = sqliteSentenceRepository
+    )
 
     private val sentenceSyncManager = SentenceSyncManager(
         api = authRetrofit.create(SentenceApi::class.java),

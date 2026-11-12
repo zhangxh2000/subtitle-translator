@@ -1,6 +1,9 @@
 package com.zhangxh.subtitletranslator.ui
 
 import com.zhangxh.subtitletranslator.R
+import com.zhangxh.subtitletranslator.domain.entitlement.Entitlement
+import com.zhangxh.subtitletranslator.domain.entitlement.IEntitlementManager
+import com.zhangxh.subtitletranslator.domain.entitlement.Plan
 import com.zhangxh.subtitletranslator.domain.vocabulary.IVocabularyRepository
 import com.zhangxh.subtitletranslator.domain.vocabulary.LearningStatus
 import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWord
@@ -10,6 +13,7 @@ import com.zhangxh.subtitletranslator.domain.vocabulary.VocabularyItemType
 import com.zhangxh.subtitletranslator.domain.wordextractor.Meaning
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficulty
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordEntry
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -68,6 +72,17 @@ class VocabularyViewModelTest {
         override suspend fun savedWords(words: List<String>): Set<String> = emptySet()
     }
 
+    private val entitlementManager = object : IEntitlementManager {
+        override val entitlement = MutableStateFlow(Entitlement(Plan.FREE))
+    }
+
+    private fun createViewModel(repository: IVocabularyRepository) =
+        VocabularyViewModel(
+            RuntimeEnvironment.getApplication(),
+            repository,
+            entitlementManager
+        )
+
     private fun word(
         name: String,
         createdAt: Long = 1L,
@@ -88,7 +103,7 @@ class VocabularyViewModelTest {
     @Test
     fun `loads and deletes words`() {
         val repository = FakeVocabularyRepository(listOf(word("alpha"), word("beta")))
-        val viewModel = VocabularyViewModel(RuntimeEnvironment.getApplication(), repository)
+        val viewModel = createViewModel(repository)
 
         assertEquals(
             listOf("alpha", "beta"),
@@ -110,7 +125,7 @@ class VocabularyViewModelTest {
     @Test
     fun `clear empties the list`() {
         val repository = FakeVocabularyRepository(listOf(word("alpha")))
-        val viewModel = VocabularyViewModel(RuntimeEnvironment.getApplication(), repository)
+        val viewModel = createViewModel(repository)
 
         viewModel.clear()
 
@@ -131,7 +146,7 @@ class VocabularyViewModelTest {
                 word("zebra", createdAt = 3)
             )
         )
-        val viewModel = VocabularyViewModel(RuntimeEnvironment.getApplication(), repository)
+        val viewModel = createViewModel(repository)
 
         val state = requireNotNull(viewModel.uiState.value)
         assertEquals(3, state.total)
@@ -154,7 +169,7 @@ class VocabularyViewModelTest {
                 word("zebra", createdAt = 3)
             )
         )
-        val viewModel = VocabularyViewModel(RuntimeEnvironment.getApplication(), repository)
+        val viewModel = createViewModel(repository)
 
         viewModel.onQueryChanged("阿尔法")
         assertEquals(
@@ -178,7 +193,7 @@ class VocabularyViewModelTest {
                 word("alpha", createdAt = 1)
             )
         )
-        val viewModel = VocabularyViewModel(RuntimeEnvironment.getApplication(), repository)
+        val viewModel = createViewModel(repository)
 
         viewModel.setFilter(VocabularyFilter.WORD)
         assertEquals(
@@ -203,7 +218,7 @@ class VocabularyViewModelTest {
     @Test
     fun `empty result is distinguishable from empty vocabulary`() {
         val repository = FakeVocabularyRepository(listOf(word("alpha")))
-        val viewModel = VocabularyViewModel(RuntimeEnvironment.getApplication(), repository)
+        val viewModel = createViewModel(repository)
 
         viewModel.onQueryChanged("missing")
 

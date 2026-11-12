@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
 import com.zhangxh.subtitletranslator.data.speech.AndroidTtsPronouncer
+import com.zhangxh.subtitletranslator.domain.entitlement.IEntitlementManager
 import com.zhangxh.subtitletranslator.domain.speech.PronouncerError
 import com.zhangxh.subtitletranslator.domain.vocabulary.IVocabularyRepository
 import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWord
@@ -36,7 +37,9 @@ data class VocabularyUiState(
     val filter: VocabularyFilter = VocabularyFilter.ALL,
     val sort: VocabularySort = VocabularySort.RECENT,
     val noData: Boolean = true,
-    val emptyResult: Boolean = true
+    val emptyResult: Boolean = true,
+    /** 游客只保留列表、搜索、发音和单条删除 */
+    val isGuest: Boolean = false
 )
 
 /**
@@ -48,14 +51,18 @@ data class VocabularyUiState(
 class VocabularyViewModel @JvmOverloads constructor(
     application: Application,
     private val repository: IVocabularyRepository =
-        (application as SubtitleTranslatorApplication).container.vocabularyRepository
+        (application as SubtitleTranslatorApplication).container.vocabularyRepository,
+    private val entitlementManager: IEntitlementManager =
+        (application as SubtitleTranslatorApplication).container.entitlementManager
 ) : AndroidViewModel(application) {
 
     private val pronouncer = AndroidTtsPronouncer(application) { error ->
         emitMessage(error.messageRes())
     }
 
-    private val _uiState = MutableLiveData(VocabularyUiState())
+    private val _uiState = MutableLiveData(
+        VocabularyUiState(isGuest = entitlementManager.entitlement.value.isGuest)
+    )
     val uiState: LiveData<VocabularyUiState> = _uiState
 
     private val _messages = MutableLiveData<Event<UiText>>()
@@ -64,6 +71,17 @@ class VocabularyViewModel @JvmOverloads constructor(
     private var allItems: List<SavedWord> = emptyList()
 
     init {
+        viewModelScope.launch {
+            entitlementManager.entitlement.collect { entitlement ->
+                val current = _uiState.value ?: VocabularyUiState()
+                _uiState.value = current.copy(
+                    isGuest = entitlement.isGuest,
+                    filter = if (entitlement.isGuest) VocabularyFilter.ALL else current.filter,
+                    sort = if (entitlement.isGuest) VocabularySort.RECENT else current.sort
+                )
+                publish()
+            }
+        }
         refresh()
     }
 
@@ -83,14 +101,14 @@ class VocabularyViewModel @JvmOverloads constructor(
 
     fun setFilter(filter: VocabularyFilter) {
         val current = _uiState.value ?: return
-        if (current.filter == filter) return
+        if (current.isGuest || current.filter == filter) return
         _uiState.value = current.copy(filter = filter)
         publish()
     }
 
     fun setSort(sort: VocabularySort) {
         val current = _uiState.value ?: return
-        if (current.sort == sort) return
+        if (current.isGuest || current.sort == sort) return
         _uiState.value = current.copy(sort = sort)
         publish()
     }

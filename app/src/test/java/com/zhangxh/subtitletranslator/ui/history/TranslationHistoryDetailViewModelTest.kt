@@ -2,6 +2,9 @@ package com.zhangxh.subtitletranslator.ui.history
 
 import android.app.Application
 import android.os.Looper
+import com.zhangxh.subtitletranslator.domain.entitlement.Entitlement
+import com.zhangxh.subtitletranslator.domain.entitlement.IEntitlementManager
+import com.zhangxh.subtitletranslator.domain.entitlement.Plan
 import com.zhangxh.subtitletranslator.domain.history.ITranslationHistoryRepository
 import com.zhangxh.subtitletranslator.domain.history.TranslationDayHistory
 import com.zhangxh.subtitletranslator.domain.history.TranslationRecord
@@ -15,6 +18,7 @@ import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWordContext
 import com.zhangxh.subtitletranslator.domain.vocabulary.ToggleResult
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficulty
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordEntry
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -89,6 +93,10 @@ class TranslationHistoryDetailViewModelTest {
         override suspend fun list(): List<SavedSentence> = items
     }
 
+    private class FakeEntitlementManager(plan: Plan) : IEntitlementManager {
+        override val entitlement = MutableStateFlow(Entitlement(plan))
+    }
+
     private fun savedWord(word: String, source: String?) = SavedWord(
         id = 1,
         word = word,
@@ -124,7 +132,8 @@ class TranslationHistoryDetailViewModelTest {
             day,
             history,
             vocabulary,
-            sentences
+            sentences,
+            FakeEntitlementManager(Plan.FREE)
         )
         idle()
 
@@ -157,7 +166,8 @@ class TranslationHistoryDetailViewModelTest {
             null,
             history,
             FakeVocabularyRepository(emptyList()),
-            FakeSentenceRepository(emptyList())
+            FakeSentenceRepository(emptyList()),
+            FakeEntitlementManager(Plan.FREE)
         )
         idle()
 
@@ -167,5 +177,26 @@ class TranslationHistoryDetailViewModelTest {
         assertTrue(history.allRequested)
         assertTrue(state.records.all { it.highlightRanges.isEmpty() })
         assertTrue(state.records.none { it.collected })
+    }
+
+    @Test
+    fun `guest only sees the latest three natural days`() {
+        val now = System.currentTimeMillis()
+        val records = listOf(
+            record(2, "Recent", now - 60_000),
+            record(1, "Old", now - 4L * 24 * 60 * 60 * 1000)
+        )
+        val viewModel = TranslationHistoryDetailViewModel(
+            RuntimeEnvironment.getApplication(),
+            null,
+            FakeHistoryRepository(all = records, byDay = emptyMap()),
+            FakeVocabularyRepository(emptyList()),
+            FakeSentenceRepository(emptyList()),
+            FakeEntitlementManager(Plan.GUEST)
+        )
+        idle()
+
+        val state = requireNotNull(viewModel.uiState.value)
+        assertEquals(listOf(2L), state.records.map { it.id })
     }
 }

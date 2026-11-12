@@ -129,6 +129,10 @@ class VocabularyFragment : Fragment() {
     private fun render(state: VocabularyUiState) {
         isBinding = true
         try {
+            // 游客只保留列表、搜索、发音和单条删除
+            chipGroup.isVisible = !state.isGuest
+            btnSort.isVisible = !state.isGuest
+
             val currentQuery = inputSearch.text?.toString().orEmpty()
             if (currentQuery != state.query) {
                 inputSearch.setText(state.query)

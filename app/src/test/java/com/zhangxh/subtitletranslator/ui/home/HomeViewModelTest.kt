@@ -2,6 +2,9 @@ package com.zhangxh.subtitletranslator.ui.home
 
 import android.os.Looper
 import com.zhangxh.subtitletranslator.data.settings.SettingsStore
+import com.zhangxh.subtitletranslator.domain.entitlement.Entitlement
+import com.zhangxh.subtitletranslator.domain.entitlement.IEntitlementManager
+import com.zhangxh.subtitletranslator.domain.entitlement.Plan
 import com.zhangxh.subtitletranslator.domain.history.ITranslationHistoryRepository
 import com.zhangxh.subtitletranslator.domain.history.TranslationDayHistory
 import com.zhangxh.subtitletranslator.domain.history.TranslationRecord
@@ -13,6 +16,7 @@ import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWordContext
 import com.zhangxh.subtitletranslator.domain.vocabulary.ToggleResult
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficulty
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordEntry
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -28,6 +32,10 @@ import java.util.Calendar
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
 class HomeViewModelTest {
+
+    private val entitlementManager = object : IEntitlementManager {
+        override val entitlement = MutableStateFlow(Entitlement(Plan.FREE))
+    }
 
     private class FakeHistoryRepository(
         private val summaries: List<TranslationDayHistory>,
@@ -117,7 +125,7 @@ class HomeViewModelTest {
             targetLang = "zh"
         }
 
-        val viewModel = HomeViewModel(context, history, vocabulary, settings)
+        val viewModel = HomeViewModel(context, history, vocabulary, settings, entitlementManager)
         idle()
 
         val state = requireNotNull(viewModel.uiState.value)
@@ -157,7 +165,8 @@ class HomeViewModelTest {
             RuntimeEnvironment.getApplication(),
             FakeHistoryRepository(summary, records),
             FakeVocabularyRepository(emptyList()),
-            SettingsStore(RuntimeEnvironment.getApplication())
+            SettingsStore(RuntimeEnvironment.getApplication()),
+            entitlementManager
         )
         idle()
 

@@ -6,6 +6,13 @@ enum class QuotaKind(val limit: Int) {
     PHRASE(20)
 }
 
+/** 收藏前的额度检查结果 */
+sealed interface QuotaResult {
+    data object Allowed : QuotaResult
+
+    data class Blocked(val kind: QuotaKind) : QuotaResult
+}
+
 /**
  * 游客收藏额度判断
  *

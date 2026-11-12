@@ -36,7 +36,6 @@ import androidx.core.app.NotificationCompat
 import com.zhangxh.subtitletranslator.MainActivity
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
-import com.zhangxh.subtitletranslator.data.auth.LoginPromptCoordinator
 import com.zhangxh.subtitletranslator.data.ocr.MLKitOcrEngine
 import com.zhangxh.subtitletranslator.data.screenshot.ScreenCaptureManagerImpl
 import com.zhangxh.subtitletranslator.data.translator.TranslatorProvider
@@ -52,7 +51,9 @@ import com.zhangxh.subtitletranslator.domain.vocabulary.IVocabularyRepository
 import com.zhangxh.subtitletranslator.data.wordextractor.LocalWordExtractor
 import com.zhangxh.subtitletranslator.domain.TranslationCoordinator
 import com.zhangxh.subtitletranslator.domain.TranslationResult
-import com.zhangxh.subtitletranslator.domain.auth.AuthManager
+import com.zhangxh.subtitletranslator.domain.entitlement.GuestQuotaChecker
+import com.zhangxh.subtitletranslator.domain.entitlement.QuotaKind
+import com.zhangxh.subtitletranslator.domain.entitlement.QuotaResult
 import com.zhangxh.subtitletranslator.domain.history.ITranslationHistoryRepository
 import com.zhangxh.subtitletranslator.domain.media.IMediaPlaybackController
 import com.zhangxh.subtitletranslator.domain.media.IPlaybackScanController
@@ -70,7 +71,6 @@ import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWordContext
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordEntry
 import com.zhangxh.subtitletranslator.ui.DebugCaptureActivity
 import com.zhangxh.subtitletranslator.ui.SettingsActivity
-import com.zhangxh.subtitletranslator.ui.auth.LoginActivity
 import com.zhangxh.subtitletranslator.ui.overlay.TranslationOverlayView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -163,16 +163,8 @@ class FloatingButtonService : Service() {
     private var sentenceRepository: ISentenceRepository? = null
     private lateinit var historyRepository: ITranslationHistoryRepository
     private lateinit var settingsStore: SettingsStore
-    private lateinit var authManager: AuthManager
-    private lateinit var loginPromptCoordinator: LoginPromptCoordinator
+    private lateinit var guestQuotaChecker: GuestQuotaChecker
 
-    /** 游客点击收藏后等待登录成功的动作；成功后续跑保存，取消则丢弃 */
-    private sealed interface PendingSave {
-        data class Word(val entry: WordEntry, val context: SavedWordContext?) : PendingSave
-        data class Sentence(val source: String, val translation: String?) : PendingSave
-    }
-
-    private var pendingSave: PendingSave? = null
     private var mediaProjection: MediaProjection? = null
     private var isShowingTranslation = false
 
@@ -242,23 +234,8 @@ class FloatingButtonService : Service() {
         sentenceRepository = container.sentenceRepository
         settingsStore = SettingsStore(this)
 
-        authManager = container.sessionManager
-        loginPromptCoordinator = container.loginPromptCoordinator
+        guestQuotaChecker = container.guestQuotaChecker
         historyRepository = container.translationHistory
-        // 悬浮窗收藏是服务内的动作，用进程级登录结果继续/丢弃 pending 操作
-        serviceScope.launch {
-            loginPromptCoordinator.results.collect { success ->
-                val pending = pendingSave
-                pendingSave = null
-                if (success && pending != null) {
-                    when (pending) {
-                        is PendingSave.Word -> saveWordAfterLogin(pending.entry, pending.context)
-                        is PendingSave.Sentence ->
-                            saveSentenceAfterLogin(pending.source, pending.translation)
-                    }
-                }
-            }
-        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -1196,7 +1173,6 @@ class FloatingButtonService : Service() {
         removeOverlayView(animated = true)
         isShowingTranslation = false
         currentResult = null
-        pendingSave = null
 
         // 只恢复由本服务暂停的媒体
         resumeMedia()
@@ -1374,7 +1350,7 @@ class FloatingButtonService : Service() {
     /**
      * 收藏/取消收藏生词
      *
-     * 游客不允许收藏：先发起登录，成功后继续保存；已登录用户保持原来的 toggle 行为。
+     * 游客也可以收藏，只受本地额度限制；已收藏的词再点一次是取消，额度必须放行。
      */
     private fun toggleSavedWord(entry: WordEntry) {
         val context = currentResult?.let {
@@ -1383,12 +1359,14 @@ class FloatingButtonService : Service() {
                 translation = it.translatedText.takeIf { text -> text.isNotBlank() }
             )
         }
-        if (!authManager.isLoggedIn()) {
-            requestLoginForSave(PendingSave.Word(entry, context))
-            return
-        }
         val repository = vocabularyRepository ?: return
-        serviceScope.launch { performToggle(repository, entry, context) }
+        val quotaChecker = guestQuotaChecker
+        serviceScope.launch {
+            when (val quota = quotaChecker.checkTerm(entry.word)) {
+                QuotaResult.Allowed -> performToggle(repository, entry, context)
+                is QuotaResult.Blocked -> showQuotaToast(quota.kind)
+            }
+        }
     }
 
     /**
@@ -1398,54 +1376,22 @@ class FloatingButtonService : Service() {
      */
     private fun toggleSavedSentence(source: String, translation: String?) {
         if (source.isBlank()) return
-        if (!authManager.isLoggedIn()) {
-            requestLoginForSave(PendingSave.Sentence(source, translation))
-            return
-        }
         val repository = sentenceRepository ?: return
-        serviceScope.launch { performSentenceToggle(repository, source, translation) }
-    }
-
-    private fun requestLoginForSave(pending: PendingSave) {
-        if (pendingSave != null) return
-        if (!loginPromptCoordinator.tryBegin()) return
-        pendingSave = pending
-        try {
-            startActivity(
-                Intent(this, LoginActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    putExtra(LoginActivity.EXTRA_NOTIFY_PROMPT, true)
-                }
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "打开登录页失败", e)
-            pendingSave = null
-            loginPromptCoordinator.finish(false)
-            Toast.makeText(this, R.string.error_auth_unknown, Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    /** 登录成功后的收藏：只保存，不做 toggle，避免误删已经存在的词 */
-    private fun saveWordAfterLogin(entry: WordEntry, context: SavedWordContext?) {
-        val repository = vocabularyRepository ?: return
+        val quotaChecker = guestQuotaChecker
         serviceScope.launch {
-            val saved = repository.add(entry, context)
-            if (!saved) {
-                Log.e(TAG, "保存生词失败: ${entry.word}")
-                Toast.makeText(
-                    this@FloatingButtonService,
-                    R.string.service_save_word_failed,
-                    Toast.LENGTH_SHORT
-                ).show()
-                return@launch
+            when (val quota = quotaChecker.checkSentence(source)) {
+                QuotaResult.Allowed -> performSentenceToggle(repository, source, translation)
+                is QuotaResult.Blocked -> showQuotaToast(quota.kind)
             }
-            overlayView?.setWordSaved(entry.word, true)
-            Toast.makeText(
-                this@FloatingButtonService,
-                R.string.service_word_saved,
-                Toast.LENGTH_SHORT
-            ).show()
         }
+    }
+
+    private fun showQuotaToast(kind: QuotaKind) {
+        val messageRes = when (kind) {
+            QuotaKind.WORD -> R.string.guest_quota_word_reached
+            QuotaKind.PHRASE -> R.string.guest_quota_phrase_reached
+        }
+        Toast.makeText(this, messageRes, Toast.LENGTH_LONG).show()
     }
 
     private suspend fun performToggle(
@@ -1468,29 +1414,6 @@ class FloatingButtonService : Service() {
             if (result.saved) R.string.service_word_saved else R.string.service_word_removed
         )
         Toast.makeText(this@FloatingButtonService, message, Toast.LENGTH_SHORT).show()
-    }
-
-    /** 登录成功后的句子收藏：只保存，不做 toggle */
-    private fun saveSentenceAfterLogin(source: String, translation: String?) {
-        val repository = sentenceRepository ?: return
-        serviceScope.launch {
-            val saved = repository.add(source, translation)
-            if (!saved) {
-                Log.e(TAG, "保存句子失败")
-                Toast.makeText(
-                    this@FloatingButtonService,
-                    R.string.service_save_sentence_failed,
-                    Toast.LENGTH_SHORT
-                ).show()
-                return@launch
-            }
-            overlayView?.setSentenceSaved(true)
-            Toast.makeText(
-                this@FloatingButtonService,
-                R.string.service_sentence_saved,
-                Toast.LENGTH_SHORT
-            ).show()
-        }
     }
 
     private suspend fun performSentenceToggle(
@@ -1699,7 +1622,6 @@ class FloatingButtonService : Service() {
         floatingView = null
 
         // 取消协程作用域
-        pendingSave = null
         serviceScope.cancel()
 
         vocabularyRepository = null
