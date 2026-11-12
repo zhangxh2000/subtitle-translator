@@ -359,8 +359,14 @@ class FloatingButtonService : Service() {
 
         mediaProjection?.let { projection ->
             isProjectionStopped = false
-            val metrics = resources.displayMetrics
+            // 服务在后台时 resources.displayMetrics 可能仍是 App 的竖屏配置，
+            // 而用户实际在横屏应用里。用真实屏幕尺寸初始化，避免第一次截图
+            // 才发现方向不一致、重建 ImageReader 后等不到新帧。
+            val metrics = realDisplayMetrics()
             val screenCapture = ScreenCaptureManagerImpl()
+
+            // 尺寸变化后重新刷新一次悬浮球，促使新 Surface 收到首帧
+            screenCapture.setOnDisplayResizedListener { nudgeScreenForCapture() }
 
             // 设置 MediaProjection 停止监听
             screenCapture.setOnProjectionStoppedListener {

@@ -39,6 +39,7 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
     private var screenHeight: Int = 0
     private var screenDensity: Int = 0
     private var onProjectionStoppedListener: (() -> Unit)? = null
+    private var onDisplayResizedListener: (() -> Unit)? = null
     private var isReleased = false
     private var lastFrameCache: LastFrameCache? = null
 
@@ -47,6 +48,16 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
      */
     fun setOnProjectionStoppedListener(listener: () -> Unit) {
         onProjectionStoppedListener = listener
+    }
+
+    /**
+     * 屏幕方向/尺寸变化后回调
+     *
+     * 新 Surface 通常要等屏幕内容下一次变化才会出帧；画面静止时刚换完
+     * Surface 就截图会一直拿不到帧。外部可以在回调里触发一次轻量重绘。
+     */
+    fun setOnDisplayResizedListener(listener: () -> Unit) {
+        onDisplayResizedListener = listener
     }
 
     private val projectionCallback = object : MediaProjection.Callback() {
@@ -146,6 +157,8 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
         virtualDisplay?.setSurface(imageReader?.surface)
 
         Log.d(TAG, "VirtualDisplay 已更新: ${screenWidth}x${screenHeight}")
+        // 换 Surface 后旧帧缓存已失效；请求外部刷新一次画面，避免静止画面等不到首帧
+        onDisplayResizedListener?.invoke()
     }
 
     override suspend fun captureScreen(): Bitmap? = withContext(Dispatchers.IO) {
