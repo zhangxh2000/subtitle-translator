@@ -187,6 +187,8 @@
     <!-- 生詞庫 -->
     <string name="vocabulary_title">詞彙</string>
     <string name="vocabulary_subtitle">從字幕裡收集的詞和短語</string>
+    <string name="vocabulary_guest_title">登入後收藏不限量</string>
+    <string name="vocabulary_guest_desc">遊客最多收藏 30 個單詞和 20 個短語，登入後不限量並自動雲端備份。</string>
     <string name="vocabulary_stat_all">全部</string>
     <string name="vocabulary_stat_words">單字</string>
     <string name="vocabulary_stat_phrases">短語</string>

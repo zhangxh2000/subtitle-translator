@@ -20,12 +20,14 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.textfield.TextInputEditText
 import com.zhangxh.subtitletranslator.R
+import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
 import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWord
 import com.zhangxh.subtitletranslator.domain.vocabulary.VocabularyItemType
 import com.zhangxh.subtitletranslator.ui.VocabularyFilter
 import com.zhangxh.subtitletranslator.ui.VocabularySort
 import com.zhangxh.subtitletranslator.ui.VocabularyUiState
 import com.zhangxh.subtitletranslator.ui.VocabularyViewModel
+import com.zhangxh.subtitletranslator.ui.common.auth.LoginGate
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -40,6 +42,8 @@ import java.util.Locale
 class VocabularyFragment : Fragment() {
 
     private val viewModel: VocabularyViewModel by viewModels()
+    private lateinit var loginGate: LoginGate
+    private lateinit var guestHint: View
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyState: View
     private lateinit var tvEmptyTitle: TextView
@@ -60,6 +64,16 @@ class VocabularyFragment : Fragment() {
         onDelete = { word -> viewModel.delete(word) }
     )
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val container = (requireActivity().application as SubtitleTranslatorApplication).container
+        loginGate = LoginGate(
+            fragment = this,
+            authManager = container.sessionManager,
+            coordinator = container.loginPromptCoordinator
+        )
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -68,6 +82,7 @@ class VocabularyFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        guestHint = view.findViewById(R.id.guestHint)
         recyclerView = view.findViewById(R.id.recyclerView)
         emptyState = view.findViewById(R.id.emptyState)
         tvEmptyTitle = view.findViewById(R.id.tvEmptyTitle)
@@ -96,6 +111,9 @@ class VocabularyFragment : Fragment() {
             viewModel.setFilter(filter)
         }
         btnSort.setOnClickListener { showSortMenu() }
+        view.findViewById<View>(R.id.btnGuestLogin).setOnClickListener {
+            loginGate.launchLoginDirectly()
+        }
 
         viewModel.uiState.observe(viewLifecycleOwner) { state -> render(state) }
         viewModel.messages.observe(viewLifecycleOwner) { event ->
@@ -132,6 +150,7 @@ class VocabularyFragment : Fragment() {
             // 游客只保留列表、搜索、发音和单条删除
             chipGroup.isVisible = !state.isGuest
             btnSort.isVisible = !state.isGuest
+            guestHint.isVisible = state.isGuest
 
             val currentQuery = inputSearch.text?.toString().orEmpty()
             if (currentQuery != state.query) {

@@ -192,6 +192,8 @@
     <!-- Vocabulary -->
     <string name="vocabulary_title">Vocabulary</string>
     <string name="vocabulary_subtitle">Words and phrases saved from subtitles</string>
+    <string name="vocabulary_guest_title">Sign in to save without limits</string>
+    <string name="vocabulary_guest_desc">Guests can save up to 30 words and 20 phrases. Sign in for unlimited cloud backup.</string>
     <string name="vocabulary_stat_all">All</string>
     <string name="vocabulary_stat_words">Words</string>
     <string name="vocabulary_stat_phrases">Phrases</string>
