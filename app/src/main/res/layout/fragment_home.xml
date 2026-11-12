@@ -145,9 +145,7 @@
                         android:id="@+id/switchService"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:contentDescription="@string/home_service_toggle"
-                        app:thumbTint="@color/switch_thumb_tint"
-                        app:trackTint="@color/switch_track_tint" />
+                        android:contentDescription="@string/home_service_toggle" />
                 </LinearLayout>
 
                 <TextView
