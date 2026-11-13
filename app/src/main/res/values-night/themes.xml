@@ -19,7 +19,7 @@
         <item name="colorOutline">@color/button_outline</item>
         <item name="colorOutlineVariant">@color/card_stroke</item>
         <item name="colorError">@color/stop_button</item>
-        <item name="colorOnError">@color/text_primary</item>
+        <item name="colorOnError">@android:color/white</item>
         <item name="android:statusBarColor">@color/screen_bg</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>

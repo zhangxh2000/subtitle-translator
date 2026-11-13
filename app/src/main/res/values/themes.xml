@@ -20,7 +20,7 @@
         <item name="colorOutline">@color/button_outline</item>
         <item name="colorOutlineVariant">@color/card_stroke</item>
         <item name="colorError">@color/stop_button</item>
-        <item name="colorOnError">@color/text_primary</item>
+        <item name="colorOnError">@android:color/white</item>
         <!--
           状态栏：targetSdk 35（Android 15）起系统强制 edge-to-edge，
           statusBarColor 在 API 35 上已失效、状态栏透明，露出的是界面自身的背景色。

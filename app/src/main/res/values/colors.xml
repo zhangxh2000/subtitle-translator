@@ -6,20 +6,20 @@
     -->
     <color name="screen_bg">#FFF6F7F2</color>
     <color name="panel_bg">#FFFFFFFF</color>
-    <color name="card_bg">#FFFFFFFF</color>
-    <color name="card_bg_pressed">#FFEFF2E7</color>
-    <!-- 图标按钮的圆形底色（MD3 tonal icon button） -->
-    <color name="surface_variant">#FFEDF0E7</color>
+    <color name="card_bg">#FFECF0E3</color>
+    <color name="card_bg_pressed">#FFE0E6D4</color>
+    <!-- 图标按钮圆形底色、卡片内嵌区块与进度条轨道 -->
+    <color name="surface_variant">#FFDDE3D2</color>
 
     <color name="text_primary">#FF1C2116</color>
     <color name="text_secondary">#FF60675B</color>
     <color name="text_meaning">#FF1C2116</color>
-    <color name="divider">#FFE2E6DB</color>
+    <color name="divider">#FFDCE1D3</color>
     <color name="button_outline">#FFC8CEBF</color>
 
-    <!-- 主界面：卡片描边、快捷入口底色、运行状态卡 -->
-    <color name="card_stroke">#FFE4E8DE</color>
-    <color name="surface_tile">#FFF0F3EA</color>
+    <!-- 主界面：卡片描边、卡片底色、运行状态卡 -->
+    <color name="card_stroke">#FFD5DCCB</color>
+    <color name="surface_tile">#FFECF0E3</color>
     <color name="status_bg">#FFEDF5DF</color>
     <color name="status_stroke">#FFC6D99B</color>
 

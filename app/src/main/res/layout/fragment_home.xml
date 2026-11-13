@@ -485,7 +485,7 @@
                 android:focusable="true"
                 android:gravity="center"
                 android:maxLines="1"
-                android:textColor="@color/on_accent"
+                android:textColor="@color/day_tab_selected_text"
                 android:textSize="11sp"
                 android:textStyle="bold" />
 
