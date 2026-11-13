@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import com.zhangxh.subtitletranslator.data.auth.AuthSessionManager
 import com.zhangxh.subtitletranslator.data.auth.InMemorySessionStore
+import com.zhangxh.subtitletranslator.data.auth.httpError
 import com.zhangxh.subtitletranslator.data.net.NetworkStatus
 import com.zhangxh.subtitletranslator.data.remote.ApiEnvelope
 import com.zhangxh.subtitletranslator.data.remote.SentenceApi
@@ -20,6 +21,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -122,6 +124,76 @@ class SentenceSyncTest {
         assertTrue(repository.isSaved("A sentence from another device."))
         assertEquals("cursor-1", stateStore.cursorFor("user-1"))
     }
+
+    @Test
+    fun `upload truncates fields to server validation limits`() = runBlocking {
+        repository.add("s".repeat(800), "t".repeat(3_000))
+        var pushed: SentenceSnapshotDto? = null
+        val api = FakeSentenceApi { request ->
+            pushed = request.changes.single().data
+            acceptedResponse(request, "remote-long")
+        }
+        val manager = SentenceSyncManager(
+            api = api,
+            store = repository,
+            stateStore = FakeSyncStateStore(),
+            sessionManager = loggedInSession(),
+            networkStatus = NetworkStatus { true }
+        )
+
+        assertEquals(SyncResult.Success, manager.sync())
+        val data = checkNotNull(pushed)
+        assertEquals(500, data.source.length)
+        assertEquals(2_000, data.translation?.length)
+    }
+
+    @Test
+    fun `invalid cursor is discarded and next sync starts from scratch`() = runBlocking {
+        repository.add("Hello there.", "你好。")
+        val stateStore = FakeSyncStateStore().apply {
+            setLastUserId("user-1")
+            saveCursor("user-1", "stale-cursor")
+        }
+        var calls = 0
+        val api = FakeSentenceApi { request ->
+            calls++
+            if (calls == 1) throw httpError(400, "INVALID_CURSOR")
+            acceptedResponse(request, "remote-hello")
+        }
+        val manager = SentenceSyncManager(
+            api = api,
+            store = repository,
+            stateStore = stateStore,
+            sessionManager = loggedInSession(),
+            networkStatus = NetworkStatus { true }
+        )
+
+        assertEquals(SyncResult.Retryable("invalid cursor"), manager.sync())
+        assertNull("游标失效后必须丢弃", stateStore.cursorFor("user-1"))
+
+        assertEquals(SyncResult.Success, manager.sync())
+        assertNull("重新同步必须从头全量拉取", api.requests[1].since)
+        assertEquals("cursor-1", stateStore.cursorFor("user-1"))
+    }
+
+    private fun acceptedResponse(
+        request: SentenceSyncRequestDto,
+        remoteId: String
+    ): SentenceSyncResponseDto = SentenceSyncResponseDto(
+        serverTime = "2026-11-11T00:00:02Z",
+        nextSince = "cursor-1",
+        hasMore = false,
+        accepted = request.changes.map { change ->
+            SentenceChangeDto(
+                clientReferenceId = change.clientReferenceId,
+                remoteId = remoteId,
+                operation = "upsert",
+                updatedAt = change.updatedAt,
+                data = null
+            )
+        },
+        changes = emptyList()
+    )
 
     private fun loggedInSession(): AuthSessionManager =
         AuthSessionManager(InMemorySessionStore()).apply {

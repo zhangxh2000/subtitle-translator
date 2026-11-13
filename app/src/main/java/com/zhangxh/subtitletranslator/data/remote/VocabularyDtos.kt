@@ -77,16 +77,21 @@ fun PendingVocabularyChange.toDto(): VocabularyChangeDto = VocabularyChangeDto(
     updatedAt = Instant.ofEpochMilli(updatedAt).toString(),
     data = if (operation == VocabularySyncOperation.UPSERT) word?.let {
         VocabularySnapshotDto(
-            term = it.word,
-            phonetic = it.phonetic,
-            meanings = it.meanings.map { meaning -> meaning.toDto() },
+            term = it.word.trim().take(SYNC_MAX_TERM),
+            phonetic = it.phonetic.trim().take(SYNC_MAX_PHONETIC),
+            meanings = it.meanings.take(SYNC_MAX_MEANINGS).map { meaning -> meaning.toDto() },
             difficulty = it.difficulty.name.uppercase(Locale.ROOT),
             itemType = it.itemType.name.lowercase(Locale.ROOT),
             context = it.context?.let { context ->
-                VocabularyContextDto(context.source, context.translation)
-            },
+                VocabularyContextDto(
+                    source = context.source?.trim()?.takeIf { text -> text.isNotEmpty() }
+                        ?.take(SYNC_MAX_CONTEXT),
+                    translation = context.translation?.trim()?.takeIf { text -> text.isNotEmpty() }
+                        ?.take(SYNC_MAX_CONTEXT)
+                )
+            }?.takeIf { context -> context.source != null || context.translation != null },
             learningStatus = it.learningStatus.name.lowercase(Locale.ROOT),
-            familiarity = it.familiarity,
+            familiarity = it.familiarity.coerceIn(0, 5),
             lastReviewedAt = it.lastReviewedAt?.let { time -> Instant.ofEpochMilli(time).toString() },
             createdAt = Instant.ofEpochMilli(it.createdAt).toString()
         )
@@ -94,6 +99,21 @@ fun PendingVocabularyChange.toDto(): VocabularyChangeDto = VocabularyChangeDto(
         null
     }
 )
+
+/**
+ * 服务端字段上限（见服务端 API_DESIGN.md §8.2）。
+ *
+ * 本地词典释义可能超出上限，而服务端对整批变更做校验：只要一条超长，整批返回
+ * VALIDATION_ERROR，本地 dirty 永远推不上去。因此上传前统一截断，保证契约内可发。
+ */
+private const val SYNC_MAX_TERM = 160
+private const val SYNC_MAX_PHONETIC = 160
+private const val SYNC_MAX_PART_OF_SPEECH = 40
+private const val SYNC_MAX_DEFINITION = 500
+private const val SYNC_MAX_EXAMPLE = 1_000
+private const val SYNC_MAX_EXAMPLES = 20
+private const val SYNC_MAX_MEANINGS = 8
+private const val SYNC_MAX_CONTEXT = 1_000
 
 /**
  * 解析服务端变更；字段缺失或非法时返回 null，由同步器跳过而不是中断整批。
@@ -145,10 +165,12 @@ private fun VocabularySnapshotDto.toDomain(fallbackCreatedAt: Long): VocabularyS
 }
 
 private fun Meaning.toDto(): VocabularyMeaningDto = VocabularyMeaningDto(
-    partOfSpeech = partOfSpeech,
-    definition = definition,
-    chineseDefinition = chineseDefinition,
-    examples = examples
+    partOfSpeech = partOfSpeech.trim().take(SYNC_MAX_PART_OF_SPEECH),
+    definition = definition.trim().take(SYNC_MAX_DEFINITION),
+    chineseDefinition = chineseDefinition.trim().take(SYNC_MAX_DEFINITION),
+    examples = examples.take(SYNC_MAX_EXAMPLES).map { example ->
+        example.trim().take(SYNC_MAX_EXAMPLE)
+    }
 )
 
 private inline fun <reified T : Enum<T>> enumValueOrDefault(name: String, default: T): T =

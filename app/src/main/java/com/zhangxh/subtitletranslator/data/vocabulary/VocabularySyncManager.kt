@@ -19,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import retrofit2.HttpException
 import java.io.IOException
 
@@ -62,7 +63,15 @@ class VocabularySyncManager(
                 throw e
             } catch (e: HttpException) {
                 Log.w(TAG, "同步失败: HTTP ${e.code()}")
-                classifyHttpError(e.code())
+                if (e.isInvalidCursor()) {
+                    // 游标过期或服务端升级：丢弃后下一次从头全量拉取。服务端按
+                    // clientReferenceId 幂等，本地 dirty 重新推送不会产生重复数据。
+                    Log.w(TAG, "同步游标失效，丢弃后重新拉取")
+                    stateStore.clearCursor(userId)
+                    SyncResult.Retryable("invalid cursor")
+                } else {
+                    classifyHttpError(e.code())
+                }
             } catch (e: IOException) {
                 Log.w(TAG, "同步网络异常: ${e.javaClass.simpleName}")
                 SyncResult.Retryable("network")
@@ -106,8 +115,8 @@ class VocabularySyncManager(
             if (remoteChanges.isNotEmpty()) store.applyRemoteChanges(remoteChanges)
             val acknowledged = acknowledge(data.accepted.orEmpty(), pending)
 
+            // serverTime 是时间戳，不能当游标用；没拿到 nextSince 时保留旧游标下次重试
             val nextSince = data.nextSince?.takeIf { it.isNotBlank() }
-                ?: data.serverTime?.takeIf { it.isNotBlank() }
                 ?: return SyncResult.Retryable("missing cursor")
             if (nextSince != since) stateStore.saveCursor(userId, nextSince)
             page++
@@ -170,6 +179,12 @@ class VocabularySyncManager(
         }
         return cleared
     }
+
+    private fun HttpException.isInvalidCursor(): Boolean =
+        code() == 400 && runCatching {
+            val body = response()?.errorBody()?.string().orEmpty()
+            JSONObject(body).optJSONObject("error")?.optString("code") == "INVALID_CURSOR"
+        }.getOrDefault(false)
 
     private fun classifyHttpError(code: Int): SyncResult = when (code) {
         // 刷新失败时会话已被清空，等下一次登录再同步

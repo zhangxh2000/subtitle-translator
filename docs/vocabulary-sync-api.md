@@ -1,6 +1,7 @@
 # 生词与句子收藏批量增量同步接口（客户端契约）
 
-本文档描述 Android 客户端已经接入、服务端待实现的同步协议。生词收藏和句子收藏是两个
+本文档描述 Android 客户端与服务端已经实现并上线的同步协议（服务端实现见
+`subtitle-translator-server` 的 `docs/API_DESIGN.md` §8）。生词收藏和句子收藏是两个
 **独立资源**，各自使用独立的端点、数据表和增量游标，但共用同一套同步模式。
 
 客户端实现位于：
@@ -44,6 +45,8 @@ Content-Type: application/json
 
 | HTTP | 含义 | 客户端行为 |
 | --- | --- | --- |
+| 400 `INVALID_CURSOR` | 游标过期或协议版本变化 | 丢弃本地游标，下一次同步从头全量拉取 |
+| 400 `VALIDATION_ERROR` | 字段超限/枚举非法 | 停止重试，保留本地 dirty；客户端上传前已按 §3.1 截断，正常不会出现 |
 | 401 / 403 | 未登录或凭证失效 | 停止同步，`AuthRetryInterceptor` 已尝试刷新；失败后回到游客态 |
 | 408 / 429 | 超时/限流 | 指数退避重试（2s 起，最大 5min） |
 | 5xx | 服务端临时故障 | 指数退避重试 |
@@ -116,6 +119,24 @@ Content-Type: application/json
 
 `itemType` / `learningStatus` 为小写枚举名，`difficulty` 为大写枚举名（客户端历史数据格式）。
 
+### 3.1 字段上限与上传前截断
+
+服务端对整批 `changes` 做校验：只要一条超限就返回 `VALIDATION_ERROR`，整批 dirty 都推不上去。
+本地 ECDICT 释义可能很长（例如 `to` 的英文释义超过 2600 字符），因此客户端在构造 DTO 时
+按服务端契约截断：
+
+| 字段 | 上限 |
+| --- | --- |
+| `data.term` / `data.phonetic` | 160 字符 |
+| `data.meanings` | 最多 8 条 |
+| `meanings[].partOfSpeech` | 40 字符 |
+| `meanings[].definition` / `chineseDefinition` | 各 500 字符 |
+| `meanings[].examples` | 最多 20 条，每条 1000 字符 |
+| `context.source` / `context.translation` | 各 1000 字符 |
+| `familiarity` | 0–5 |
+
+截断只影响上传快照，本地数据库仍保留完整释义，UI 展示不受影响。
+
 ## 4. 生词响应
 
 ```json
@@ -148,7 +169,8 @@ Content-Type: application/json
 
 字段说明：
 
-- `serverTime`：服务端当前时间，ISO-8601 UTC。`nextSince` 缺失时客户端用它兜底。
+- `serverTime`：服务端当前时间，ISO-8601 UTC。仅用于诊断；它是时间戳而不是游标，
+  客户端不会把它当 `since` 回传（服务端始终返回 `nextSince`）。
 - `nextSince`：下一页/下次同步的游标。必须是**不透明字符串**，客户端只保存和回传，不解释。
 - `hasMore`：`changes` 之外是否还有更多云端变更。客户端会继续翻页，直到 `false` 且本地队列为空。
 - `accepted`：服务端已处理的客户端变更。客户端用它清理 dirty：
@@ -162,7 +184,9 @@ Content-Type: application/json
 2. **同一用户同一词只保留一条活跃记录**：按 `(user_id, language_code, term_normalized)` 去重。若新 `clientReferenceId` 撞上已有词条，更新已有行并把已有 `remoteId` 返回给客户端。
 3. **冲突按 `updatedAt` 后写胜出**：收到变更时与库中 `updated_at` 比较，只有 `>=` 才应用；否则保留库中版本，并在响应的 `changes` 中返回权威版本。
 4. **删除写墓碑**：`deleted_at` 非空，保留 `updated_at` 供增量拉取；不要物理删除，除非有独立清理任务。
-5. **拉取过滤**：`changes` 返回 `updated_at > since` 的记录（含墓碑），按 `(updated_at, id)` 升序；`nextSince` 取本页最后一条的 `(updated_at, id)` 编码。
+5. **拉取过滤**：服务端另存单调递增的 `server_updated_at` 用于分页，`changes` 返回游标之后
+   的记录（含墓碑），按 `(server_updated_at, id)` 升序；`nextSince` 取本页最后一条的
+   `(server_updated_at, id)` 编码。客户端时钟偏差不会导致漏拉。
 6. **自己的变更**：客户端本次推送并被接受的记录，通常也会出现在 `changes` 里；客户端按 `clientReferenceId` / `remoteId` 合并，重复应用无副作用。
 
 ## 6. 句子收藏同步（独立资源）
@@ -228,8 +252,8 @@ Content-Type: application/json
 
 | 字段 | 说明 |
 | --- | --- |
-| `source` | 收藏时字幕原文，保留原始大小写和标点 |
-| `translation` | 同一条字幕的译文，可能为 `null` |
+| `source` | 收藏时字幕原文，保留原始大小写和标点；≤500 字符，超长上传前截断 |
+| `translation` | 同一条字幕的译文，可能为 `null`；≤2000 字符，超长上传前截断 |
 | `createdAt` | 首次收藏时间，ISO-8601 UTC；句子没有学习状态，不需要 `updatedAt` 之外的业务字段 |
 
 `operation`、`updatedAt`、`clientReferenceId`、`remoteId`、`limit`、`since` 的语义与生词

@@ -53,14 +53,23 @@ fun PendingSentenceChange.toDto(): SentenceChangeDto = SentenceChangeDto(
     updatedAt = Instant.ofEpochMilli(updatedAt).toString(),
     data = if (operation == SentenceSyncOperation.UPSERT) sentence?.let {
         SentenceSnapshotDto(
-            source = it.source,
-            translation = it.translation,
+            source = it.source.trim().take(SYNC_MAX_SOURCE),
+            translation = it.translation?.trim()
+                ?.takeIf { text -> text.isNotEmpty() }
+                ?.take(SYNC_MAX_TRANSLATION),
             createdAt = Instant.ofEpochMilli(it.createdAt).toString()
         )
     } else {
         null
     }
 )
+
+/**
+ * 服务端字段上限（见服务端 API_DESIGN.md §8.3）。
+ * 超长会导致整批变更被拒绝，因此上传前按契约截断。
+ */
+private const val SYNC_MAX_SOURCE = 500
+private const val SYNC_MAX_TRANSLATION = 2_000
 
 /**
  * 解析服务端变更；字段缺失或非法时返回 null，由同步器跳过而不是中断整批。
