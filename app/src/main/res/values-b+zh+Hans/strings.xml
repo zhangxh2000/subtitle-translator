@@ -420,7 +420,7 @@
     <string name="about_title">关于我们</string>
     <string name="about_message">字幕翻译助手 %1$s\n\n识别屏幕上的字幕，并在悬浮窗中显示译文。</string>
     <string name="about_terms_message">完整法律文本将在正式上线前提供。使用本应用即表示你已阅读并同意服务条款。</string>
-    <string name="about_privacy_message">完整隐私政策将在正式上线前提供。截图仅在本机用于识别；选择云端引擎时，识别出的字幕文字会发送到应用的云端翻译服务。收藏的词汇保存在本地，仅在登录后自动同步到你的账号。</string>
+    <string name="about_privacy_message">完整隐私政策将在正式上线前提供。截图仅在本机用于识别；选择云端引擎或使用 AI 翻译时，识别出的字幕文字及最近的字幕上下文会发送到应用的云端翻译服务。收藏的词汇保存在本地，仅在登录后自动同步到你的账号。</string>
     <string name="about_ok">好的</string>
 
     <!-- 使用说明 -->

@@ -425,7 +425,7 @@
     <string name="about_title">About</string>
     <string name="about_message">Subtitle Translator %1$s\n\nReads on-screen subtitles and translates them in a floating window.</string>
     <string name="about_terms_message">The full legal text will be provided before release. By using this app, you confirm that you have read and accept the Terms of Service.</string>
-    <string name="about_privacy_message">The full privacy policy will be provided before release. Screenshots are processed on your device for recognition; when a cloud engine is selected, the recognized subtitle text is sent to the app\'s translation service. Saved words stay on this device and sync automatically to your account only while you are signed in.</string>
+    <string name="about_privacy_message">The full privacy policy will be provided before release. Screenshots are processed on your device for recognition; when a cloud engine is selected or AI translation is used, the recognized subtitle text and recent subtitle context are sent to the app\'s translation service. Saved words stay on this device and sync automatically to your account only while you are signed in.</string>
     <string name="about_ok">OK</string>
 
     <!-- Help -->
