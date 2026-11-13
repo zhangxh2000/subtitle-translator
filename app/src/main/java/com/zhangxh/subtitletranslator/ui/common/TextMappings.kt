@@ -30,8 +30,7 @@ fun TranslationEngine.labelRes(): Int = when (this) {
 @StringRes
 fun TranslationEngine.hintRes(): Int = when (this) {
     TranslationEngine.ML_KIT -> R.string.engine_hint_mlkit
-    TranslationEngine.BAIDU -> R.string.engine_hint_baidu
-    TranslationEngine.GOOGLE -> R.string.engine_hint_google
+    TranslationEngine.BAIDU, TranslationEngine.GOOGLE -> R.string.engine_hint_cloud
 }
 
 @StringRes
@@ -117,21 +116,11 @@ fun AppError.messageRes(): Int = when (this) {
     AppError.TRANSLATION_FAILED -> R.string.error_translation_failed
     AppError.TRANSLATOR_NOT_INITIALIZED -> R.string.error_translator_not_initialized
     AppError.LANGUAGE_PACK_DOWNLOAD_FAILED -> R.string.error_language_pack_download_failed
-    AppError.BAIDU_NOT_CONFIGURED -> R.string.error_baidu_not_configured
     AppError.UNSUPPORTED_LANGUAGE_PAIR -> R.string.error_unsupported_language_pair
     AppError.NETWORK_ERROR -> R.string.error_network
-    AppError.BAIDU_TIMEOUT -> R.string.error_baidu_timeout
-    AppError.BAIDU_SERVICE_ERROR -> R.string.error_baidu_service
-    AppError.BAIDU_UNAUTHORIZED -> R.string.error_baidu_unauthorized
-    AppError.BAIDU_EMPTY_PARAM -> R.string.error_baidu_empty_param
-    AppError.BAIDU_SIGN_ERROR -> R.string.error_baidu_sign
-    AppError.BAIDU_RATE_LIMITED -> R.string.error_baidu_rate_limited
-    AppError.BAIDU_QUOTA_EXCEEDED -> R.string.error_baidu_quota
-    AppError.BAIDU_TOO_FREQUENT -> R.string.error_baidu_too_frequent
-    AppError.BAIDU_IP_INVALID -> R.string.error_baidu_ip_invalid
-    AppError.BAIDU_UNSUPPORTED_DIRECTION -> R.string.error_baidu_unsupported_direction
-    AppError.BAIDU_SERVICE_CLOSED -> R.string.error_baidu_service_closed
-    AppError.BAIDU_AUTH_NOT_EFFECTIVE -> R.string.error_baidu_auth_not_effective
+    AppError.TRANSLATION_LOGIN_REQUIRED -> R.string.error_translation_login_required
+    AppError.TRANSLATION_SERVICE_UNAVAILABLE -> R.string.error_translation_service_unavailable
+    AppError.TRANSLATION_RATE_LIMITED -> R.string.error_translation_rate_limited
     AppError.EMPTY_TRANSLATION -> R.string.error_empty_translation
     AppError.INVALID_RESPONSE -> R.string.error_invalid_response
     AppError.UNKNOWN -> R.string.error_unknown

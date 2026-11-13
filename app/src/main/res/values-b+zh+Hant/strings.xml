@@ -94,11 +94,10 @@
 
     <!-- 翻譯引擎 -->
     <string name="engine_mlkit">ML Kit 離線（無需設定）</string>
-    <string name="engine_baidu">百度翻譯（需填密鑰）</string>
-    <string name="engine_google">Google 翻譯（無需密鑰）</string>
+    <string name="engine_baidu">百度翻譯（雲端）</string>
+    <string name="engine_google">Google 翻譯（雲端）</string>
     <string name="engine_hint_mlkit">完全離線、無需任何設定，但品質一般，字幕口語化時容易直譯。</string>
-    <string name="engine_hint_baidu">國內存取快、品質好，已內建設定，無需填寫密鑰；失敗時自動回退到離線翻譯。</string>
-    <string name="engine_hint_google">無需設定、品質好；國內網路可能無法存取，失敗時會自動回退到離線引擎。</string>
+    <string name="engine_hint_cloud">透過應用後端的雲端翻譯服務（需登入）；失敗時自動回退到離線翻譯。</string>
 
     <!-- 生詞篩選強度 -->
     <string name="difficulty_filter_loose">寬鬆（多顯示一些詞）</string>
@@ -280,21 +279,11 @@
     <string name="error_translation_failed">翻譯失敗</string>
     <string name="error_translator_not_initialized">翻譯器尚未初始化</string>
     <string name="error_language_pack_download_failed">下載語言包失敗</string>
-    <string name="error_baidu_not_configured">百度翻譯未設定</string>
     <string name="error_unsupported_language_pair">不支援此語言方向</string>
     <string name="error_network">網路錯誤，請檢查網路連線</string>
-    <string name="error_baidu_timeout">請求逾時，請重試</string>
-    <string name="error_baidu_service">百度服務異常，請重試</string>
-    <string name="error_baidu_unauthorized">百度驗證失敗：內建憑證可能受限或被停用</string>
-    <string name="error_baidu_empty_param">必填參數為空</string>
-    <string name="error_baidu_sign">百度簽名錯誤：內建設定無效</string>
-    <string name="error_baidu_rate_limited">存取頻率受限，請稍後再試</string>
-    <string name="error_baidu_quota">帳戶餘額不足：免費額度可能已用完</string>
-    <string name="error_baidu_too_frequent">請求過於頻繁，請稍後再試</string>
-    <string name="error_baidu_ip_invalid">用戶端 IP 無效</string>
-    <string name="error_baidu_unsupported_direction">不支援此語言方向</string>
-    <string name="error_baidu_service_closed">翻譯服務已關閉</string>
-    <string name="error_baidu_auth_not_effective">驗證未通過或尚未生效</string>
+    <string name="error_translation_login_required">登入後才能使用雲端翻譯</string>
+    <string name="error_translation_service_unavailable">雲端翻譯服務暫時無法使用</string>
+    <string name="error_translation_rate_limited">雲端翻譯請求過於頻繁，請稍後再試</string>
     <string name="error_empty_translation">譯文為空</string>
     <string name="error_invalid_response">翻譯服務傳回內容異常</string>
     <string name="error_unknown">未知錯誤</string>
@@ -427,7 +416,7 @@
     <string name="about_title">關於我們</string>
     <string name="about_message">字幕翻譯助手 %1$s\n\n辨識螢幕上的字幕，並在懸浮視窗中顯示譯文。</string>
     <string name="about_terms_message">完整法律文本將在正式上線前提供。使用本應用程式即表示你已閱讀並同意服務條款。</string>
-    <string name="about_privacy_message">完整隱私權政策將在正式上線前提供。截圖僅在本機用於辨識與翻譯；收藏的詞彙保存在本地，僅在登入後自動同步到你的帳號。</string>
+    <string name="about_privacy_message">完整隱私權政策將在正式上線前提供。截圖僅在本機用於辨識；選擇雲端引擎時，辨識出的字幕文字會傳送到應用程式的雲端翻譯服務。收藏的詞彙保存在本地，僅在登入後自動同步到你的帳號。</string>
     <string name="about_ok">好的</string>
 
     <!-- 使用說明 -->

@@ -8,6 +8,7 @@
 - 📝 **完整翻译**：显示原文和中文译文
 - 📚 **重点词汇**：自动提取难词并显示词典释义
 - 🔒 **离线翻译**：基于 ML Kit，无需联网即可翻译（首次需下载语言包）
+- ☁️ **云端翻译（可选）**：登录后可选用百度/Google 引擎，由应用后端代理第三方接口，失败自动回退离线
 - 🎬 **视频兼容**：支持 YouTube、Netflix、B站等任何视频应用
 - ⏯️ **智能控制**：自动暂停/恢复视频播放
 - ⏮️ **字幕导航**：翻译面板里可跳上一句/下一句；通过 MediaSession 精确 seek，自动识别字幕边界（需通知使用权）
@@ -57,10 +58,12 @@
 
 ## 核心模块
 
-### 1. 翻译引擎 (`domain/translator/`)
+### 1. 翻译引擎 (`domain/translator/`、`data/translator/`)
 - `ITranslator`：翻译接口，支持多种实现
 - `MLKitTranslator`：ML Kit 离线翻译，支持自动重试下载语言包
-- `TranslatorFactory`：翻译引擎工厂，支持动态切换
+- `BackendTranslator`：调用应用后端的 `POST /api/v1/translations/text`，第三方凭据只在服务端
+- `FallbackTranslator`：云端引擎失败时自动回退到 ML Kit
+- `TranslatorProvider`：按设置创建翻译器
 
 ### 2. OCR 引擎 (`domain/ocr/`)
 - `IOcrEngine`：OCR 接口
@@ -199,23 +202,25 @@ subtitle-translator/
 ## 翻译引擎（设置页可选）
 
 端侧的 ML Kit 完全离线、开箱即用，但模型很小，字幕这种口语化短句容易直译。
-想要更好的质量可以在设置里换成在线引擎：
+想要更好的质量可以在设置里换成云端引擎：
 
 | 引擎 | 说明 |
 |---|---|
-| **ML Kit 离线**（默认） | 无需配置、不联网；质量一般 |
-| **百度翻译** | 国内访问快、质量好；内置配置，无需填写密钥 |
-| **Google 翻译** | 无需配置、质量好；国内网络可能访问不了 |
+| **ML Kit 离线**（默认） | 无需登录、不联网；质量一般 |
+| **百度翻译（云端）** | 走应用后端的文本翻译接口，需登录；质量好 |
+| **Google 翻译（云端）** | 同上；实际供应商由服务端配置决定 |
 
-**两个在线引擎失败时都会自动回退到 ML Kit**（断网、限流、密钥错误、额度用尽），
-所以换成在线引擎不会出现「完全翻译不出来」的情况，最差也只是退回离线质量。
+设备不再直连百度或 Google：第三方翻译凭据（APP ID、Secret、API Key）只配置在
+`subtitle-translator-server`，客户端只调用后端 `POST /api/v1/translations/text`。
+两个云端选项保留历史名称以兼容旧设置，请求路径相同，具体使用哪个供应商由服务端决定。
 
-**关于百度翻译**：应用内置了百度翻译的 APP ID 与密钥，开箱即用，不需要在设置里填写。
-额度由所有用户共用，耗尽、限流或网络失败时会自动回退到 ML Kit。
-注意：凭据随 APK 分发，可以被解包看到，不应当作安全边界。
+**云端引擎失败时都会自动回退到 ML Kit**（游客未登录、断网、接口未开放、语言对不受支持、
+供应商限流或故障），所以换成云端引擎不会出现「完全翻译不出来」的情况，最差也只是退回离线质量。
+游客选择云端引擎时会直接使用 ML Kit，不发起注定 401 的请求。
 
-**关于 Google**：用的是 `translate.googleapis.com` 的公开端点（Google 翻译网页版内部使用的那个），
-无需注册与计费。代价是该端点没有官方 SLA，可能限流或变更，因此同样带回退。
+**服务端开关**：后端默认关闭该接口（`EXTERNAL_TRANSLATION_ENABLED=false`，返回 404）。
+部署时需设置 `EXTERNAL_TRANSLATION_ENABLED=true` 并通过 `EXTERNAL_TRANSLATION_PROVIDER`
+选择 `baidu` 或 `google`、配置对应凭据；未开启时客户端自动回退到 ML Kit。
 
 ## 调试截图（排查识别不准）
 
@@ -334,7 +339,7 @@ python3 scripts/import_ecdict.py --csv ecdict.csv --lemma lemma.en.txt
 ## 后续扩展
 
 - [x] 支持更多语言对
-- [ ] 接入百度/Google/DeepL 等云端翻译 API
+- [x] 云端翻译接入（百度/Google 由应用后端代理，客户端不再持有第三方凭据）
 - [x] 本地词典扩展（内置 ECDICT 离线词典）
 - [x] 本地单词卡片复习与每日目标
 - [ ] 悬浮窗样式自定义
@@ -352,6 +357,10 @@ python3 scripts/import_ecdict.py --csv ecdict.csv --lemma lemma.en.txt
 4. 悬浮窗位置会自动记忆，下次启动时恢复上次位置
 
 ## 最近更新
+
+- 翻译引擎改为「本地 + 后端代理」：ML Kit 保持端侧翻译；百度/Google 选项统一调用
+  后端 `POST /api/v1/translations/text`，删除 App 侧百度签名、内置密钥与 Google 公开接口直连；
+  游客或云端失败时自动回退到 ML Kit
 
 - 首页对齐新的工具型布局：品牌头部与语言入口、悬浮翻译开关、权限检查、
   今日翻译/复习统计、近三天页签和可前后切换的翻译记录卡片

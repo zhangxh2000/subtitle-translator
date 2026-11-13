@@ -94,11 +94,10 @@
 
     <!-- 翻译引擎 -->
     <string name="engine_mlkit">ML Kit 离线（无需配置）</string>
-    <string name="engine_baidu">百度翻译（需填密钥）</string>
-    <string name="engine_google">Google 翻译（无需密钥）</string>
+    <string name="engine_baidu">百度翻译（云端）</string>
+    <string name="engine_google">Google 翻译（云端）</string>
     <string name="engine_hint_mlkit">完全离线、无需任何配置，但质量一般，字幕口语化时容易直译。</string>
-    <string name="engine_hint_baidu">国内访问快、质量好，已内置配置，无需填写密钥；失败时自动回退到离线翻译。</string>
-    <string name="engine_hint_google">无需配置、质量好；国内网络可能访问不了，失败时会自动回退到离线引擎。</string>
+    <string name="engine_hint_cloud">通过应用后端的云端翻译服务（需登录）；失败时自动回退到离线翻译。</string>
 
     <!-- 生词筛选强度 -->
     <string name="difficulty_filter_loose">宽松（多显示一些词）</string>
@@ -280,21 +279,11 @@
     <string name="error_translation_failed">翻译失败</string>
     <string name="error_translator_not_initialized">翻译器未初始化</string>
     <string name="error_language_pack_download_failed">下载语言包失败</string>
-    <string name="error_baidu_not_configured">百度翻译未配置</string>
     <string name="error_unsupported_language_pair">不支持该语言方向</string>
     <string name="error_network">网络错误，请检查网络连接</string>
-    <string name="error_baidu_timeout">请求超时，请重试</string>
-    <string name="error_baidu_service">百度服务异常，请重试</string>
-    <string name="error_baidu_unauthorized">百度鉴权失败：内置凭据可能受限或被停用</string>
-    <string name="error_baidu_empty_param">必填参数为空</string>
-    <string name="error_baidu_sign">百度签名错误：内置配置无效</string>
-    <string name="error_baidu_rate_limited">访问频率受限，请稍后再试</string>
-    <string name="error_baidu_quota">账户余额不足：免费额度可能已用完</string>
-    <string name="error_baidu_too_frequent">请求过于频繁，请稍后再试</string>
-    <string name="error_baidu_ip_invalid">客户端 IP 非法</string>
-    <string name="error_baidu_unsupported_direction">不支持该语言方向</string>
-    <string name="error_baidu_service_closed">翻译服务已关闭</string>
-    <string name="error_baidu_auth_not_effective">认证未通过或未生效</string>
+    <string name="error_translation_login_required">登录后才能使用云端翻译</string>
+    <string name="error_translation_service_unavailable">云端翻译服务暂时不可用</string>
+    <string name="error_translation_rate_limited">云端翻译请求过于频繁，请稍后再试</string>
     <string name="error_empty_translation">译文为空</string>
     <string name="error_invalid_response">翻译服务返回内容异常</string>
     <string name="error_unknown">未知错误</string>
@@ -427,7 +416,7 @@
     <string name="about_title">关于我们</string>
     <string name="about_message">字幕翻译助手 %1$s\n\n识别屏幕上的字幕，并在悬浮窗中显示译文。</string>
     <string name="about_terms_message">完整法律文本将在正式上线前提供。使用本应用即表示你已阅读并同意服务条款。</string>
-    <string name="about_privacy_message">完整隐私政策将在正式上线前提供。截图仅在本机用于识别与翻译；收藏的词汇保存在本地，仅在登录后自动同步到你的账号。</string>
+    <string name="about_privacy_message">完整隐私政策将在正式上线前提供。截图仅在本机用于识别；选择云端引擎时，识别出的字幕文字会发送到应用的云端翻译服务。收藏的词汇保存在本地，仅在登录后自动同步到你的账号。</string>
     <string name="about_ok">好的</string>
 
     <!-- 使用说明 -->

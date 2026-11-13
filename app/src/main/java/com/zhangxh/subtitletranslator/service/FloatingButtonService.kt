@@ -36,7 +36,9 @@ import androidx.core.app.NotificationCompat
 import com.zhangxh.subtitletranslator.MainActivity
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
+import com.zhangxh.subtitletranslator.data.auth.AuthSessionManager
 import com.zhangxh.subtitletranslator.data.ocr.MLKitOcrEngine
+import com.zhangxh.subtitletranslator.data.remote.TranslationApi
 import com.zhangxh.subtitletranslator.data.screenshot.ScreenCaptureManagerImpl
 import com.zhangxh.subtitletranslator.data.translator.TranslatorProvider
 import com.zhangxh.subtitletranslator.data.accessibility.A11ySeekController
@@ -164,6 +166,8 @@ class FloatingButtonService : Service() {
     private lateinit var historyRepository: ITranslationHistoryRepository
     private lateinit var settingsStore: SettingsStore
     private lateinit var guestQuotaChecker: GuestQuotaChecker
+    private lateinit var translationApi: TranslationApi
+    private lateinit var authSessionManager: AuthSessionManager
 
     private var mediaProjection: MediaProjection? = null
     private var isShowingTranslation = false
@@ -236,6 +240,8 @@ class FloatingButtonService : Service() {
 
         guestQuotaChecker = container.guestQuotaChecker
         historyRepository = container.translationHistory
+        translationApi = container.translationApi
+        authSessionManager = container.sessionManager
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -386,10 +392,13 @@ class FloatingButtonService : Service() {
             screenCapture.initialize(this, projection, metrics.widthPixels, metrics.heightPixels, metrics.densityDpi)
 
             val ocrEngine = MLKitOcrEngine()
-            // 翻译引擎由用户在设置里选择；百度使用内置配置，在线引擎失败会自动回退到离线引擎
-            val translator = TranslatorProvider(this).create(
-                engine = settingsStore.translationEngine
-            )
+            // 翻译引擎由用户在设置里选择：ML Kit 本地翻译；云端引擎走后端文本翻译接口，
+            // 第三方凭据只在服务端，未登录/失败时自动回退到离线引擎
+            val translator = TranslatorProvider(
+                context = this,
+                translationApi = translationApi,
+                sessionManager = authSessionManager
+            ).create(engine = settingsStore.translationEngine)
 
             // 生词朗读：系统 TTS，引擎到用户第一次点喇叭时才真正创建
             pronouncer = AndroidTtsPronouncer(this) { error ->

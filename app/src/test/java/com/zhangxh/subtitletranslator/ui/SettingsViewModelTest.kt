@@ -47,7 +47,7 @@ class SettingsViewModelTest {
 
         val state = requireNotNull(viewModel.uiState.value)
         assertEquals(TranslationEngine.BAIDU, store.translationEngine)
-        assertEquals(R.string.engine_hint_baidu, state.engineHintRes)
+        assertEquals(R.string.engine_hint_cloud, state.engineHintRes)
     }
 
     @Test

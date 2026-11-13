@@ -110,11 +110,11 @@ class FallbackTranslatorTest {
     @Test
     fun `reports the primary engine name`() {
         val translator = FallbackTranslator(
-            FakeTranslator("百度翻译", Result.success("x")),
+            FakeTranslator("云端翻译", Result.success("x")),
             FakeTranslator("ML Kit", Result.success("y"), offline = true)
         )
 
-        assertEquals("百度翻译", translator.getName())
+        assertEquals("云端翻译", translator.getName())
         assertTrue("主引擎需要联网，整体不应算离线引擎", !translator.isOffline())
     }
 }

@@ -20,6 +20,7 @@ import com.zhangxh.subtitletranslator.data.net.NetworkMonitor
 import com.zhangxh.subtitletranslator.data.remote.AuthApi
 import com.zhangxh.subtitletranslator.data.remote.RetrofitFactory
 import com.zhangxh.subtitletranslator.data.remote.SentenceApi
+import com.zhangxh.subtitletranslator.data.remote.TranslationApi
 import com.zhangxh.subtitletranslator.data.remote.VocabularyApi
 import com.zhangxh.subtitletranslator.data.sentence.SentenceSyncManager
 import com.zhangxh.subtitletranslator.data.sentence.SharedPrefsSentenceSyncStateStore
@@ -79,6 +80,9 @@ class AppContainer(context: Context) {
         tokenRefresher = tokenRefresher
     )
     private val authApi: AuthApi = authRetrofit.create(AuthApi::class.java)
+
+    /** 云端文本翻译：第三方供应商由服务端代理，客户端只带登录态 */
+    val translationApi: TranslationApi = authRetrofit.create(TranslationApi::class.java)
 
     val authRepository: AuthRepository = AuthRepositoryImpl(authApi, sessionManager)
     // 公开配置走无认证客户端：即使本地 Access Token 已过期，也不应因 /config 触发刷新
