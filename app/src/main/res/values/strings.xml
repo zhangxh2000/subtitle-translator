@@ -56,6 +56,9 @@
     <string name="overlay_navigation_accessibility_required">Enable “Subtitle Translator diagnostics” in Accessibility settings, then translate again.</string>
     <string name="overlay_navigation_progress_bar_missing">Could not find the player\'s progress bar. Make sure playback controls are available.</string>
     <string name="overlay_seeking_adjacent_subtitle">Finding subtitle…</string>
+    <string name="overlay_ai_translate">AI translation</string>
+    <string name="overlay_ai_translating">Translating with AI…</string>
+    <string name="overlay_ai_applied">AI translation applied</string>
     <string name="overlay_translated_label">Translation</string>
     <string name="overlay_original_label">Original</string>
     <string name="overlay_key_words">Key words</string>
@@ -289,6 +292,7 @@
     <string name="error_translation_login_required">Sign in to use cloud translation</string>
     <string name="error_translation_service_unavailable">Cloud translation is temporarily unavailable</string>
     <string name="error_translation_rate_limited">Too many cloud translation requests. Try again later.</string>
+    <string name="error_ai_membership_required">AI translation is available to members</string>
     <string name="error_empty_translation">The translation is empty</string>
     <string name="error_invalid_response">Unexpected response from the translation service</string>
     <string name="error_unknown">Unknown error</string>

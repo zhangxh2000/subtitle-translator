@@ -24,6 +24,9 @@ enum class AppError {
     TRANSLATION_SERVICE_UNAVAILABLE,
     TRANSLATION_RATE_LIMITED,
 
+    // 会员专属能力（AI 精译等）
+    MEMBERSHIP_REQUIRED,
+
     // 响应解析
     EMPTY_TRANSLATION,
     INVALID_RESPONSE,

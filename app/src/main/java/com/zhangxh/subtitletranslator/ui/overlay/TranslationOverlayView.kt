@@ -9,6 +9,7 @@ import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -77,6 +78,13 @@ class TranslationOverlayView @JvmOverloads constructor(
     private var onSentenceSaveToggleListener: ((String, String?) -> Unit)? = null
     private var onPreviousSubtitleListener: (() -> Unit)? = null
     private var onNextSubtitleListener: (() -> Unit)? = null
+    private var onAiTranslateListener: (() -> Unit)? = null
+
+    /** 当前译文是否来自 AI 精译（决定 AI 图标颜色） */
+    private var aiTranslated = false
+
+    /** AI 请求进行中（禁用重复点击） */
+    private var aiLoading = false
 
     init {
         orientation = VERTICAL
@@ -92,6 +100,7 @@ class TranslationOverlayView @JvmOverloads constructor(
         setupCopyButtons()
         setupNavigationButtons()
         setupSentenceSaveButton()
+        setupAiButton()
     }
 
     /**
@@ -138,8 +147,10 @@ class TranslationOverlayView @JvmOverloads constructor(
 
     /**
      * 设置翻译结果
+     *
+     * @param aiTranslated 恢复已显示过 AI 译文的面板时传 true，图标保持高亮
      */
-    fun setTranslationResult(result: TranslationResult) {
+    fun setTranslationResult(result: TranslationResult, aiTranslated: Boolean = false) {
         // 原文
         findViewById<TextView>(R.id.tvOriginalText)?.text = result.originalText
 
@@ -150,6 +161,9 @@ class TranslationOverlayView @JvmOverloads constructor(
 
         // 译文
         findViewById<TextView>(R.id.tvTranslatedText)?.text = result.translatedText
+
+        // AI 状态：新一轮基础翻译默认回到暗色
+        setAiTranslated(aiTranslated)
 
         // 词数：没有生词时不显示
         findViewById<TextView>(R.id.tvWordCount)?.apply {
@@ -226,6 +240,65 @@ class TranslationOverlayView @JvmOverloads constructor(
     /** 跳到视频的下一条字幕 */
     fun setOnNextSubtitleListener(listener: () -> Unit) {
         onNextSubtitleListener = listener
+    }
+
+    /** 点击 AI 图标，用云端 AI 精译更新当前译文 */
+    fun setOnAiTranslateListener(listener: () -> Unit) {
+        onAiTranslateListener = listener
+    }
+
+    /**
+     * 更新 AI 精译状态
+     *
+     * 高亮表示当前译文来自 AI；切换字幕或基础翻译失败回退后重新置为暗色。
+     */
+    fun setAiTranslated(translated: Boolean) {
+        aiTranslated = translated
+        refreshAiButton()
+    }
+
+    /** AI 请求进行中：禁用重复点击，图标保持当前状态 */
+    fun setAiLoading(loading: Boolean) {
+        aiLoading = loading
+        refreshAiButton()
+    }
+
+    /**
+     * 用 AI 返回的译文更新面板
+     *
+     * 只替换译文文本，不改原文和生词列表；整句收藏/复制会读取更新后的译文。
+     */
+    fun updateTranslatedText(text: String, aiTranslated: Boolean) {
+        findViewById<TextView>(R.id.tvTranslatedText)?.text = text
+        setAiTranslated(aiTranslated)
+    }
+
+    /**
+     * AI 图标：暗色表示普通译文，强调色表示当前译文来自 AI
+     */
+    private fun setupAiButton() {
+        findViewById<ImageButton>(R.id.btnAiTranslate)?.setOnClickListener {
+            if (!aiTranslated && !aiLoading) {
+                onAiTranslateListener?.invoke()
+            }
+        }
+        refreshAiButton()
+    }
+
+    private fun refreshAiButton() {
+        val button = findViewById<ImageButton>(R.id.btnAiTranslate) ?: return
+        button.isEnabled = !aiLoading
+        button.alpha = if (aiLoading) 0.5f else 1f
+        button.imageTintList = ColorStateList.valueOf(
+            context.getColor(if (aiTranslated) R.color.accent else R.color.text_secondary)
+        )
+        button.contentDescription = context.getString(
+            when {
+                aiLoading -> R.string.overlay_ai_translating
+                aiTranslated -> R.string.overlay_ai_applied
+                else -> R.string.overlay_ai_translate
+            }
+        )
     }
 
     /**

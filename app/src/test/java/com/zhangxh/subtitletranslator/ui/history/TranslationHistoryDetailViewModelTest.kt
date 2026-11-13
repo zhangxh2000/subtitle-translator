@@ -44,6 +44,11 @@ class TranslationHistoryDetailViewModelTest {
         override suspend fun record(originalText: String, translatedText: String, timestamp: Long) =
             true
 
+        override suspend fun updateLatestTranslation(
+            originalText: String,
+            translatedText: String
+        ) = false
+
         override suspend fun recentDays(limit: Int): List<TranslationDayHistory> = emptyList()
 
         override suspend fun recordsForDay(dayStart: Long): List<TranslationRecord> {

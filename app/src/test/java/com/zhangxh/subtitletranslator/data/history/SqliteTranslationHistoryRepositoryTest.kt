@@ -108,6 +108,19 @@ class SqliteTranslationHistoryRepositoryTest {
     }
 
     @Test
+    fun `ai translation updates only the latest matching record`() = runBlocking {
+        val day = LocalDate.of(2026, 11, 10)
+        repository.record("Line", "基础一", at(day, "10:00"))
+        repository.record("Line", "基础二", at(day, "10:05"))
+
+        assertTrue(repository.updateLatestTranslation("Line", "AI 精译"))
+
+        val translations = repository.allRecords().map { it.translatedText }
+        assertEquals(listOf("AI 精译", "基础一"), translations)
+        assertFalse(repository.updateLatestTranslation("Missing", "AI 精译"))
+    }
+
+    @Test
     fun `records survive repository recreation`() = runBlocking {
         repository.record("Persisted", "保留", at(LocalDate.of(2026, 11, 10), "10:00"))
         repository.close()

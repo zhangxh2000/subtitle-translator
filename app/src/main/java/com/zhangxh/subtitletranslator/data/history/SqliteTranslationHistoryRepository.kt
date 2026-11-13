@@ -65,6 +65,48 @@ class SqliteTranslationHistoryRepository(
         }
     }
 
+    override suspend fun updateLatestTranslation(
+        originalText: String,
+        translatedText: String
+    ): Boolean = withContext(Dispatchers.IO) {
+        val original = originalText.trim().take(MAX_ORIGINAL_LENGTH)
+        if (original.isBlank()) return@withContext false
+
+        writeMutex.withLock {
+            try {
+                val database = helper.writableDatabase
+                val id = database.query(
+                    TranslationHistoryDatabaseHelper.TABLE,
+                    arrayOf(TranslationHistoryDatabaseHelper.COL_ID),
+                    "${TranslationHistoryDatabaseHelper.COL_ORIGINAL_TEXT} = ?",
+                    arrayOf(original),
+                    null,
+                    null,
+                    "${TranslationHistoryDatabaseHelper.COL_TRANSLATED_AT} DESC, " +
+                        "${TranslationHistoryDatabaseHelper.COL_ID} DESC",
+                    "1"
+                ).use { cursor -> if (cursor.moveToFirst()) cursor.getLong(0) else null }
+                    ?: return@withLock false
+
+                val values = ContentValues().apply {
+                    put(
+                        TranslationHistoryDatabaseHelper.COL_TRANSLATED_TEXT,
+                        translatedText.trim().take(MAX_TRANSLATED_LENGTH)
+                    )
+                }
+                database.update(
+                    TranslationHistoryDatabaseHelper.TABLE,
+                    values,
+                    "${TranslationHistoryDatabaseHelper.COL_ID} = ?",
+                    arrayOf(id.toString())
+                ) > 0
+            } catch (e: Exception) {
+                Log.e(TAG, "更新翻译历史失败", e)
+                false
+            }
+        }
+    }
+
     override suspend fun recentDays(limit: Int): List<TranslationDayHistory> =
         withContext(Dispatchers.IO) {
             if (limit <= 0) return@withContext emptyList()

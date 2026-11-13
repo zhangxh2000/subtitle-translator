@@ -34,6 +34,16 @@ interface ITranslationHistoryRepository {
         timestamp: Long = System.currentTimeMillis()
     ): Boolean
 
+    /**
+     * 用 AI 精译结果更新最近一条同原文记录
+     *
+     * 不新增记录，避免同一句字幕在历史里出现两次；找不到对应记录时返回 false。
+     */
+    suspend fun updateLatestTranslation(
+        originalText: String,
+        translatedText: String
+    ): Boolean
+
     /** 按天倒序返回，最近的一天在最前 */
     suspend fun recentDays(limit: Int = Int.MAX_VALUE): List<TranslationDayHistory>
 

@@ -44,6 +44,18 @@
                 android:textAppearance="@style/TextAppearance.SubtitleTranslator.Overline" />
         </LinearLayout>
 
+        <!-- AI 精译：默认暗色，当前内容由 AI 翻译后高亮 -->
+        <ImageButton
+            android:id="@+id/btnAiTranslate"
+            android:layout_width="@dimen/touch_target"
+            android:layout_height="@dimen/touch_target"
+            android:layout_marginEnd="4dp"
+            android:padding="12dp"
+            android:scaleType="fitCenter"
+            android:background="@drawable/bg_icon_button"
+            android:src="@drawable/ic_ai"
+            android:contentDescription="@string/overlay_ai_translate" />
+
         <ImageButton
             android:id="@+id/btnClose"
             android:layout_width="@dimen/touch_target"

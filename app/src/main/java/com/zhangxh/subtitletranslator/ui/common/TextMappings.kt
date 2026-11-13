@@ -121,6 +121,7 @@ fun AppError.messageRes(): Int = when (this) {
     AppError.TRANSLATION_LOGIN_REQUIRED -> R.string.error_translation_login_required
     AppError.TRANSLATION_SERVICE_UNAVAILABLE -> R.string.error_translation_service_unavailable
     AppError.TRANSLATION_RATE_LIMITED -> R.string.error_translation_rate_limited
+    AppError.MEMBERSHIP_REQUIRED -> R.string.error_ai_membership_required
     AppError.EMPTY_TRANSLATION -> R.string.error_empty_translation
     AppError.INVALID_RESPONSE -> R.string.error_invalid_response
     AppError.UNKNOWN -> R.string.error_unknown

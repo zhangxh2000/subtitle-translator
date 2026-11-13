@@ -38,8 +38,10 @@ import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
 import com.zhangxh.subtitletranslator.data.auth.AuthSessionManager
 import com.zhangxh.subtitletranslator.data.ocr.MLKitOcrEngine
+import com.zhangxh.subtitletranslator.data.remote.AiTranslationApi
 import com.zhangxh.subtitletranslator.data.remote.TranslationApi
 import com.zhangxh.subtitletranslator.data.screenshot.ScreenCaptureManagerImpl
+import com.zhangxh.subtitletranslator.data.translator.AiTranslator
 import com.zhangxh.subtitletranslator.data.translator.TranslatorProvider
 import com.zhangxh.subtitletranslator.data.accessibility.A11ySeekController
 import com.zhangxh.subtitletranslator.data.accessibility.AccessibilityAccess
@@ -53,6 +55,9 @@ import com.zhangxh.subtitletranslator.domain.vocabulary.IVocabularyRepository
 import com.zhangxh.subtitletranslator.data.wordextractor.LocalWordExtractor
 import com.zhangxh.subtitletranslator.domain.TranslationCoordinator
 import com.zhangxh.subtitletranslator.domain.TranslationResult
+import com.zhangxh.subtitletranslator.domain.error.AppError
+import com.zhangxh.subtitletranslator.domain.error.TranslationError
+import com.zhangxh.subtitletranslator.domain.error.TranslationException
 import com.zhangxh.subtitletranslator.domain.entitlement.GuestQuotaChecker
 import com.zhangxh.subtitletranslator.domain.entitlement.QuotaKind
 import com.zhangxh.subtitletranslator.domain.entitlement.QuotaResult
@@ -63,6 +68,8 @@ import com.zhangxh.subtitletranslator.domain.media.PlaybackSnapshot
 import com.zhangxh.subtitletranslator.domain.media.hasSeekableTimeline
 import com.zhangxh.subtitletranslator.domain.speech.IPronouncer
 import com.zhangxh.subtitletranslator.domain.subtitle.SubtitleDirection
+import com.zhangxh.subtitletranslator.domain.translator.IAiTranslator
+import com.zhangxh.subtitletranslator.domain.translator.TranslationContext
 import com.zhangxh.subtitletranslator.domain.subtitle.SubtitleNavigationResult
 import com.zhangxh.subtitletranslator.domain.subtitle.SubtitleNavigator
 import com.zhangxh.subtitletranslator.ui.common.messageRes
@@ -121,6 +128,12 @@ class FloatingButtonService : Service() {
         private const val OVERLAY_SHOW_ANIM_MS = 180L
         private const val OVERLAY_HIDE_ANIM_MS = 140L
 
+        /** AI 精译只携带最近 4 组已展示的字幕对，避免把整段历史发给服务端 */
+        private const val MAX_AI_CONTEXT_PAIRS = 4
+
+        /** 超过这个时间没有新字幕就当作换了场景，旧上下文不再发送 */
+        private const val MAX_AI_CONTEXT_AGE_MS = 2 * 60 * 1000L
+
         /** 服务是否在运行（主界面据此显示「启动」还是「停止」） */
         @Volatile
         private var running = false
@@ -159,6 +172,7 @@ class FloatingButtonService : Service() {
     private var navigationStatusView: TextView? = null
     private var quickMenuView: View? = null
     private var translationCoordinator: TranslationCoordinator? = null
+    private var aiTranslator: IAiTranslator? = null
     private var dictionaryProvider: DictionaryRepositoryProvider? = null
     private var pronouncer: IPronouncer? = null
     private var vocabularyRepository: IVocabularyRepository? = null
@@ -167,6 +181,7 @@ class FloatingButtonService : Service() {
     private lateinit var settingsStore: SettingsStore
     private lateinit var guestQuotaChecker: GuestQuotaChecker
     private lateinit var translationApi: TranslationApi
+    private lateinit var aiTranslationApi: AiTranslationApi
     private lateinit var authSessionManager: AuthSessionManager
 
     private var mediaProjection: MediaProjection? = null
@@ -174,6 +189,24 @@ class FloatingButtonService : Service() {
 
     /** 当前面板对应的翻译结果，上一句/下一句失败时用来恢复面板 */
     private var currentResult: TranslationResult? = null
+
+    /** 当前译文是否已由 AI 精译替换 */
+    private var currentAiTranslated = false
+
+    /** 当前面板可用的上文字幕对（不含当前句） */
+    private var currentAiContext: List<TranslationContext> = emptyList()
+
+    /** 最近已展示的字幕对，按时间从旧到新，最多 [MAX_AI_CONTEXT_PAIRS] 组 */
+    private val recentTranslations = ArrayDeque<TranslationContext>()
+
+    /** 最近字幕对所属的语言方向；切换语言后上下文必须清空 */
+    private var recentTranslationsLanguagePair: Pair<String, String>? = null
+
+    /** 最近一条字幕的展示时间，用来判断是否已经换了场景 */
+    private var recentTranslationsUpdatedAt = 0L
+
+    /** 正在请求 AI 精译，避免连点重复计费 */
+    private var isAiTranslating = false
 
     /** 正在执行上一句/下一句定位，期间不接受新的悬浮球点击 */
     private var isNavigating = false
@@ -241,6 +274,7 @@ class FloatingButtonService : Service() {
         guestQuotaChecker = container.guestQuotaChecker
         historyRepository = container.translationHistory
         translationApi = container.translationApi
+        aiTranslationApi = container.aiTranslationApi
         authSessionManager = container.sessionManager
     }
 
@@ -399,6 +433,9 @@ class FloatingButtonService : Service() {
                 translationApi = translationApi,
                 sessionManager = authSessionManager
             ).create(engine = settingsStore.translationEngine)
+
+            // AI 精译与基础翻译链路独立：只在用户点击 AI 图标时调用
+            aiTranslator = AiTranslator(aiTranslationApi, authSessionManager)
 
             // 生词朗读：系统 TTS，引擎到用户第一次点喇叭时才真正创建
             pronouncer = AndroidTtsPronouncer(this) { error ->
@@ -887,7 +924,9 @@ class FloatingButtonService : Service() {
                 }
 
                 if (result?.isSuccess == true) {
-                    showTranslationOverlay(result)
+                    // 先取上一次及更早的字幕作为上下文，当前句不重复携带
+                    showTranslationOverlay(result, aiContext = recentContextForDisplay())
+                    rememberTranslation(result)
                     historyRepository.record(
                         originalText = result.originalText,
                         translatedText = result.translatedText
@@ -912,6 +951,44 @@ class FloatingButtonService : Service() {
             } finally {
                 isTranslating = false
             }
+        }
+    }
+
+    /**
+     * 取给下一次 AI 精译用的上下文
+     *
+     * 只保留最近 4 组；语言方向变化后旧字幕不再适用，立即清空，
+     * 否则 AI 会拿另一种语言的上下文来理解当前句。
+     */
+    private fun recentContextForDisplay(): List<TranslationContext> {
+        val languagePair = settingsStore.sourceLang to settingsStore.targetLang
+        val now = System.currentTimeMillis()
+        val sceneChanged = recentTranslationsUpdatedAt > 0 &&
+            now - recentTranslationsUpdatedAt > MAX_AI_CONTEXT_AGE_MS
+        if (languagePair != recentTranslationsLanguagePair || sceneChanged) {
+            recentTranslations.clear()
+            recentTranslationsLanguagePair = languagePair
+        }
+        return recentTranslations.toList()
+    }
+
+    /** 记录一条已展示的字幕对，供下一句 AI 精译参考 */
+    private fun rememberTranslation(result: TranslationResult) {
+        val source = result.originalText.trim()
+        val translation = result.translatedText.trim()
+        if (source.isEmpty() || translation.isEmpty()) return
+        recentTranslations.addLast(TranslationContext(source, translation))
+        while (recentTranslations.size > MAX_AI_CONTEXT_PAIRS) {
+            recentTranslations.removeFirst()
+        }
+        recentTranslationsUpdatedAt = System.currentTimeMillis()
+    }
+
+    /** AI 精译替换译文后，同步上下文里对应的那一句 */
+    private fun updateRememberedTranslation(source: String, translation: String) {
+        val index = recentTranslations.indexOfLast { it.source == source }
+        if (index >= 0) {
+            recentTranslations[index] = TranslationContext(source, translation)
         }
     }
 
@@ -1077,7 +1154,11 @@ class FloatingButtonService : Service() {
                     withContext(Dispatchers.IO) {
                         seekController.seekTo(originPosition)
                     }
-                    showTranslationOverlay(current)
+                    showTranslationOverlay(
+                        current,
+                        aiContext = currentAiContext,
+                        aiTranslated = currentAiTranslated
+                    )
                     isNavigating = false
                     Toast.makeText(
                         this@FloatingButtonService,
@@ -1107,6 +1188,8 @@ class FloatingButtonService : Service() {
         removeNavigationStatus()
         isNavigating = false
         currentResult = null
+        currentAiTranslated = false
+        currentAiContext = emptyList()
         removeOverlayView(animated = false)
         isShowingTranslation = false
         Toast.makeText(
@@ -1126,6 +1209,8 @@ class FloatingButtonService : Service() {
         removeNavigationStatus()
         isNavigating = false
         currentResult = null
+        currentAiTranslated = false
+        currentAiContext = emptyList()
         removeOverlayView(animated = false)
         isShowingTranslation = false
         Toast.makeText(
@@ -1188,6 +1273,8 @@ class FloatingButtonService : Service() {
         removeOverlayView(animated = true)
         isShowingTranslation = false
         currentResult = null
+        currentAiTranslated = false
+        currentAiContext = emptyList()
 
         // 只恢复由本服务暂停的媒体
         resumeMedia()
@@ -1241,7 +1328,11 @@ class FloatingButtonService : Service() {
     /**
      * 显示翻译覆盖层
      */
-    private fun showTranslationOverlay(result: TranslationResult) {
+    private fun showTranslationOverlay(
+        result: TranslationResult,
+        aiContext: List<TranslationContext> = emptyList(),
+        aiTranslated: Boolean = false
+    ) {
         // 防御性处理：万一还有残留的覆盖层先清掉，避免叠出多层导致关闭按钮看起来失灵
         removeOverlayView()
         // 快捷菜单盖在覆盖层之上会挡住关闭按钮，翻译出结果时一并收起
@@ -1249,7 +1340,7 @@ class FloatingButtonService : Service() {
 
         val themedContext = ContextThemeWrapper(this, R.style.Theme_SubtitleTranslator)
         overlayView = TranslationOverlayView(themedContext).apply {
-            setTranslationResult(result)
+            setTranslationResult(result, aiTranslated)
             setOnCloseListener {
                 hideTranslation()
             }
@@ -1271,8 +1362,13 @@ class FloatingButtonService : Service() {
             setOnSentenceSaveToggleListener { source, translation ->
                 toggleSavedSentence(source, translation)
             }
+            setOnAiTranslateListener {
+                requestAiTranslation()
+            }
         }
         currentResult = result
+        currentAiContext = aiContext
+        currentAiTranslated = aiTranslated
 
         // 单词释义多时面板会很高：这里按可用窗口高度给窗口封顶，
         // 超出部分靠面板内的滚动查看，否则窗口会超出屏幕、顶部内容被裁掉
@@ -1332,8 +1428,79 @@ class FloatingButtonService : Service() {
             Log.e(TAG, "添加翻译覆盖层失败", e)
             overlayView = null
             currentResult = null
+            currentAiContext = emptyList()
+            currentAiTranslated = false
             isShowingTranslation = false
             resumeMedia()
+        }
+    }
+
+    /**
+     * 请求云端 AI 精译并更新当前面板
+     *
+     * 只替换译文文本，原文和生词列表保持不变；失败时保留基础译文并提示。
+     */
+    private fun requestAiTranslation() {
+        val result = currentResult ?: return
+        val target = overlayView ?: return
+        if (isAiTranslating || currentAiTranslated) return
+        val translator = aiTranslator
+        if (translator == null) {
+            Toast.makeText(this, R.string.service_not_ready, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val sourceLang = settingsStore.sourceLang
+        val targetLang = settingsStore.targetLang
+        // 语言方向在面板展示后又被改过时，旧上下文不再适用
+        val context = if ((sourceLang to targetLang) == recentTranslationsLanguagePair) {
+            currentAiContext
+        } else {
+            emptyList()
+        }
+
+        isAiTranslating = true
+        target.setAiLoading(true)
+        serviceScope.launch {
+            val outcome = try {
+                translator.translate(result.originalText, sourceLang, targetLang, context)
+            } catch (e: Exception) {
+                Log.e(TAG, "AI 精译异常", e)
+                Result.failure(
+                    TranslationException(
+                        TranslationError(AppError.TRANSLATION_FAILED, e.message)
+                    )
+                )
+            } finally {
+                isAiTranslating = false
+            }
+
+            outcome.onSuccess { aiText ->
+                // 请求期间可能已关闭面板或切换字幕，旧结果不能写到新视图上
+                if (overlayView !== target ||
+                    currentResult?.originalText != result.originalText
+                ) {
+                    return@onSuccess
+                }
+                currentResult = result.copy(translatedText = aiText)
+                currentAiTranslated = true
+                target.updateTranslatedText(aiText, aiTranslated = true)
+                updateRememberedTranslation(result.originalText, aiText)
+                if (!historyRepository.updateLatestTranslation(result.originalText, aiText)) {
+                    Log.w(TAG, "AI 精译结果未能写入历史")
+                }
+            }.onFailure { error ->
+                val message = (error as? TranslationException)?.error?.toUiText()
+                    ?.resolve(this@FloatingButtonService)
+                    ?: getString(R.string.error_translation_failed)
+                Toast.makeText(
+                    this@FloatingButtonService,
+                    message,
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
+            target.setAiLoading(false)
         }
     }
 
@@ -1660,12 +1827,22 @@ class FloatingButtonService : Service() {
         removeNavigationStatus()
         isShowingTranslation = false
         currentResult = null
+        currentAiTranslated = false
+        currentAiContext = emptyList()
         isNavigating = false
+        isAiTranslating = false
+        // 新会话重新建立上下文，避免把上一个视频的字幕带过去
+        recentTranslations.clear()
+        recentTranslationsLanguagePair = null
+        recentTranslationsUpdatedAt = 0L
         // 字幕扫描中途退出时，先暂停并恢复音量，再把状态交还用户
         activeScanController?.endScan()
         activeScanController = null
         // 服务销毁 / 重新授权时，别把视频留在暂停状态
         resumeMedia()
+
+        aiTranslator?.release()
+        aiTranslator = null
 
         translationCoordinator?.release()
         translationCoordinator = null

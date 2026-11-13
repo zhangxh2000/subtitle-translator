@@ -3,7 +3,6 @@ package com.zhangxh.subtitletranslator.data.translator
 import android.util.Log
 import com.zhangxh.subtitletranslator.data.auth.AuthSessionManager
 import com.zhangxh.subtitletranslator.data.remote.TextTranslationRequestDto
-import com.zhangxh.subtitletranslator.data.remote.TextTranslationResponseDto
 import com.zhangxh.subtitletranslator.data.remote.TranslationApi
 import com.zhangxh.subtitletranslator.data.remote.TranslationSegmentDto
 import com.zhangxh.subtitletranslator.domain.auth.AuthState
@@ -14,7 +13,6 @@ import com.zhangxh.subtitletranslator.domain.translator.ITranslator
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
 import retrofit2.HttpException
 import java.io.IOException
 import java.util.Locale
@@ -137,13 +135,13 @@ class BackendTranslator(
                         }
                     )
                 )
-                parseResponse(response.data, expectedIds)
+                parseTranslatedSegments(response.data?.segments, expectedIds)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: HttpException) {
                 Log.w(TAG, "云端翻译失败: HTTP ${e.code()}")
                 Result.failure(
-                    TranslationException(httpError(e), e)
+                    TranslationException(e.toTranslationError(), e)
                 )
             } catch (e: IOException) {
                 Log.w(TAG, "云端翻译网络异常: ${e.javaClass.simpleName}")
@@ -163,56 +161,6 @@ class BackendTranslator(
 
     override fun release() = Unit
 
-    /**
-     * 解析响应
-     *
-     * 按请求的段 id 取译文，不依赖服务端返回的数组顺序；缺段或空译文都视为无效响应。
-     */
-    private fun parseResponse(
-        data: TextTranslationResponseDto?,
-        expectedIds: List<String>
-    ): Result<String> {
-        val returned = data?.segments ?: return failure(AppError.INVALID_RESPONSE)
-        val byId = returned.mapNotNull { dto ->
-            val id = dto.id?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-            id to dto.translation?.trim().orEmpty()
-        }.toMap()
-
-        val parts = expectedIds.map { id ->
-            byId[id]?.takeIf { it.isNotEmpty() }
-                ?: return failure(AppError.EMPTY_TRANSLATION)
-        }
-        val combined = parts.joinToString(" ").trim()
-        return if (combined.isEmpty()) {
-            failure(AppError.EMPTY_TRANSLATION)
-        } else {
-            Result.success(combined)
-        }
-    }
-
-    /**
-     * 服务端错误码 → 应用错误码
-     *
-     * 401/403 只在 Token 刷新也失败时出现，说明会话已失效；
-     * 400 一般是语言对不在服务端配置内；其余（404 接口未开放、5xx 供应商失败）都算服务不可用。
-     */
-    private fun httpError(e: HttpException): TranslationError {
-        val code = errorCode(e)
-        val appError = when {
-            e.code() == 401 || e.code() == 403 -> AppError.TRANSLATION_LOGIN_REQUIRED
-            e.code() == 400 -> AppError.UNSUPPORTED_LANGUAGE_PAIR
-            e.code() == 429 || code == "RATE_LIMITED" || code == "QUOTA_EXCEEDED" ->
-                AppError.TRANSLATION_RATE_LIMITED
-            else -> AppError.TRANSLATION_SERVICE_UNAVAILABLE
-        }
-        return TranslationError(appError, code.takeIf { it.isNotBlank() } ?: "HTTP ${e.code()}")
-    }
-
-    private fun errorCode(e: HttpException): String = runCatching {
-        val body = e.response()?.errorBody()?.string().orEmpty()
-        JSONObject(body).optJSONObject("error")?.optString("code").orEmpty()
-    }.getOrDefault("")
-
     private fun failure(code: AppError, detail: String? = null): Result<String> =
-        Result.failure(TranslationException(TranslationError(code, detail)))
+        translationFailure(code, detail)
 }

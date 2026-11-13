@@ -17,6 +17,7 @@ import com.zhangxh.subtitletranslator.data.history.SqliteTranslationHistoryRepos
 import com.zhangxh.subtitletranslator.data.membership.DefaultMembershipBackend
 import com.zhangxh.subtitletranslator.data.membership.MembershipRepositoryImpl
 import com.zhangxh.subtitletranslator.data.net.NetworkMonitor
+import com.zhangxh.subtitletranslator.data.remote.AiTranslationApi
 import com.zhangxh.subtitletranslator.data.remote.AuthApi
 import com.zhangxh.subtitletranslator.data.remote.RetrofitFactory
 import com.zhangxh.subtitletranslator.data.remote.SentenceApi
@@ -83,6 +84,9 @@ class AppContainer(context: Context) {
 
     /** 云端文本翻译：第三方供应商由服务端代理，客户端只带登录态 */
     val translationApi: TranslationApi = authRetrofit.create(TranslationApi::class.java)
+
+    /** 会员 AI 精译：服务端校验会员权益，客户端不判断 plan */
+    val aiTranslationApi: AiTranslationApi = authRetrofit.create(AiTranslationApi::class.java)
 
     val authRepository: AuthRepository = AuthRepositoryImpl(authApi, sessionManager)
     // 公开配置走无认证客户端：即使本地 Access Token 已过期，也不应因 /config 触发刷新

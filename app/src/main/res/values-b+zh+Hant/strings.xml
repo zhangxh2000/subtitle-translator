@@ -51,6 +51,9 @@
     <string name="overlay_navigation_accessibility_required">請在系統無障礙設定中開啟「字幕翻譯助手診斷」，開啟後重新翻譯。</string>
     <string name="overlay_navigation_progress_bar_missing">沒有找到播放進度條，請確認播放控制項可以顯示</string>
     <string name="overlay_seeking_adjacent_subtitle">正在定位字幕…</string>
+    <string name="overlay_ai_translate">AI 翻譯</string>
+    <string name="overlay_ai_translating">正在使用 AI 翻譯…</string>
+    <string name="overlay_ai_applied">已使用 AI 翻譯</string>
     <string name="overlay_translated_label">譯文</string>
     <string name="overlay_original_label">原文對照</string>
     <string name="overlay_key_words">重點詞彙</string>
@@ -284,6 +287,7 @@
     <string name="error_translation_login_required">登入後才能使用雲端翻譯</string>
     <string name="error_translation_service_unavailable">雲端翻譯服務暫時無法使用</string>
     <string name="error_translation_rate_limited">雲端翻譯請求過於頻繁，請稍後再試</string>
+    <string name="error_ai_membership_required">AI 翻譯僅限會員使用</string>
     <string name="error_empty_translation">譯文為空</string>
     <string name="error_invalid_response">翻譯服務傳回內容異常</string>
     <string name="error_unknown">未知錯誤</string>
