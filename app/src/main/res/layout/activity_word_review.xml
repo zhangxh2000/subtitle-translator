@@ -121,13 +121,18 @@
                                 android:textSize="14sp" />
                         </LinearLayout>
 
+                        <!--
+                          64dp 点击区 + 20dp padding = 24dp 图标。
+                          卡片本身可点击翻面，点击区太小会把发声图标附近的点击
+                          漏给卡片；扩大按钮但保持图标视觉尺寸不变。
+                        -->
                         <ImageButton
                             android:id="@+id/btnSpeak"
-                            android:layout_width="44dp"
-                            android:layout_height="44dp"
+                            android:layout_width="64dp"
+                            android:layout_height="64dp"
                             android:background="?attr/selectableItemBackgroundBorderless"
                             android:contentDescription="@string/action_pronounce"
-                            android:padding="10dp"
+                            android:padding="20dp"
                             android:scaleType="fitCenter"
                             android:src="@drawable/ic_volume_up" />
                     </LinearLayout>
