@@ -397,6 +397,20 @@
     <string name="auth_config_retry">Retry</string>
     <string name="auth_legal_versions">Terms %1$s · Privacy %2$s</string>
     <string name="auth_close">Close</string>
+    <string name="auth_forgot_password">Forgot password?</string>
+    <string name="auth_reset_title">Reset password</string>
+    <string name="auth_reset_subtitle">Enter the email for your account to receive a reset token, then choose a new password.</string>
+    <string name="auth_reset_request_action">Send reset email</string>
+    <string name="auth_reset_requesting">Sending…</string>
+    <string name="auth_reset_email_sent">If an account exists for this email, a reset token has been sent. Check your inbox and spam folder.</string>
+    <string name="auth_reset_token_label">Reset token</string>
+    <string name="auth_reset_hint">The token expires in 10 minutes and can be used only once.</string>
+    <string name="auth_reset_token_required">Enter the reset token from your email</string>
+    <string name="auth_reset_new_password_label">New password</string>
+    <string name="auth_reset_confirm_password_label">Confirm new password</string>
+    <string name="auth_reset_action">Reset password</string>
+    <string name="auth_reset_submitting">Resetting…</string>
+    <string name="auth_reset_success">Password reset. Sign in with your new password.</string>
 
     <!-- 我的 -->
     <string name="profile_guest_title">Guest</string>
@@ -459,6 +473,8 @@
     <string name="error_auth_rate_limited">Too many requests. Try again later.</string>
     <string name="error_auth_server">Server is temporarily unavailable. Try again later.</string>
     <string name="error_auth_unknown">Something went wrong. Try again.</string>
+    <string name="error_auth_invalid_reset_code">This reset token is invalid. Request a new email.</string>
+    <string name="error_auth_reset_code_expired">This reset token has expired. Request a new email.</string>
 
     <!-- 词汇页游客提示 -->
     <string name="vocabulary_login_banner">Sign in to use cloud features</string>

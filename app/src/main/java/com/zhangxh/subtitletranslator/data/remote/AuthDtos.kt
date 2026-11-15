@@ -66,6 +66,21 @@ data class RefreshRequestDto(
     val refreshToken: String
 )
 
+/** 服务端始终返回 accepted，避免通过响应判断邮箱是否存在 */
+data class RequestPasswordResetRequestDto(
+    val email: String
+)
+
+data class PasswordResetRequestedResponseDto(
+    val accepted: Boolean = true
+)
+
+/** newPassword 与服务端注册规则一致：10-128 字符 */
+data class ResetPasswordRequestDto(
+    val token: String,
+    val newPassword: String
+)
+
 data class LanguagePairDto(
     val source: String,
     val target: String

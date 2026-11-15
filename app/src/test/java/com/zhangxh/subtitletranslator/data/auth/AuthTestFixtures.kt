@@ -8,9 +8,12 @@ import com.zhangxh.subtitletranslator.data.remote.FeaturesDto
 import com.zhangxh.subtitletranslator.data.remote.LegalDto
 import com.zhangxh.subtitletranslator.data.remote.LoginRequestDto
 import com.zhangxh.subtitletranslator.data.remote.MeResponseDto
+import com.zhangxh.subtitletranslator.data.remote.PasswordResetRequestedResponseDto
 import com.zhangxh.subtitletranslator.data.remote.RefreshRequestDto
 import com.zhangxh.subtitletranslator.data.remote.RefreshResponseDto
 import com.zhangxh.subtitletranslator.data.remote.RegisterRequestDto
+import com.zhangxh.subtitletranslator.data.remote.RequestPasswordResetRequestDto
+import com.zhangxh.subtitletranslator.data.remote.ResetPasswordRequestDto
 import com.zhangxh.subtitletranslator.data.remote.TokensDto
 import com.zhangxh.subtitletranslator.data.remote.UserDto
 import com.zhangxh.subtitletranslator.domain.auth.AuthTokens
@@ -35,6 +38,11 @@ class FakeAuthApi : AuthApi {
         { error("me not stubbed") }
     var onConfig: suspend () -> ApiEnvelope<ClientConfigDto> =
         { error("config not stubbed") }
+    var onRequestPasswordReset: suspend (RequestPasswordResetRequestDto) ->
+        ApiEnvelope<PasswordResetRequestedResponseDto> =
+        { error("requestPasswordReset not stubbed") }
+    var onResetPassword: suspend (ResetPasswordRequestDto) -> Unit =
+        { error("resetPassword not stubbed") }
 
     override suspend fun register(request: RegisterRequestDto) = onRegister(request)
     override suspend fun login(request: LoginRequestDto) = onLogin(request)
@@ -42,6 +50,10 @@ class FakeAuthApi : AuthApi {
     override suspend fun logout(request: RefreshRequestDto) = onLogout(request)
     override suspend fun me() = onMe()
     override suspend fun config() = onConfig()
+    override suspend fun requestPasswordReset(request: RequestPasswordResetRequestDto) =
+        onRequestPasswordReset(request)
+    override suspend fun resetPassword(request: ResetPasswordRequestDto) =
+        onResetPassword(request)
 }
 
 fun testUser(

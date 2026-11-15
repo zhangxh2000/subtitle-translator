@@ -23,6 +23,14 @@ interface AuthApi {
     @POST("auth/logout")
     suspend fun logout(@Body request: RefreshRequestDto): Response<Unit>
 
+    @POST("auth/password/reset-requests")
+    suspend fun requestPasswordReset(
+        @Body request: RequestPasswordResetRequestDto
+    ): ApiEnvelope<PasswordResetRequestedResponseDto>
+
+    @POST("auth/password/reset")
+    suspend fun resetPassword(@Body request: ResetPasswordRequestDto)
+
     @GET("me")
     suspend fun me(): ApiEnvelope<MeResponseDto>
 

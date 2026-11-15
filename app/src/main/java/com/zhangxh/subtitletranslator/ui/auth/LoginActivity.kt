@@ -40,6 +40,7 @@ class LoginActivity : BaseActivity() {
     private lateinit var tvError: TextView
     private lateinit var btnLogin: MaterialButton
     private lateinit var btnRegister: MaterialButton
+    private lateinit var btnForgotPassword: MaterialButton
     private lateinit var progress: CircularProgressIndicator
 
     private val coordinator: LoginPromptCoordinator
@@ -82,6 +83,9 @@ class LoginActivity : BaseActivity() {
         btnRegister.setOnClickListener {
             registerLauncher.launch(Intent(this, RegisterActivity::class.java))
         }
+        btnForgotPassword.setOnClickListener {
+            startActivity(Intent(this, PasswordResetActivity::class.java))
+        }
 
         viewModel.uiState.observe(this) { state -> render(state) }
         viewModel.events.observe(this) { event ->
@@ -99,6 +103,7 @@ class LoginActivity : BaseActivity() {
         tvError = findViewById(R.id.tvError)
         btnLogin = findViewById(R.id.btnLogin)
         btnRegister = findViewById(R.id.btnRegister)
+        btnForgotPassword = findViewById(R.id.btnForgotPassword)
         progress = findViewById(R.id.loginProgress)
     }
 
@@ -121,6 +126,7 @@ class LoginActivity : BaseActivity() {
             if (state.isSubmitting) R.string.auth_logging_in else R.string.auth_login_action
         )
         btnRegister.isEnabled = !state.isSubmitting
+        btnForgotPassword.isEnabled = !state.isSubmitting
         progress.visibility = if (state.isSubmitting) View.VISIBLE else View.GONE
     }
 

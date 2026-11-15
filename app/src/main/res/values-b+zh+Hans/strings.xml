@@ -392,6 +392,20 @@
     <string name="auth_config_retry">重试</string>
     <string name="auth_legal_versions">条款 %1$s · 隐私 %2$s</string>
     <string name="auth_close">关闭</string>
+    <string name="auth_forgot_password">忘记密码？</string>
+    <string name="auth_reset_title">重置密码</string>
+    <string name="auth_reset_subtitle">输入账号邮箱获取重置令牌，然后设置新密码。</string>
+    <string name="auth_reset_request_action">发送重置邮件</string>
+    <string name="auth_reset_requesting">发送中…</string>
+    <string name="auth_reset_email_sent">如果该邮箱已注册，我们已发送重置令牌，请查收收件箱和垃圾邮件。</string>
+    <string name="auth_reset_token_label">重置令牌</string>
+    <string name="auth_reset_hint">令牌 10 分钟内有效，只能使用一次。</string>
+    <string name="auth_reset_token_required">请输入邮件中的重置令牌</string>
+    <string name="auth_reset_new_password_label">新密码</string>
+    <string name="auth_reset_confirm_password_label">确认新密码</string>
+    <string name="auth_reset_action">重置密码</string>
+    <string name="auth_reset_submitting">重置中…</string>
+    <string name="auth_reset_success">密码已重置，请用新密码登录。</string>
 
     <!-- 我的 -->
     <string name="profile_guest_title">游客</string>
@@ -454,6 +468,8 @@
     <string name="error_auth_rate_limited">请求过于频繁，请稍后再试。</string>
     <string name="error_auth_server">服务器暂时不可用，请稍后再试。</string>
     <string name="error_auth_unknown">出现错误，请重试。</string>
+    <string name="error_auth_invalid_reset_code">重置令牌无效，请重新获取。</string>
+    <string name="error_auth_reset_code_expired">重置令牌已过期，请重新获取。</string>
 
     <!-- 词汇页游客提示 -->
     <string name="vocabulary_login_banner">登录后可使用云端功能</string>

@@ -15,6 +15,10 @@ enum class AuthErrorCode {
     RATE_LIMITED,
     SERVER,
     INVALID_RESPONSE,
+    /** 密码重置令牌无效（服务端 INVALID_CODE） */
+    INVALID_RESET_TOKEN,
+    /** 密码重置令牌已过期（服务端 CODE_EXPIRED） */
+    RESET_TOKEN_EXPIRED,
     UNKNOWN
 }
 

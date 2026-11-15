@@ -392,6 +392,20 @@
     <string name="auth_config_retry">重試</string>
     <string name="auth_legal_versions">條款 %1$s · 隱私 %2$s</string>
     <string name="auth_close">關閉</string>
+    <string name="auth_forgot_password">忘記密碼？</string>
+    <string name="auth_reset_title">重設密碼</string>
+    <string name="auth_reset_subtitle">輸入帳號電子郵件取得重設令牌，然後設定新密碼。</string>
+    <string name="auth_reset_request_action">傳送重設郵件</string>
+    <string name="auth_reset_requesting">傳送中…</string>
+    <string name="auth_reset_email_sent">若該電子郵件已註冊，我們已寄出重設令牌，請檢查收件匣和垃圾郵件。</string>
+    <string name="auth_reset_token_label">重設令牌</string>
+    <string name="auth_reset_hint">令牌 10 分鐘內有效，只能使用一次。</string>
+    <string name="auth_reset_token_required">請輸入郵件中的重設令牌</string>
+    <string name="auth_reset_new_password_label">新密碼</string>
+    <string name="auth_reset_confirm_password_label">確認新密碼</string>
+    <string name="auth_reset_action">重設密碼</string>
+    <string name="auth_reset_submitting">重設中…</string>
+    <string name="auth_reset_success">密碼已重設，請使用新密碼登入。</string>
 
     <!-- 我的 -->
     <string name="profile_guest_title">訪客</string>
@@ -454,6 +468,8 @@
     <string name="error_auth_rate_limited">請求過於頻繁，請稍後再試。</string>
     <string name="error_auth_server">伺服器暫時不可用，請稍後再試。</string>
     <string name="error_auth_unknown">發生錯誤，請重試。</string>
+    <string name="error_auth_invalid_reset_code">重設令牌無效，請重新取得。</string>
+    <string name="error_auth_reset_code_expired">重設令牌已過期，請重新取得。</string>
 
     <!-- 詞彙頁訪客提示 -->
     <string name="vocabulary_login_banner">登入後可使用雲端功能</string>

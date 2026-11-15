@@ -27,11 +27,15 @@ object ApiErrorParser {
             "REFRESH_REUSE_DETECTED" -> AuthErrorCode.SESSION_EXPIRED
             "ACCOUNT_SUSPENDED", "FORBIDDEN" -> AuthErrorCode.ACCOUNT_SUSPENDED
             "RATE_LIMITED", "QUOTA_EXCEEDED" -> AuthErrorCode.RATE_LIMITED
+            // 目前 App 侧只有密码重置会消费一次性 token
+            "INVALID_CODE" -> AuthErrorCode.INVALID_RESET_TOKEN
+            "CODE_EXPIRED" -> AuthErrorCode.RESET_TOKEN_EXPIRED
             "INTERNAL_ERROR", "SERVICE_UNAVAILABLE", "TRANSLATION_UNAVAILABLE",
             "PROVIDER_TIMEOUT", "UPSTREAM_TIMEOUT" -> AuthErrorCode.SERVER
             else -> when (httpCode) {
                 401 -> AuthErrorCode.SESSION_EXPIRED
                 403 -> AuthErrorCode.ACCOUNT_SUSPENDED
+                410 -> AuthErrorCode.RESET_TOKEN_EXPIRED
                 429 -> AuthErrorCode.RATE_LIMITED
                 in 500..599 -> AuthErrorCode.SERVER
                 else -> AuthErrorCode.UNKNOWN

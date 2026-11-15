@@ -145,6 +145,8 @@ fun AuthErrorCode.messageRes(): Int = when (this) {
     AuthErrorCode.ACCOUNT_SUSPENDED -> R.string.error_auth_account_suspended
     AuthErrorCode.RATE_LIMITED -> R.string.error_auth_rate_limited
     AuthErrorCode.SERVER -> R.string.error_auth_server
+    AuthErrorCode.INVALID_RESET_TOKEN -> R.string.error_auth_invalid_reset_code
+    AuthErrorCode.RESET_TOKEN_EXPIRED -> R.string.error_auth_reset_code_expired
     AuthErrorCode.INVALID_RESPONSE -> R.string.error_auth_unknown
     AuthErrorCode.UNKNOWN -> R.string.error_auth_unknown
 }

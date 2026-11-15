@@ -7,6 +7,8 @@ import com.zhangxh.subtitletranslator.data.remote.AuthApi
 import com.zhangxh.subtitletranslator.data.remote.LoginRequestDto
 import com.zhangxh.subtitletranslator.data.remote.RefreshRequestDto
 import com.zhangxh.subtitletranslator.data.remote.RegisterRequestDto
+import com.zhangxh.subtitletranslator.data.remote.RequestPasswordResetRequestDto
+import com.zhangxh.subtitletranslator.data.remote.ResetPasswordRequestDto
 import com.zhangxh.subtitletranslator.data.remote.toDomain
 import com.zhangxh.subtitletranslator.domain.auth.AuthError
 import com.zhangxh.subtitletranslator.domain.auth.AuthErrorCode
@@ -114,6 +116,35 @@ class AuthRepositoryImpl(
             Result.failure(mapException(e))
         }
     }
+
+    override suspend fun requestPasswordReset(email: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            try {
+                // 服务端始终返回 202，邮箱不存在或触发限流也不会有错误
+                api.requestPasswordReset(RequestPasswordResetRequestDto(email = email.trim()))
+                Result.success(Unit)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Result.failure(mapException(e))
+            }
+        }
+
+    override suspend fun resetPassword(token: String, newPassword: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            try {
+                api.resetPassword(
+                    ResetPasswordRequestDto(token = token.trim(), newPassword = newPassword)
+                )
+                // 服务端已撤销全部 Refresh Token，本地旧会话不能继续保留
+                sessionManager.clear(expired = false)
+                Result.success(Unit)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Result.failure(mapException(e))
+            }
+        }
 
     override suspend fun logout() = withContext(Dispatchers.IO) {
         val refreshToken = sessionManager.currentTokens()?.refreshToken

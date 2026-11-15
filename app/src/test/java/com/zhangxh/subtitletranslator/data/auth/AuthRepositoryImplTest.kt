@@ -2,7 +2,9 @@ package com.zhangxh.subtitletranslator.data.auth
 
 import com.zhangxh.subtitletranslator.data.remote.ApiEnvelope
 import com.zhangxh.subtitletranslator.data.remote.MeResponseDto
+import com.zhangxh.subtitletranslator.data.remote.PasswordResetRequestedResponseDto
 import com.zhangxh.subtitletranslator.data.remote.RegisterRequestDto
+import com.zhangxh.subtitletranslator.data.remote.ResetPasswordRequestDto
 import com.zhangxh.subtitletranslator.domain.auth.AuthErrorCode
 import com.zhangxh.subtitletranslator.domain.auth.AuthException
 import com.zhangxh.subtitletranslator.domain.auth.AuthState
@@ -93,6 +95,48 @@ class AuthRepositoryImplTest {
         assertEquals("terms-1", captured?.acceptTermsVersion)
         assertEquals("privacy-1", captured?.acceptPrivacyVersion)
         assertEquals("test-device", captured?.deviceLabel)
+    }
+
+    @Test
+    fun `request password reset trims the email`() = runBlocking {
+        var capturedEmail: String? = null
+        api.onRequestPasswordReset = {
+            capturedEmail = it.email
+            ApiEnvelope(PasswordResetRequestedResponseDto())
+        }
+
+        val result = repository.requestPasswordReset("  maria@example.com  ")
+
+        assertTrue(result.isSuccess)
+        assertEquals("maria@example.com", capturedEmail)
+    }
+
+    @Test
+    fun `reset password clears the local session and trims the token`() = runBlocking {
+        manager.setSession(testUserDomain(), testTokensDomain())
+        var captured: ResetPasswordRequestDto? = null
+        api.onResetPassword = { captured = it }
+
+        val result = repository.resetPassword("  token-1  ", "newpassword123")
+
+        assertTrue(result.isSuccess)
+        assertEquals("token-1", captured?.token)
+        assertEquals("newpassword123", captured?.newPassword)
+        assertTrue(manager.state.value is AuthState.Guest)
+        assertNull(store.readTokens())
+    }
+
+    @Test
+    fun `reset password maps invalid and expired tokens`() = runBlocking {
+        api.onResetPassword = { throw httpError(400, "INVALID_CODE") }
+        var error = repository.resetPassword("token", "newpassword123")
+            .exceptionOrNull() as AuthException
+        assertEquals(AuthErrorCode.INVALID_RESET_TOKEN, error.error.code)
+
+        api.onResetPassword = { throw httpError(410, "CODE_EXPIRED") }
+        error = repository.resetPassword("token", "newpassword123")
+            .exceptionOrNull() as AuthException
+        assertEquals(AuthErrorCode.RESET_TOKEN_EXPIRED, error.error.code)
     }
 
     @Test

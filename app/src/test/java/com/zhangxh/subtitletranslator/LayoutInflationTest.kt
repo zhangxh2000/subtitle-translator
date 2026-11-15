@@ -32,6 +32,7 @@ class LayoutInflationTest {
             R.layout.fragment_profile,
             R.layout.activity_login,
             R.layout.activity_register,
+            R.layout.activity_password_reset,
             R.layout.bottom_sheet_login_required,
             R.layout.bottom_sheet_help,
             R.layout.activity_settings,

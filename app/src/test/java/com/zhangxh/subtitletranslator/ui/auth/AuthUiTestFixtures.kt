@@ -18,9 +18,14 @@ class FakeAuthRepository : AuthRepository {
     var lastTermsVersion: String? = null
     var lastPrivacyVersion: String? = null
     var logoutCalls = 0
+    var requestPasswordResetCalls = 0
+    var resetPasswordCalls = 0
+    var lastResetToken: String? = null
 
     var loginResult: Result<AuthUser> = Result.success(testUserDomain())
     var registerResult: Result<AuthUser> = Result.success(testUserDomain())
+    var requestPasswordResetResult: Result<Unit> = Result.success(Unit)
+    var resetPasswordResult: Result<Unit> = Result.success(Unit)
     var loginGate: CompletableDeferred<Result<AuthUser>>? = null
 
     override suspend fun restoreSession() = Unit
@@ -46,6 +51,19 @@ class FakeAuthRepository : AuthRepository {
         lastTermsVersion = termsVersion
         lastPrivacyVersion = privacyVersion
         return registerResult
+    }
+
+    override suspend fun requestPasswordReset(email: String): Result<Unit> {
+        requestPasswordResetCalls++
+        lastEmail = email
+        return requestPasswordResetResult
+    }
+
+    override suspend fun resetPassword(token: String, newPassword: String): Result<Unit> {
+        resetPasswordCalls++
+        lastResetToken = token
+        lastPassword = newPassword
+        return resetPasswordResult
     }
 
     override suspend fun logout() {
