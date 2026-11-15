@@ -1,12 +1,15 @@
 package com.zhangxh.subtitletranslator.ui.learning
 
+import android.graphics.Rect
 import android.os.Bundle
+import android.view.TouchDelegate
 import android.view.View
 import android.widget.ImageButton
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.core.view.doOnLayout
 import androidx.core.view.isVisible
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
@@ -74,7 +77,7 @@ class WordReviewActivity : BaseActivity() {
         btnReveal.setOnClickListener { viewModel.reveal() }
         btnKnown.setOnClickListener { viewModel.markKnown() }
         btnUnknown.setOnClickListener { viewModel.markUnknown() }
-        findViewById<ImageButton>(R.id.btnSpeak).setOnClickListener { viewModel.speak() }
+        setUpSpeakButton()
         findViewById<MaterialButton>(R.id.btnReviewAgain).setOnClickListener {
             viewModel.restart()
         }
@@ -86,6 +89,23 @@ class WordReviewActivity : BaseActivity() {
             event.getContentIfNotHandled()?.let { message ->
                 Toast.makeText(this, message.resolve(this), Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    /**
+     * 发声按钮本体保持 44dp，图标与涟漪动画不变；
+     * 外层 64dp 容器通过 TouchDelegate 把点击转给按钮，扩大可点击范围，
+     * 避免点图标附近时误触卡片翻面。
+     */
+    private fun setUpSpeakButton() {
+        val speak = findViewById<ImageButton>(R.id.btnSpeak)
+        speak.setOnClickListener { viewModel.speak() }
+        val touchArea = findViewById<View>(R.id.speakTouchArea)
+        touchArea.doOnLayout {
+            touchArea.touchDelegate = TouchDelegate(
+                Rect(0, 0, touchArea.width, touchArea.height),
+                speak
+            )
         }
     }
 

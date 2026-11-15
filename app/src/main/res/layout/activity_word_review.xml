@@ -122,19 +122,26 @@
                         </LinearLayout>
 
                         <!--
-                          64dp 点击区 + 20dp padding = 24dp 图标。
-                          卡片本身可点击翻面，点击区太小会把发声图标附近的点击
-                          漏给卡片；扩大按钮但保持图标视觉尺寸不变。
+                          64dp 容器只用来承接点击，实际按钮仍是 44dp：
+                          代码里用 TouchDelegate 把容器的触摸转发给按钮，
+                          这样点击范围变大，而图标尺寸和涟漪动画保持不变。
                         -->
-                        <ImageButton
-                            android:id="@+id/btnSpeak"
+                        <FrameLayout
+                            android:id="@+id/speakTouchArea"
                             android:layout_width="64dp"
-                            android:layout_height="64dp"
-                            android:background="?attr/selectableItemBackgroundBorderless"
-                            android:contentDescription="@string/action_pronounce"
-                            android:padding="20dp"
-                            android:scaleType="fitCenter"
-                            android:src="@drawable/ic_volume_up" />
+                            android:layout_height="64dp">
+
+                            <ImageButton
+                                android:id="@+id/btnSpeak"
+                                android:layout_width="44dp"
+                                android:layout_height="44dp"
+                                android:layout_gravity="center"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:contentDescription="@string/action_pronounce"
+                                android:padding="10dp"
+                                android:scaleType="fitCenter"
+                                android:src="@drawable/ic_volume_up" />
+                        </FrameLayout>
                     </LinearLayout>
 
                     <View
