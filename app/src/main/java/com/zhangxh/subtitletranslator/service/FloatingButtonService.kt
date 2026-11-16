@@ -18,6 +18,7 @@ import android.media.projection.MediaProjectionManager
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
+import android.provider.Settings
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.Gravity
@@ -305,6 +306,15 @@ class FloatingButtonService : Service() {
             // 直接引导用户重新授权。
             Log.w(TAG, "缺少有效的录屏授权（resultCode=$newResultCode），引导重新授权")
             restartAndRequestPermission()
+            return START_NOT_STICKY
+        }
+
+        // 正常情况 Android 11+ 会在录屏会话期间临时授予悬浮窗权限；
+        // 若此时仍没有权限（用户明确拒绝或系统未实现自动授权），
+        // 继续 addView 会抛 BadTokenException，回主界面引导用户显式开启。
+        if (!Settings.canDrawOverlays(this)) {
+            Log.w(TAG, "录屏已开始，但系统未授予悬浮窗权限，回退到设置页")
+            requestOverlayPermission()
             return START_NOT_STICKY
         }
 
@@ -1657,6 +1667,23 @@ class FloatingButtonService : Service() {
         val clip = ClipData.newPlainText(getString(R.string.clipboard_label_translation), text)
         clipboard.setPrimaryClip(clip)
         Toast.makeText(this, R.string.toast_copied, Toast.LENGTH_SHORT).show()
+    }
+
+    /**
+     * 系统未在录屏期间自动授予悬浮窗权限时，回主界面引导用户打开设置页
+     */
+    private fun requestOverlayPermission() {
+        try {
+            val intent = packageManager.getLaunchIntentForPackage(packageName)
+                ?: Intent(this, MainActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            intent.putExtra(MainActivity.EXTRA_REQUEST_OVERLAY_PERMISSION, true)
+            startActivity(intent)
+        } catch (e: Exception) {
+            Log.e(TAG, "启动主界面失败", e)
+        }
+        // 当前录屏会话没有可用的悬浮窗权限，结束服务，避免后台空跑
+        stopSelf()
     }
 
     /**

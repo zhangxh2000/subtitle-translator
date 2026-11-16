@@ -2,6 +2,7 @@ package com.zhangxh.subtitletranslator.ui
 
 import android.Manifest
 import android.app.Activity
+import android.app.AppOpsManager
 import android.app.Application
 import android.content.Intent
 import androidx.lifecycle.ViewModelProvider
@@ -15,6 +16,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowSettings
 
@@ -34,10 +36,13 @@ class MainViewModelTest {
     fun setUp() {
         application = RuntimeEnvironment.getApplication()
         ShadowSettings.setCanDrawOverlays(false)
+        setOverlayAppOp(AppOpsManager.MODE_DEFAULT)
         viewModelStore = ViewModelStore()
+        // 不能用 AndroidViewModelFactory.getInstance()：它缓存首个 Application，
+        // Robolectric 每个用例都会新建 Application，后续用例会拿到过期实例。
         viewModel = ViewModelProvider(
             viewModelStore,
-            ViewModelProvider.AndroidViewModelFactory.getInstance(application)
+            ViewModelProvider.AndroidViewModelFactory(application)
         ).get(MainViewModel::class.java)
         events.clear()
         viewModel.events.observeForever { event ->
@@ -49,6 +54,16 @@ class MainViewModelTest {
     fun tearDown() {
         viewModelStore.clear()
         ShadowSettings.setCanDrawOverlays(false)
+    }
+
+    private fun setOverlayAppOp(mode: Int) {
+        val appOps = application.getSystemService(AppOpsManager::class.java)
+        shadowOf(appOps).setMode(
+            AppOpsManager.OPSTR_SYSTEM_ALERT_WINDOW,
+            application.applicationInfo.uid,
+            application.packageName,
+            mode
+        )
     }
 
     private fun lastEvent(): MainEvent = events.last()
@@ -66,10 +81,20 @@ class MainViewModelTest {
     }
 
     @Test
-    fun `granted permissions with overlay missing opens overlay settings`() {
+    fun `granted permissions with overlay explicitly denied opens overlay settings`() {
+        setOverlayAppOp(AppOpsManager.MODE_ERRORED)
+
         viewModel.onPermissionsResult(true)
 
         assertTrue(lastEvent() is MainEvent.OpenOverlaySettings)
+    }
+
+    @Test
+    fun `granted permissions with overlay undecided relies on capture auto grant`() {
+        // app-op 仍是默认态：Android 11+ 会在录屏会话期间自动授权
+        viewModel.onPermissionsResult(true)
+
+        assertTrue(lastEvent() is MainEvent.RequestMediaProjection)
     }
 
     @Test
@@ -83,12 +108,31 @@ class MainViewModelTest {
 
     @Test
     fun `returning from overlay settings continues when permission was granted`() {
-        viewModel.onPermissionsResult(true) // 悬浮窗未授权 -> 打开设置页
+        setOverlayAppOp(AppOpsManager.MODE_ERRORED)
+        viewModel.onPermissionsResult(true) // 明确拒绝 -> 打开设置页
         ShadowSettings.setCanDrawOverlays(true)
 
         viewModel.onActivityResumed()
 
         assertTrue(lastEvent() is MainEvent.RequestMediaProjection)
+    }
+
+    @Test
+    fun `overlay auto grant failure forces overlay settings on later starts`() {
+        viewModel.onOverlayPermissionRequired()
+        assertTrue(lastEvent() is MainEvent.OpenOverlaySettings)
+
+        events.clear()
+        viewModel.onPermissionsResult(true)
+        assertTrue(lastEvent() is MainEvent.OpenOverlaySettings)
+    }
+
+    @Test
+    @Config(sdk = [29])
+    fun `android 10 still opens overlay settings when permission is undecided`() {
+        viewModel.onPermissionsResult(true)
+
+        assertTrue(lastEvent() is MainEvent.OpenOverlaySettings)
     }
 
     @Test

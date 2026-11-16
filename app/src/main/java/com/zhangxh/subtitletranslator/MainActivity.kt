@@ -31,6 +31,7 @@ class MainActivity : BaseActivity() {
 
     companion object {
         const val EXTRA_RESTART_SERVICE = "extra_restart_service"
+        const val EXTRA_REQUEST_OVERLAY_PERMISSION = "extra_request_overlay_permission"
         const val EXTRA_OPEN_TAB = "extra_open_tab"
         const val TAB_LEARNING = "learning"
         const val TAB_VOCABULARY = "vocabulary"
@@ -82,6 +83,11 @@ class MainActivity : BaseActivity() {
             navigateTo(R.id.homeFragment)
             Toast.makeText(this, R.string.main_restart_hint, Toast.LENGTH_LONG).show()
             viewModel.onRestartRequested()
+            return
+        }
+        if (intent.getBooleanExtra(EXTRA_REQUEST_OVERLAY_PERMISSION, false)) {
+            navigateTo(R.id.homeFragment)
+            viewModel.onOverlayPermissionRequired()
             return
         }
         when (intent.getStringExtra(EXTRA_OPEN_TAB)) {

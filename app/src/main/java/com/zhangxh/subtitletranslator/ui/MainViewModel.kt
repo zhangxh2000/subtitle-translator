@@ -2,6 +2,7 @@ package com.zhangxh.subtitletranslator.ui
 
 import android.Manifest
 import android.app.Activity
+import android.app.AppOpsManager
 import android.app.Application
 import android.content.Intent
 import android.os.Build
@@ -48,6 +49,9 @@ class MainViewModel @JvmOverloads constructor(
     /** 已把用户送去开悬浮窗权限，回到界面时要继续授权流程 */
     private var awaitingOverlayPermission = false
 
+    /** 本机没有按预期在录屏期间自动授予悬浮窗权限，后续一律走设置页 */
+    private var overlayAutoGrantUnavailable = false
+
     private val runningStateListener: (Boolean) -> Unit = { running ->
         _serviceRunning.value = running
     }
@@ -79,6 +83,19 @@ class MainViewModel @JvmOverloads constructor(
     /** 录屏权限失效后由服务打开主界面时调用 */
     fun onRestartRequested() {
         beginAuthorization()
+    }
+
+    /**
+     * 服务在录屏开始后仍未拿到悬浮窗权限时调用。
+     *
+     * 正常情况下 Android 11+ 会在录屏会话期间临时授予 SYSTEM_ALERT_WINDOW；
+     * 走到这里说明本机没有按预期自动授权，之后必须让用户显式开启，
+     * 否则会反复出现“录屏授权完成但没有悬浮窗”的情况。
+     */
+    fun onOverlayPermissionRequired() {
+        overlayAutoGrantUnavailable = true
+        awaitingOverlayPermission = false
+        emit(MainEvent.OpenOverlaySettings)
     }
 
     /** 从悬浮窗权限设置页返回时调用 */
@@ -119,12 +136,36 @@ class MainViewModel @JvmOverloads constructor(
     }
 
     private fun checkOverlayPermission() {
-        if (!Settings.canDrawOverlays(getApplication())) {
+        if (hasOverlayAccess()) {
+            emit(MainEvent.RequestMediaProjection)
+        } else {
             awaitingOverlayPermission = true
             emit(MainEvent.OpenOverlaySettings)
-        } else {
-            emit(MainEvent.RequestMediaProjection)
         }
+    }
+
+    /**
+     * 是否可以直接开始录屏并显示悬浮窗。
+     *
+     * Android 11+ 在 MediaProjection 录屏会话期间会自动把本应用的
+     * SYSTEM_ALERT_WINDOW app-op 临时设为允许（AOSP MediaProjectionManagerService），
+     * 前提是 app-op 仍为 MODE_DEFAULT，即用户从未明确允许或拒绝过。
+     * 明确拒绝过时系统不会覆盖用户的选择，必须走设置页。
+     */
+    private fun hasOverlayAccess(): Boolean {
+        val application = getApplication<Application>()
+        if (Settings.canDrawOverlays(application)) return true
+        if (overlayAutoGrantUnavailable) return false
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return false
+
+        val appOps = application.getSystemService(AppOpsManager::class.java) ?: return false
+        return runCatching {
+            appOps.unsafeCheckOpNoThrow(
+                AppOpsManager.OPSTR_SYSTEM_ALERT_WINDOW,
+                application.applicationInfo.uid,
+                application.packageName
+            ) == AppOpsManager.MODE_DEFAULT
+        }.getOrDefault(false)
     }
 
     private fun startService(resultCode: Int, data: Intent) {
