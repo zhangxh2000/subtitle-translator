@@ -7,8 +7,7 @@ import android.util.Log
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import com.zhangxh.subtitletranslator.data.media.ScanAudioMuter
-import com.zhangxh.subtitletranslator.domain.media.IMediaPlaybackController
-import com.zhangxh.subtitletranslator.domain.media.IPlaybackScanController
+import com.zhangxh.subtitletranslator.domain.media.ISeekController
 import com.zhangxh.subtitletranslator.domain.media.PlaybackSnapshot
 import com.zhangxh.subtitletranslator.service.A11yDiagnosticService
 
@@ -26,7 +25,7 @@ import com.zhangxh.subtitletranslator.service.A11yDiagnosticService
  */
 class A11ySeekController(
     private val context: Context
-) : IMediaPlaybackController, IPlaybackScanController {
+) : ISeekController {
 
     companion object {
         private const val TAG = "A11ySeekController"

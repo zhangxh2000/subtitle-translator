@@ -8,8 +8,7 @@ import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import android.os.SystemClock
 import android.util.Log
-import com.zhangxh.subtitletranslator.domain.media.IMediaPlaybackController
-import com.zhangxh.subtitletranslator.domain.media.IPlaybackScanController
+import com.zhangxh.subtitletranslator.domain.media.IMediaSessionSeekController
 import com.zhangxh.subtitletranslator.domain.media.PlaybackSnapshot
 import com.zhangxh.subtitletranslator.service.MediaSessionListenerService
 
@@ -27,7 +26,7 @@ import com.zhangxh.subtitletranslator.service.MediaSessionListenerService
  */
 class MediaSessionPlaybackController(
     private val context: Context
-) : IMediaPlaybackController, IPlaybackScanController {
+) : IMediaSessionSeekController {
 
     companion object {
         private const val TAG = "MediaSessionController"
@@ -65,7 +64,7 @@ class MediaSessionPlaybackController(
     /**
      * 固定当前活动会话，并打印所有候选会话，便于排查「播放器不支持」问题
      */
-    fun pinActiveSession() {
+    override fun pinActiveSession() {
         if (!NotificationAccess.isGranted(context)) {
             pinnedController = null
             return

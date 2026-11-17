@@ -16,7 +16,6 @@ import com.zhangxh.subtitletranslator.domain.screenshot.IScreenCaptureManager
 import com.zhangxh.subtitletranslator.domain.subtitle.SubtitleRecognition
 import com.zhangxh.subtitletranslator.domain.translator.ITranslator
 import com.zhangxh.subtitletranslator.domain.wordextractor.IWordExtractor
-import com.zhangxh.subtitletranslator.domain.wordextractor.WordEntry
 import com.zhangxh.subtitletranslator.util.CaptureOrientation
 import com.zhangxh.subtitletranslator.util.CropInfo
 import com.zhangxh.subtitletranslator.util.DebugCapture
@@ -65,7 +64,7 @@ class TranslationCoordinator(
      * 保证 OCR 用的截图里是干净的播放画面。
      */
     private val onScreenshotCaptured: () -> Unit = {}
-) {
+) : ITranslationCoordinator {
 
     companion object {
         private const val TAG = "TranslationCoordinator"
@@ -116,7 +115,7 @@ class TranslationCoordinator(
      * 只返回文本完全匹配的图片，防止导航途中缓存被别的帧覆盖；
      * 调用方负责回收返回的 Bitmap。
      */
-    fun takeSubtitleImage(text: String): Bitmap? = synchronized(subtitleImageLock) {
+    override fun takeSubtitleImage(text: String): Bitmap? = synchronized(subtitleImageLock) {
         if (text.isBlank() || cachedSubtitleText != text) return null
         val image = cachedSubtitleImage
         cachedSubtitleImage = null
@@ -133,25 +132,9 @@ class TranslationCoordinator(
     }
 
     /**
-     * 用 AI 返回的原文重新提取重点词汇
-     *
-     * AI 识别的原文通常比本地 OCR 准确，生词卡也要跟着换成新句子里的词。
-     */
-    suspend fun extractDifficultWords(text: String): List<WordEntry> =
-        withContext(Dispatchers.Default) {
-            if (text.isBlank()) return@withContext emptyList()
-            try {
-                wordExtractor.extractDifficultWords(text, maxWords = 5)
-            } catch (e: Exception) {
-                Log.e(TAG, "AI 字幕生词提取失败", e)
-                emptyList()
-            }
-        }
-
-    /**
      * 执行完整的翻译流程
      */
-    suspend fun translateSubtitle(): TranslationResult = withContext(Dispatchers.IO) {
+    override suspend fun translateSubtitle(): TranslationResult = withContext(Dispatchers.IO) {
         var screenshot: Bitmap? = null
         var subtitleBitmap: Bitmap? = null
         var processedBitmap: Bitmap? = null
@@ -346,7 +329,7 @@ class TranslationCoordinator(
      * 字幕导航找到目标后直接复用导航时的 OCR 结果，不再重新截图；
      * 这样避免暂停画面上的播放控件混进译文。
      */
-    suspend fun translateRecognizedText(cleanedText: String): TranslationResult =
+    override suspend fun translateRecognizedText(cleanedText: String): TranslationResult =
         withContext(Dispatchers.IO) {
             if (cleanedText.isBlank()) {
                 return@withContext TranslationResult(
@@ -382,7 +365,7 @@ class TranslationCoordinator(
      * 字幕导航每一小步都要比较文本，不能每步都调用翻译引擎。
      * 不保存调试截图，避免一次导航把最近 5 条记录全部刷掉。
      */
-    suspend fun recognizeSubtitleText(): SubtitleRecognition = withContext(Dispatchers.IO) {
+    override suspend fun recognizeSubtitleText(): SubtitleRecognition = withContext(Dispatchers.IO) {
         var screenshot: Bitmap? = null
         var subtitleBitmap: Bitmap? = null
         var processedBitmap: Bitmap? = null
@@ -438,7 +421,7 @@ class TranslationCoordinator(
     /**
      * 预加载翻译环境
      */
-    suspend fun prepare() {
+    override suspend fun prepare() {
         Log.d(TAG, "预加载翻译环境")
         translator.prepare(sourceLang, targetLang)
     }
@@ -446,7 +429,7 @@ class TranslationCoordinator(
     /**
      * 释放所有资源
      */
-    fun release() {
+    override fun release() {
         Log.d(TAG, "释放资源")
         releaseSubtitleImage()
         screenCapture.release()
