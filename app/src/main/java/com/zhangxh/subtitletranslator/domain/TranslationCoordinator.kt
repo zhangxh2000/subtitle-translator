@@ -16,6 +16,7 @@ import com.zhangxh.subtitletranslator.domain.screenshot.IScreenCaptureManager
 import com.zhangxh.subtitletranslator.domain.subtitle.SubtitleRecognition
 import com.zhangxh.subtitletranslator.domain.translator.ITranslator
 import com.zhangxh.subtitletranslator.domain.wordextractor.IWordExtractor
+import com.zhangxh.subtitletranslator.domain.wordextractor.WordEntry
 import com.zhangxh.subtitletranslator.util.CaptureOrientation
 import com.zhangxh.subtitletranslator.util.CropInfo
 import com.zhangxh.subtitletranslator.util.DebugCapture
@@ -81,6 +82,71 @@ class TranslationCoordinator(
     }
 
     private val debugCaptureStore = DebugCaptureStore(context)
+
+    // ---------------------------------------------------------------------
+    // 字幕区域原图缓存
+    //
+    // 会员 AI 图片翻译需要上传当前这一帧的字幕区域裁剪图。截图发生在面板出现之前，
+    // 面板本身会遮住字幕，所以不能在点击 AI 时重新截屏，只能把识别时的原图留给它。
+    // 缓存同时记下对应的字幕文本：字幕导航会连续识别多帧，只有文本与当前面板
+    // 一致的那张图才能用于 AI 翻译，否则会把上一句/下一句的画面发出去。
+    // ---------------------------------------------------------------------
+
+    private val subtitleImageLock = Any()
+    private var cachedSubtitleImage: Bitmap? = null
+    private var cachedSubtitleText: String = ""
+
+    /** 缓存一张与 [text] 对应的字幕区域原图，接管 Bitmap 所有权并回收旧图 */
+    private fun cacheSubtitleImage(image: Bitmap, text: String) {
+        if (text.isBlank()) {
+            image.recycle()
+            return
+        }
+        synchronized(subtitleImageLock) {
+            cachedSubtitleImage?.recycle()
+            cachedSubtitleImage = image
+            cachedSubtitleText = text
+        }
+        Log.d(TAG, "缓存字幕区域原图: ${image.width}x${image.height}, textChars=${text.length}")
+    }
+
+    /**
+     * 取走与 [text] 对应的字幕区域原图
+     *
+     * 只返回文本完全匹配的图片，防止导航途中缓存被别的帧覆盖；
+     * 调用方负责回收返回的 Bitmap。
+     */
+    fun takeSubtitleImage(text: String): Bitmap? = synchronized(subtitleImageLock) {
+        if (text.isBlank() || cachedSubtitleText != text) return null
+        val image = cachedSubtitleImage
+        cachedSubtitleImage = null
+        cachedSubtitleText = ""
+        image
+    }
+
+    private fun releaseSubtitleImage() {
+        synchronized(subtitleImageLock) {
+            cachedSubtitleImage?.recycle()
+            cachedSubtitleImage = null
+            cachedSubtitleText = ""
+        }
+    }
+
+    /**
+     * 用 AI 返回的原文重新提取重点词汇
+     *
+     * AI 识别的原文通常比本地 OCR 准确，生词卡也要跟着换成新句子里的词。
+     */
+    suspend fun extractDifficultWords(text: String): List<WordEntry> =
+        withContext(Dispatchers.Default) {
+            if (text.isBlank()) return@withContext emptyList()
+            try {
+                wordExtractor.extractDifficultWords(text, maxWords = 5)
+            } catch (e: Exception) {
+                Log.e(TAG, "AI 字幕生词提取失败", e)
+                emptyList()
+            }
+        }
 
     /**
      * 执行完整的翻译流程
@@ -184,6 +250,13 @@ class TranslationCoordinator(
                         preprocessMode = usedPreprocessMode.name
                     )
                 )
+            }
+
+            // 成功的翻译把字幕区域原图留给 AI 图片翻译，所有权转交缓存
+            val aiImage = subtitleBitmap
+            if (aiImage != null && cleanedText.isNotBlank() && translatedText.isNotBlank()) {
+                cacheSubtitleImage(aiImage, cleanedText)
+                subtitleBitmap = null
             }
 
             // 确保所有临时 Bitmap 都被回收
@@ -313,6 +386,7 @@ class TranslationCoordinator(
         var screenshot: Bitmap? = null
         var subtitleBitmap: Bitmap? = null
         var processedBitmap: Bitmap? = null
+        var recognizedText = ""
         try {
             beforeCapture()
             screenshot = screenCapture.captureScreen()
@@ -343,11 +417,18 @@ class TranslationCoordinator(
                 )
             }
 
+            recognizedText = cleanedText
             SubtitleRecognition(text = cleanedText, isSuccess = true)
         } catch (e: Exception) {
             Log.e(TAG, "字幕识别失败", e)
             SubtitleRecognition(error = e.toTranslationError())
         } finally {
+            // 导航命中的那一帧同样留给 AI 图片翻译；中间帧会被下一帧替换
+            val aiImage = subtitleBitmap
+            if (aiImage != null && recognizedText.isNotBlank()) {
+                cacheSubtitleImage(aiImage, recognizedText)
+                subtitleBitmap = null
+            }
             processedBitmap?.recycle()
             subtitleBitmap?.recycle()
             screenshot?.recycle()
@@ -367,6 +448,7 @@ class TranslationCoordinator(
      */
     fun release() {
         Log.d(TAG, "释放资源")
+        releaseSubtitleImage()
         screenCapture.release()
         ocrEngine.release()
         translator.release()

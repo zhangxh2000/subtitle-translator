@@ -11,6 +11,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import android.graphics.Bitmap
 import android.graphics.PixelFormat
 import android.media.AudioManager
 import android.media.projection.MediaProjection
@@ -197,6 +198,15 @@ class FloatingButtonService : Service() {
 
     /** 当前面板可用的上文字幕对（不含当前句） */
     private var currentAiContext: List<TranslationContext> = emptyList()
+
+    /**
+     * 当前面板对应的字幕区域原图（供 AI 图片翻译上传）
+     *
+     * 面板出现时从 [TranslationCoordinator] 取走并持有，导航/重开面板都不会被覆盖；
+     * 只在主线程读写，切换面板或关闭时回收。
+     */
+    private var currentSubtitleImage: Bitmap? = null
+    private var currentSubtitleImageText: String? = null
 
     /** 最近已展示的字幕对，按时间从旧到新，最多 [MAX_AI_CONTEXT_PAIRS] 组 */
     private val recentTranslations = ArrayDeque<TranslationContext>()
@@ -1001,11 +1011,15 @@ class FloatingButtonService : Service() {
         recentTranslationsUpdatedAt = System.currentTimeMillis()
     }
 
-    /** AI 精译替换译文后，同步上下文里对应的那一句 */
-    private fun updateRememberedTranslation(source: String, translation: String) {
+    /** AI 图片翻译替换原文和译文后，同步上下文里对应的那一句 */
+    private fun updateRememberedTranslation(
+        source: String,
+        correctedSource: String,
+        translation: String
+    ) {
         val index = recentTranslations.indexOfLast { it.source == source }
         if (index >= 0) {
-            recentTranslations[index] = TranslationContext(source, translation)
+            recentTranslations[index] = TranslationContext(correctedSource, translation)
         }
     }
 
@@ -1207,6 +1221,7 @@ class FloatingButtonService : Service() {
         currentResult = null
         currentAiTranslated = false
         currentAiContext = emptyList()
+        clearCurrentSubtitleImage()
         removeOverlayView(animated = false)
         isShowingTranslation = false
         Toast.makeText(
@@ -1228,6 +1243,7 @@ class FloatingButtonService : Service() {
         currentResult = null
         currentAiTranslated = false
         currentAiContext = emptyList()
+        clearCurrentSubtitleImage()
         removeOverlayView(animated = false)
         isShowingTranslation = false
         Toast.makeText(
@@ -1292,6 +1308,7 @@ class FloatingButtonService : Service() {
         currentResult = null
         currentAiTranslated = false
         currentAiContext = emptyList()
+        clearCurrentSubtitleImage()
 
         // 只恢复由本服务暂停的媒体
         resumeMedia()
@@ -1343,6 +1360,45 @@ class FloatingButtonService : Service() {
     }
 
     /**
+     * 给当前面板绑定字幕区域原图
+     *
+     * 优先取识别阶段缓存、文本与面板一致的那张图；导航失败恢复旧面板时
+     * 缓存里已经是别的帧，必须保留之前持有的图，不能误用新截图。
+     */
+    private fun bindSubtitleImage(result: TranslationResult) {
+        val cached = translationCoordinator?.takeSubtitleImage(result.originalText)
+        if (cached != null) {
+            currentSubtitleImage?.recycle()
+            currentSubtitleImage = cached
+            currentSubtitleImageText = result.originalText
+            Log.d(TAG, "AI 图片翻译绑定字幕原图: ${cached.width}x${cached.height}")
+            return
+        }
+        if (currentSubtitleImageText != result.originalText) {
+            clearCurrentSubtitleImage()
+            Log.w(TAG, "没有与当前字幕匹配的截图，AI 图片翻译暂不可用")
+        }
+    }
+
+    private fun clearCurrentSubtitleImage() {
+        currentSubtitleImage?.recycle()
+        currentSubtitleImage = null
+        currentSubtitleImageText = null
+    }
+
+    /** 复制一份给 AI 请求：请求期间关闭/切换面板不会把正在编码的图回收掉 */
+    private fun copyCurrentSubtitleImage(): Bitmap? {
+        val source = currentSubtitleImage ?: return null
+        if (source.isRecycled) return null
+        return try {
+            source.copy(Bitmap.Config.ARGB_8888, false)
+        } catch (e: Exception) {
+            Log.e(TAG, "复制字幕截图失败", e)
+            null
+        }
+    }
+
+    /**
      * 显示翻译覆盖层
      */
     private fun showTranslationOverlay(
@@ -1383,6 +1439,7 @@ class FloatingButtonService : Service() {
                 requestAiTranslation()
             }
         }
+        bindSubtitleImage(result)
         currentResult = result
         currentAiContext = aiContext
         currentAiTranslated = aiTranslated
@@ -1447,15 +1504,17 @@ class FloatingButtonService : Service() {
             currentResult = null
             currentAiContext = emptyList()
             currentAiTranslated = false
+            clearCurrentSubtitleImage()
             isShowingTranslation = false
             resumeMedia()
         }
     }
 
     /**
-     * 请求云端 AI 精译并更新当前面板
+     * 请求云端 AI 图片翻译并更新当前面板
      *
-     * 只替换译文文本，原文和生词列表保持不变；失败时保留基础译文并提示。
+     * 上传当前字幕区域截图，服务端同时完成识别与翻译；成功后原文、译文和生词卡
+     * 一起替换为 AI 结果。失败时保留基础译文并提示。
      */
     private fun requestAiTranslation() {
         val result = currentResult ?: return
@@ -1464,6 +1523,18 @@ class FloatingButtonService : Service() {
         val translator = aiTranslator
         if (translator == null) {
             Toast.makeText(this, R.string.service_not_ready, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // 复制一份再上传：请求期间关闭面板会把持有的原图回收掉
+        val image = copyCurrentSubtitleImage()
+        if (image == null) {
+            Log.w(TAG, "缺少当前字幕截图，取消 AI 图片翻译")
+            Toast.makeText(
+                this,
+                R.string.overlay_ai_image_unavailable,
+                Toast.LENGTH_SHORT
+            ).show()
             return
         }
 
@@ -1476,37 +1547,79 @@ class FloatingButtonService : Service() {
             emptyList()
         }
 
+        Log.d(
+            TAG,
+            "开始 AI 图片翻译: ${image.width}x${image.height}, " +
+                "context=${context.size}, resultChars=${result.originalText.length}"
+        )
         isAiTranslating = true
         target.setAiLoading(true)
         serviceScope.launch {
             val outcome = try {
-                translator.translate(result.originalText, sourceLang, targetLang, context)
+                translator.translate(image, sourceLang, targetLang, context)
             } catch (e: Exception) {
-                Log.e(TAG, "AI 精译异常", e)
+                Log.e(TAG, "AI 图片翻译异常", e)
                 Result.failure(
                     TranslationException(
                         TranslationError(AppError.TRANSLATION_FAILED, e.message)
                     )
                 )
             } finally {
+                image.recycle()
                 isAiTranslating = false
             }
 
-            outcome.onSuccess { aiText ->
+            if (outcome.isSuccess) {
+                val ai = outcome.getOrThrow()
                 // 请求期间可能已关闭面板或切换字幕，旧结果不能写到新视图上
                 if (overlayView !== target ||
                     currentResult?.originalText != result.originalText
                 ) {
-                    return@onSuccess
+                    Log.d(TAG, "AI 结果到达时面板已切换，丢弃")
+                    target.setAiLoading(false)
+                    return@launch
                 }
-                currentResult = result.copy(translatedText = aiText)
+
+                // AI 识别的原文通常比本地 OCR 准确，生词卡也按新原文重新提取
+                val words = translationCoordinator?.extractDifficultWords(ai.sourceText)
+                    ?: result.difficultWords
+                val updated = result.copy(
+                    originalText = ai.sourceText,
+                    translatedText = ai.translatedText,
+                    difficultWords = words
+                )
+                currentResult = updated
                 currentAiTranslated = true
-                target.updateTranslatedText(aiText, aiTranslated = true)
-                updateRememberedTranslation(result.originalText, aiText)
-                if (!historyRepository.updateLatestTranslation(result.originalText, aiText)) {
-                    Log.w(TAG, "AI 精译结果未能写入历史")
+                // 图片仍对应这一帧，导航失败恢复面板时还能继续展示 AI 状态
+                currentSubtitleImageText = ai.sourceText
+                target.setTranslationResult(updated, aiTranslated = true)
+                refreshSavedStates(updated.difficultWords, target)
+                refreshSentenceSavedState(updated.originalText, target)
+                updateRememberedTranslation(
+                    result.originalText,
+                    ai.sourceText,
+                    ai.translatedText
+                )
+                if (!historyRepository.updateLatestTranslation(
+                        result.originalText,
+                        ai.translatedText,
+                        ai.sourceText
+                    )
+                ) {
+                    Log.w(TAG, "AI 翻译结果未能写入历史")
                 }
-            }.onFailure { error ->
+                Log.d(
+                    TAG,
+                    "AI 图片翻译已应用: 原文 ${ai.sourceText.length} 字, " +
+                        "生词 ${words.size} 个"
+                )
+            } else {
+                val error = outcome.exceptionOrNull()
+                Log.w(
+                    TAG,
+                    "AI 图片翻译失败: " +
+                        "${(error as? TranslationException)?.error?.code ?: error?.javaClass?.simpleName}"
+                )
                 val message = (error as? TranslationException)?.error?.toUiText()
                     ?.resolve(this@FloatingButtonService)
                     ?: getString(R.string.error_translation_failed)
@@ -1863,6 +1976,7 @@ class FloatingButtonService : Service() {
         currentResult = null
         currentAiTranslated = false
         currentAiContext = emptyList()
+        clearCurrentSubtitleImage()
         isNavigating = false
         isAiTranslating = false
         // 新会话重新建立上下文，避免把上一个视频的字幕带过去

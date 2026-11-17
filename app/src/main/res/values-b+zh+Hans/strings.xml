@@ -51,9 +51,10 @@
     <string name="overlay_navigation_accessibility_required">请在系统无障碍设置中开启「字幕翻译助手诊断」，开启后重新翻译。</string>
     <string name="overlay_navigation_progress_bar_missing">没有找到播放进度条，请确认播放控件可以显示</string>
     <string name="overlay_seeking_adjacent_subtitle">正在定位字幕…</string>
-    <string name="overlay_ai_translate">AI 翻译</string>
-    <string name="overlay_ai_translating">正在使用 AI 翻译…</string>
-    <string name="overlay_ai_applied">已使用 AI 翻译</string>
+    <string name="overlay_ai_translate">AI 翻译纠错</string>
+    <string name="overlay_ai_translating">正在使用 AI 翻译纠错…</string>
+    <string name="overlay_ai_applied">已应用 AI 翻译纠错</string>
+    <string name="overlay_ai_image_unavailable">当前字幕截图不可用，请重新翻译后再试</string>
     <string name="overlay_translated_label">译文</string>
     <string name="overlay_original_label">原文对照</string>
     <string name="overlay_key_words">重点词汇</string>
@@ -288,6 +289,9 @@
     <string name="error_translation_service_unavailable">云端翻译服务暂时不可用</string>
     <string name="error_translation_rate_limited">云端翻译请求过于频繁，请稍后再试</string>
     <string name="error_ai_membership_required">AI 翻译仅限会员使用</string>
+    <string name="error_no_subtitle_detected">截图中未识别到字幕，请换一帧或检查源语言设置</string>
+    <string name="error_invalid_image">字幕图片处理失败，请重试</string>
+    <string name="error_source_language_required">AI 翻译纠错需要指定源语言，请先在设置中关闭自动检测</string>
     <string name="error_empty_translation">译文为空</string>
     <string name="error_invalid_response">翻译服务返回内容异常</string>
     <string name="error_unknown">未知错误</string>
@@ -434,7 +438,7 @@
     <string name="about_title">关于我们</string>
     <string name="about_message">字幕翻译助手 %1$s\n\n识别屏幕上的字幕，并在悬浮窗中显示译文。</string>
     <string name="about_terms_message">完整法律文本将在正式上线前提供。使用本应用即表示你已阅读并同意服务条款。</string>
-    <string name="about_privacy_message">完整隐私政策将在正式上线前提供。截图仅在本机用于识别；选择云端引擎或使用 AI 翻译时，识别出的字幕文字及最近的字幕上下文会发送到应用的云端翻译服务。收藏的词汇保存在本地，仅在登录后自动同步到你的账号。</string>
+    <string name="about_privacy_message">完整隐私政策将在正式上线前提供。截图仅在本机用于识别；选择云端引擎时，识别出的字幕文字会发送到应用的云端翻译服务；使用 AI 翻译时，裁剪后的字幕截图及最近的字幕上下文会发送到应用的云端翻译服务。收藏的词汇保存在本地，仅在登录后自动同步到你的账号。</string>
     <string name="about_ok">好的</string>
 
     <!-- 使用说明 -->

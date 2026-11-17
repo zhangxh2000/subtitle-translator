@@ -38,10 +38,13 @@ interface ITranslationHistoryRepository {
      * 用 AI 精译结果更新最近一条同原文记录
      *
      * 不新增记录，避免同一句字幕在历史里出现两次；找不到对应记录时返回 false。
+     * AI 图片翻译会同时纠正 OCR 原文，传入 [correctedOriginalText] 时一并替换，
+     * 保证历史里展示的就是用户当时看到的字幕。
      */
     suspend fun updateLatestTranslation(
         originalText: String,
-        translatedText: String
+        translatedText: String,
+        correctedOriginalText: String? = null
     ): Boolean
 
     /** 按天倒序返回，最近的一天在最前 */

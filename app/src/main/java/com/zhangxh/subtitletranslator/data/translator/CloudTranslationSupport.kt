@@ -32,6 +32,10 @@ internal fun HttpException.toTranslationError(
 ): TranslationError {
     val errorCode = translationErrorCode()
     val appError = when {
+        // 图片翻译专属：没识别到字幕要让用户换一帧，而不是提示语言对不支持
+        errorCode == "NO_SUBTITLE_DETECTED" -> AppError.NO_SUBTITLE_DETECTED
+        errorCode == "INVALID_IMAGE" || code() == 413 || code() == 415 ->
+            AppError.INVALID_IMAGE
         membershipAware && errorCode == "MEMBERSHIP_REQUIRED" -> AppError.MEMBERSHIP_REQUIRED
         code() == 401 || code() == 403 -> AppError.TRANSLATION_LOGIN_REQUIRED
         code() == 400 || code() == 422 -> AppError.UNSUPPORTED_LANGUAGE_PAIR

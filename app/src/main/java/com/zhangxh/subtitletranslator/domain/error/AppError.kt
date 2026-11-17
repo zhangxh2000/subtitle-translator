@@ -27,6 +27,11 @@ enum class AppError {
     // 会员专属能力（AI 精译等）
     MEMBERSHIP_REQUIRED,
 
+    // AI 图片翻译：截图中没有字幕 / 图片无法处理 / 源语言为自动
+    NO_SUBTITLE_DETECTED,
+    INVALID_IMAGE,
+    SOURCE_LANGUAGE_REQUIRED,
+
     // 响应解析
     EMPTY_TRANSLATION,
     INVALID_RESPONSE,

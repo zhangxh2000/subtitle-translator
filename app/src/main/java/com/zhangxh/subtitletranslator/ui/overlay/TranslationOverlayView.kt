@@ -1,5 +1,7 @@
 package com.zhangxh.subtitletranslator.ui.overlay
 
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.res.ColorStateList
 import android.text.Spannable
@@ -9,6 +11,7 @@ import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.LinearInterpolator
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -39,6 +42,9 @@ class TranslationOverlayView @JvmOverloads constructor(
          * （这里曾取 0.6，实测内容稍多就要一直滑，已调大。）
          */
         const val MAX_HEIGHT_RATIO = 0.85f
+
+        /** AI 请求中图标的旋转周期 */
+        private const val AI_LOADING_ANIM_MS = 900L
 
         /**
          * 计算悬浮窗高度
@@ -85,6 +91,9 @@ class TranslationOverlayView @JvmOverloads constructor(
 
     /** AI 请求进行中（禁用重复点击） */
     private var aiLoading = false
+
+    /** AI 请求期间图标的旋转动画 */
+    private var aiLoadingAnimator: ObjectAnimator? = null
 
     init {
         orientation = VERTICAL
@@ -264,17 +273,7 @@ class TranslationOverlayView @JvmOverloads constructor(
     }
 
     /**
-     * 用 AI 返回的译文更新面板
-     *
-     * 只替换译文文本，不改原文和生词列表；整句收藏/复制会读取更新后的译文。
-     */
-    fun updateTranslatedText(text: String, aiTranslated: Boolean) {
-        findViewById<TextView>(R.id.tvTranslatedText)?.text = text
-        setAiTranslated(aiTranslated)
-    }
-
-    /**
-     * AI 图标：暗色表示普通译文，强调色表示当前译文来自 AI
+     * AI 图标：暗色表示普通译文，请求中转圈，强调色表示当前内容来自 AI
      */
     private fun setupAiButton() {
         findViewById<ImageButton>(R.id.btnAiTranslate)?.setOnClickListener {
@@ -288,9 +287,11 @@ class TranslationOverlayView @JvmOverloads constructor(
     private fun refreshAiButton() {
         val button = findViewById<ImageButton>(R.id.btnAiTranslate) ?: return
         button.isEnabled = !aiLoading
-        button.alpha = if (aiLoading) 0.5f else 1f
+        button.alpha = 1f
         button.imageTintList = ColorStateList.valueOf(
-            context.getColor(if (aiTranslated) R.color.accent else R.color.text_secondary)
+            context.getColor(
+                if (aiLoading || aiTranslated) R.color.accent else R.color.text_secondary
+            )
         )
         button.contentDescription = context.getString(
             when {
@@ -299,6 +300,32 @@ class TranslationOverlayView @JvmOverloads constructor(
                 else -> R.string.overlay_ai_translate
             }
         )
+        updateAiLoadingAnimation(button)
+    }
+
+    /** AI 请求可能持续十几秒：图标持续旋转，给用户明确的进行中反馈 */
+    private fun updateAiLoadingAnimation(button: View) {
+        if (aiLoading) {
+            if (aiLoadingAnimator?.isRunning == true) return
+            button.rotation = 0f
+            aiLoadingAnimator = ObjectAnimator.ofFloat(button, View.ROTATION, 0f, 360f).apply {
+                duration = AI_LOADING_ANIM_MS
+                interpolator = LinearInterpolator()
+                repeatCount = ValueAnimator.INFINITE
+                start()
+            }
+            return
+        }
+
+        aiLoadingAnimator?.cancel()
+        aiLoadingAnimator = null
+        button.rotation = 0f
+    }
+
+    override fun onDetachedFromWindow() {
+        aiLoadingAnimator?.cancel()
+        aiLoadingAnimator = null
+        super.onDetachedFromWindow()
     }
 
     /**

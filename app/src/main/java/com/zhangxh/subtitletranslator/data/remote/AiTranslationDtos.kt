@@ -1,36 +1,43 @@
 package com.zhangxh.subtitletranslator.data.remote
 
 /**
- * 后端会员 AI 文本翻译接口的请求/响应模型
+ * 后端会员 AI 图片字幕翻译接口的请求/响应模型
  *
- * 契约见服务端 docs/API_DESIGN.md §6.2：上下文最多 4 组、总长 1000 字符；
- * 分段限制与标准翻译一致（1–8 段、每段 500 字符、总长 2000 字符）。
+ * 契约见服务端 docs/API_DESIGN.md §7.1：
+ * `multipart/form-data` 包含 JSON `request` 与裁剪后的字幕图片 `image`；
+ * 图片 ≤ 5 MB、长边 ≤ 2560 px；上下文最多 4 组，规则与基础翻译的上下文一致。
  */
 data class AiTranslationContextDto(
     val source: String,
     val translation: String
 )
 
-data class AiTextTranslationRequestDto(
+data class AiImageTranslationRequestDto(
     val sessionId: String,
     val sequence: Long,
     val sourceLanguage: String,
     val targetLanguage: String,
     /** 没有上文字幕时传 null，让 Gson 省略该字段 */
-    val context: List<AiTranslationContextDto>? = null,
-    val segments: List<TranslationSegmentDto>
+    val context: List<AiTranslationContextDto>? = null
 )
 
 data class AiTranslationUsageDto(
-    val requestedSegments: Int?,
-    val billedSegments: Int?
+    val requestedImages: Int?,
+    val billedImages: Int?
 )
 
-data class AiTextTranslationResponseDto(
+/** 图片翻译同时返回 AI 识别出的字幕原文与译文 */
+data class AiTranslatedSubtitleSegmentDto(
+    val id: String?,
+    val source: String?,
+    val translation: String?
+)
+
+data class AiImageTranslationResponseDto(
     val sessionId: String?,
     val sequence: Long?,
     val sourceLanguage: String?,
     val targetLanguage: String?,
-    val segments: List<TranslatedSegmentDto>?,
+    val segments: List<AiTranslatedSubtitleSegmentDto>?,
     val usage: AiTranslationUsageDto?
 )

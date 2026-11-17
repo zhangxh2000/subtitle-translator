@@ -2,6 +2,7 @@ package com.zhangxh.subtitletranslator.data.remote
 
 import android.util.Log
 import okhttp3.Interceptor
+import okhttp3.MultipartBody
 import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.Response
@@ -23,6 +24,9 @@ class HttpLoggingInterceptor : Interceptor {
         /** 超过该大小的请求体不做缓冲，避免把大请求整个读进内存 */
         const val MAX_BUFFER_BYTES = 64L * 1024
         const val MAX_LOG_CHARS = 1500
+
+        /** multipart 的 Content-Disposition 里取字段名 */
+        val PART_NAME = Regex("""name="([^"]*)"""")
 
         /** 只保留 key，值统一替换为 *** */
         val SENSITIVE_FIELD = Regex(
@@ -70,6 +74,10 @@ class HttpLoggingInterceptor : Interceptor {
      */
     private fun prepareRequest(request: Request): PreparedRequest {
         val body = request.body() ?: return PreparedRequest(request, null)
+        if (body is MultipartBody) {
+            // 图片翻译会上传截图，正文是二进制，既不能当字符串记录也不能整体缓冲
+            return PreparedRequest(request, summarizeMultipart(body))
+        }
         val length = runCatching { body.contentLength() }.getOrDefault(-1L)
         if (length > MAX_BUFFER_BYTES) {
             return PreparedRequest(request, "<body too large: $length bytes>")
@@ -87,6 +95,25 @@ class HttpLoggingInterceptor : Interceptor {
             Log.w(TAG, "读取请求体失败: ${it.message}")
             PreparedRequest(request, "<unreadable body: ${it.message}>")
         }
+    }
+
+    /**
+     * 只记录 multipart 各字段的名称、类型和大小
+     *
+     * 图片翻译的正文里有截图二进制和字幕原文，不能当字符串记录也不能整体缓冲；
+     * 具体图片尺寸、上下文数量由 AiTranslator 单独输出。
+     */
+    private fun summarizeMultipart(body: MultipartBody): String {
+        val parts = body.parts().joinToString(", ") { part ->
+            val disposition = part.headers()?.get("Content-Disposition").orEmpty()
+            val name = PART_NAME.find(disposition)?.groupValues?.get(1) ?: "part"
+            val partBody = part.body()
+            val type = partBody.contentType()?.toString() ?: "unknown"
+            val length = runCatching { partBody.contentLength() }.getOrDefault(-1L)
+            val size = if (length >= 0) "${length}B" else "unknown"
+            "$name($type, $size)"
+        }
+        return "<multipart: [$parts]>"
     }
 
     private fun formatBody(body: String): String {

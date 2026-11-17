@@ -47,7 +47,8 @@ class HomeViewModelTest {
 
         override suspend fun updateLatestTranslation(
             originalText: String,
-            translatedText: String
+            translatedText: String,
+            correctedOriginalText: String?
         ) = false
 
         override suspend fun recentDays(limit: Int): List<TranslationDayHistory> =

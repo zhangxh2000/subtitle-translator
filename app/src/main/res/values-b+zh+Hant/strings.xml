@@ -51,9 +51,10 @@
     <string name="overlay_navigation_accessibility_required">請在系統無障礙設定中開啟「字幕翻譯助手診斷」，開啟後重新翻譯。</string>
     <string name="overlay_navigation_progress_bar_missing">沒有找到播放進度條，請確認播放控制項可以顯示</string>
     <string name="overlay_seeking_adjacent_subtitle">正在定位字幕…</string>
-    <string name="overlay_ai_translate">AI 翻譯</string>
-    <string name="overlay_ai_translating">正在使用 AI 翻譯…</string>
-    <string name="overlay_ai_applied">已使用 AI 翻譯</string>
+    <string name="overlay_ai_translate">AI 翻譯糾錯</string>
+    <string name="overlay_ai_translating">正在使用 AI 翻譯糾錯…</string>
+    <string name="overlay_ai_applied">已套用 AI 翻譯糾錯</string>
+    <string name="overlay_ai_image_unavailable">目前字幕截圖無法使用，請重新翻譯後再試</string>
     <string name="overlay_translated_label">譯文</string>
     <string name="overlay_original_label">原文對照</string>
     <string name="overlay_key_words">重點詞彙</string>
@@ -288,6 +289,9 @@
     <string name="error_translation_service_unavailable">雲端翻譯服務暫時無法使用</string>
     <string name="error_translation_rate_limited">雲端翻譯請求過於頻繁，請稍後再試</string>
     <string name="error_ai_membership_required">AI 翻譯僅限會員使用</string>
+    <string name="error_no_subtitle_detected">截圖中未辨識到字幕，請換一幀或檢查來源語言設定</string>
+    <string name="error_invalid_image">字幕圖片處理失敗，請重試</string>
+    <string name="error_source_language_required">AI 翻譯糾錯需要指定來源語言，請先在設定中關閉自動偵測</string>
     <string name="error_empty_translation">譯文為空</string>
     <string name="error_invalid_response">翻譯服務傳回內容異常</string>
     <string name="error_unknown">未知錯誤</string>
@@ -434,7 +438,7 @@
     <string name="about_title">關於我們</string>
     <string name="about_message">字幕翻譯助手 %1$s\n\n辨識螢幕上的字幕，並在懸浮視窗中顯示譯文。</string>
     <string name="about_terms_message">完整法律文本將在正式上線前提供。使用本應用程式即表示你已閱讀並同意服務條款。</string>
-    <string name="about_privacy_message">完整隱私權政策將在正式上線前提供。截圖僅在本機用於辨識；選擇雲端引擎或使用 AI 翻譯時，辨識出的字幕文字及最近的字幕上下文會傳送到應用程式的雲端翻譯服務。收藏的詞彙保存在本地，僅在登入後自動同步到你的帳號。</string>
+    <string name="about_privacy_message">完整隱私權政策將在正式上線前提供。截圖僅在本機用於辨識；選擇雲端引擎時，辨識出的字幕文字會傳送到應用程式的雲端翻譯服務；使用 AI 翻譯時，裁剪後的字幕截圖及最近的字幕上下文會傳送到應用程式的雲端翻譯服務。收藏的詞彙保存在本地，僅在登入後自動同步到你的帳號。</string>
     <string name="about_ok">好的</string>
 
     <!-- 使用說明 -->

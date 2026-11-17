@@ -67,7 +67,8 @@ class SqliteTranslationHistoryRepository(
 
     override suspend fun updateLatestTranslation(
         originalText: String,
-        translatedText: String
+        translatedText: String,
+        correctedOriginalText: String?
     ): Boolean = withContext(Dispatchers.IO) {
         val original = originalText.trim().take(MAX_ORIGINAL_LENGTH)
         if (original.isBlank()) return@withContext false
@@ -93,6 +94,13 @@ class SqliteTranslationHistoryRepository(
                         TranslationHistoryDatabaseHelper.COL_TRANSLATED_TEXT,
                         translatedText.trim().take(MAX_TRANSLATED_LENGTH)
                     )
+                    // AI 图片翻译同时纠正了原文，历史记录也要跟着更新
+                    val corrected = correctedOriginalText
+                        ?.trim()
+                        ?.take(MAX_ORIGINAL_LENGTH)
+                    if (!corrected.isNullOrBlank()) {
+                        put(TranslationHistoryDatabaseHelper.COL_ORIGINAL_TEXT, corrected)
+                    }
                 }
                 database.update(
                     TranslationHistoryDatabaseHelper.TABLE,

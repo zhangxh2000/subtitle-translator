@@ -44,18 +44,6 @@
                 android:textAppearance="@style/TextAppearance.SubtitleTranslator.Overline" />
         </LinearLayout>
 
-        <!-- AI 精译：默认暗色，当前内容由 AI 翻译后高亮 -->
-        <ImageButton
-            android:id="@+id/btnAiTranslate"
-            android:layout_width="@dimen/touch_target"
-            android:layout_height="@dimen/touch_target"
-            android:layout_marginEnd="4dp"
-            android:padding="12dp"
-            android:scaleType="fitCenter"
-            android:background="@drawable/bg_icon_button"
-            android:src="@drawable/ic_ai"
-            android:contentDescription="@string/overlay_ai_translate" />
-
         <ImageButton
             android:id="@+id/btnClose"
             android:layout_width="@dimen/touch_target"
@@ -91,13 +79,33 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- 译文：第一视觉焦点 -->
-            <TextView
+            <!-- 译文：第一视觉焦点。AI 精译入口放在译文区右侧，作用于当前译文 -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/overlay_translated_label"
-                android:textAppearance="@style/TextAppearance.SubtitleTranslator.SectionLabel" />
+                android:layout_marginTop="12dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/overlay_translated_label"
+                    android:textAppearance="@style/TextAppearance.SubtitleTranslator.SectionLabel" />
+
+                <!-- AI 精译：暗色表示基础译文；请求中转圈，完成后高亮 -->
+                <ImageButton
+                    android:id="@+id/btnAiTranslate"
+                    android:layout_width="@dimen/touch_target"
+                    android:layout_height="@dimen/touch_target"
+                    android:layout_marginStart="4dp"
+                    android:background="@drawable/bg_icon_button"
+                    android:contentDescription="@string/overlay_ai_translate"
+                    android:padding="12dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_ai_translate" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/tvTranslatedText"
