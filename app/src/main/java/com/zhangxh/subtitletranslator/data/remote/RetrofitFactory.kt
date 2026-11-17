@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit
  *
  * 裸客户端只用于 refresh：它不能带上 AuthRetryInterceptor，否则刷新失败会递归。
  * 认证客户端额外挂 Token 注入与 401 单次重试。
+ * 日志拦截器放在最后，记录的才是真正发出的请求（含 Authorization）与每次重试。
  */
 object RetrofitFactory {
 
@@ -25,6 +26,7 @@ object RetrofitFactory {
     fun createBareRetrofit(gson: Gson): Retrofit {
         val client = OkHttpClient.Builder()
             .addInterceptor(BaseHeadersInterceptor())
+            .addInterceptor(HttpLoggingInterceptor())
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .writeTimeout(20, TimeUnit.SECONDS)
@@ -42,6 +44,7 @@ object RetrofitFactory {
             .addInterceptor(BaseHeadersInterceptor())
             .addInterceptor(AuthInterceptor(tokenProvider))
             .addInterceptor(AuthRetryInterceptor(tokenRefresher))
+            .addInterceptor(HttpLoggingInterceptor())
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .writeTimeout(20, TimeUnit.SECONDS)

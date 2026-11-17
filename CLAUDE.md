@@ -18,3 +18,11 @@
 
 ## 多线程,异步
 - 使用协程，flow等现代技术，不要使用RXJava
+
+## 日志（强制）
+
+- 新增功能或修复 bug 时，关键流程必须有日志：入口/退出、状态变化、外部调用（HTTP、OCR、TTS、词典、数据库批量写入）、失败与降级原因。
+- 统一使用 `android.util.Log`，每个类用 `private const val TAG` 标识模块；日志要带定位问题的关键参数，不要只打印对象默认 `toString`。
+- 异常日志必须带异常对象（`Log.e(TAG, "...", e)`），保留堆栈；不要吞掉异常只打印 message。
+- 默认不打印敏感信息：Token、密码、Authorization 头、邮箱等；用户文本/字幕原文如需记录必须截断或脱敏。
+- HTTP 请求/响应日志统一由 `data/remote/HttpLoggingInterceptor` 输出（标签 `HttpLog`），不要在 API 层重复打印请求体；认证端点正文一律整段脱敏。
