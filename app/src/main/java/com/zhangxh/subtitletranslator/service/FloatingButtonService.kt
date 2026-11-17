@@ -43,6 +43,7 @@ import com.zhangxh.subtitletranslator.data.remote.AiTranslationApi
 import com.zhangxh.subtitletranslator.data.remote.TranslationApi
 import com.zhangxh.subtitletranslator.data.screenshot.ScreenCaptureManagerImpl
 import com.zhangxh.subtitletranslator.data.translator.AiTranslator
+import com.zhangxh.subtitletranslator.data.translator.EngineSwitchingTranslator
 import com.zhangxh.subtitletranslator.data.translator.TranslatorProvider
 import com.zhangxh.subtitletranslator.data.accessibility.A11ySeekController
 import com.zhangxh.subtitletranslator.data.accessibility.AccessibilityAccess
@@ -437,12 +438,18 @@ class FloatingButtonService : Service() {
 
             val ocrEngine = MLKitOcrEngine()
             // 翻译引擎由用户在设置里选择：ML Kit 本地翻译；云端引擎走后端文本翻译接口，
-            // 第三方凭据只在服务端，未登录/失败时自动回退到离线引擎
-            val translator = TranslatorProvider(
+            // 第三方凭据只在服务端，未登录/失败时自动回退到离线引擎。
+            // 用 EngineSwitchingTranslator 每次翻译前读取设置：设置页可以在服务运行期间
+            // 从悬浮菜单打开，改完引擎必须在下一次翻译就生效，不能等重建录屏会话。
+            val translatorProvider = TranslatorProvider(
                 context = this,
                 translationApi = translationApi,
                 sessionManager = authSessionManager
-            ).create(engine = settingsStore.translationEngine)
+            )
+            val translator = EngineSwitchingTranslator(
+                engineProvider = { settingsStore.translationEngine },
+                factory = { engine -> translatorProvider.create(engine) }
+            )
 
             // AI 精译与基础翻译链路独立：只在用户点击 AI 图标时调用
             aiTranslator = AiTranslator(aiTranslationApi, authSessionManager)

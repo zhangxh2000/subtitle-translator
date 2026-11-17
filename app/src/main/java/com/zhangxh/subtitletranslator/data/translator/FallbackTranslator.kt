@@ -1,6 +1,7 @@
 package com.zhangxh.subtitletranslator.data.translator
 
 import android.util.Log
+import com.zhangxh.subtitletranslator.domain.error.TranslationException
 import com.zhangxh.subtitletranslator.domain.translator.ITranslator
 
 /**
@@ -37,10 +38,13 @@ class FallbackTranslator(
         val result = primary.translate(text, from, to)
         if (result.isSuccess) return result
 
-        Log.w(
-            TAG,
-            "${primary.getName()} 翻译失败，回退到 ${fallback.getName()}: ${result.exceptionOrNull()?.message}"
-        )
+        // 带上错误码与补充信息：TranslationException 的 message 来自 cause，
+        // 未登录、语言对不支持等没有 cause 的情况只看 message 会得到 null。
+        val error = result.exceptionOrNull()
+        val reason = (error as? TranslationException)?.error
+            ?.let { if (it.detail != null) "${it.code} (${it.detail})" else it.code.name }
+            ?: error?.message
+        Log.w(TAG, "${primary.getName()} 翻译失败，回退到 ${fallback.getName()}: $reason")
         return fallback.translate(text, from, to)
     }
 
