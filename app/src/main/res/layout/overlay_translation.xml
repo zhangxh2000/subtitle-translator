@@ -1,69 +1,95 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-  翻译结果覆盖层
+  翻译结果覆盖层（现代紧凑工作台布局）
 
-  层级：标题栏 → 译文（视觉焦点）→ 原文对照（次级）→ 重点词汇 → 收起提示。
-  标题栏和底部收起提示固定，中间内容放在 ScrollView 里：单词释义多时整个面板会很高，
-  必须能滚动查看；而关闭按钮不能跟着内容滚走，否则用户没法关掉面板。
+  层级：顶部工具栏（AI 翻译纠错 / 整句收藏 / 关闭）→ 双语对照（译文焦点 + 原文）→ 重点词汇 → 底部导航栏。
+  顶部工具栏与底部导航栏固定，中间内容放在 ScrollView 里：单词释义多时必须能滚动查看，
+  而顶部操作与底部切换/收起入口始终固定在窗口内。
   悬浮窗高度由 TranslationOverlayView.windowHeightFor() 按屏幕高度封顶。
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="12dp"
     android:orientation="vertical"
     android:background="@drawable/bg_translation_overlay"
     android:paddingHorizontal="@dimen/overlay_padding_horizontal"
-    android:paddingTop="16dp"
-    android:paddingBottom="12dp">
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp">
 
-    <!-- 标题栏（固定）：标题 + 副标题 / 圆形关闭按钮 -->
+    <!-- 顶部工具栏（固定）：左侧 AI 翻译纠错胶囊，右侧整句收藏 + 关闭 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="top">
+        android:gravity="center_vertical"
+        android:baselineAligned="false">
 
+        <!-- AI 精译：左侧带文字胶囊入口，请求中图标旋转，完成后容器高亮 -->
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:paddingTop="4dp">
+            android:id="@+id/btnAiTranslate"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/touch_target"
+            android:background="@drawable/bg_ai_pill_button"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="14dp"
+            android:contentDescription="@string/overlay_ai_translate">
+
+            <ImageView
+                android:id="@+id/ivAiTranslateIcon"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:importantForAccessibility="no"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_ai_translate" />
 
             <TextView
-                android:layout_width="match_parent"
+                android:id="@+id/tvAiTranslateLabel"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/overlay_title"
-                android:textAppearance="@style/TextAppearance.SubtitleTranslator.ScreenTitle" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="@string/overlay_subtitle"
-                android:textAppearance="@style/TextAppearance.SubtitleTranslator.Overline" />
+                android:layout_marginStart="6dp"
+                android:maxLines="1"
+                android:text="@string/overlay_ai_translate"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
         </LinearLayout>
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <!-- 整句收藏：与顶部工具栏聚合，不再在正文右侧竖向堆叠圆形按钮 -->
+        <ImageButton
+            android:id="@+id/btnSaveSentence"
+            android:layout_width="@dimen/touch_target"
+            android:layout_height="@dimen/touch_target"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/bg_nav_icon_button"
+            android:contentDescription="@string/action_save_sentence"
+            android:padding="13dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_bookmark_border"
+            android:visibility="gone" />
 
         <ImageButton
             android:id="@+id/btnClose"
             android:layout_width="@dimen/touch_target"
             android:layout_height="@dimen/touch_target"
-            android:padding="12dp"
+            android:padding="13dp"
             android:scaleType="fitCenter"
-            android:background="@drawable/bg_icon_button"
+            android:background="@drawable/bg_nav_icon_button"
             android:src="@drawable/ic_close"
             android:contentDescription="@string/action_close" />
     </LinearLayout>
 
-    <!-- 标题区与内容区的分隔线 -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginTop="12dp"
-        android:background="@color/divider" />
-
     <!--
-      0dp + weight=1：窗口高度封顶后，滚动区只占「标题栏 / 底部收起入口」之外
+      0dp + weight=1：窗口高度封顶后，滚动区只占「顶部工具栏 / 底部收起入口」之外
       的剩余空间。写成 wrap_content 会先按内容撑满，把底部收起入口顶出窗口。
       自然内容高度由 TranslationOverlayView.measureNaturalHeight() 单独测量。
     -->
@@ -77,86 +103,33 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingTop="6dp"
+            android:paddingBottom="4dp">
 
-            <!-- 译文：第一视觉焦点。AI 精译入口放在译文区右侧，作用于当前译文 -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/overlay_translated_label"
-                    android:textAppearance="@style/TextAppearance.SubtitleTranslator.SectionLabel" />
-
-                <!-- AI 精译：暗色表示基础译文；请求中转圈，完成后高亮 -->
-                <ImageButton
-                    android:id="@+id/btnAiTranslate"
-                    android:layout_width="@dimen/touch_target"
-                    android:layout_height="@dimen/touch_target"
-                    android:layout_marginStart="4dp"
-                    android:background="@drawable/bg_icon_button"
-                    android:contentDescription="@string/overlay_ai_translate"
-                    android:padding="12dp"
-                    android:scaleType="fitCenter"
-                    android:src="@drawable/ic_ai_translate" />
-            </LinearLayout>
-
+            <!-- 译文：第一视觉焦点，高对比深色大字 -->
             <TextView
                 android:id="@+id/tvTranslatedText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
                 android:textAppearance="@style/TextAppearance.SubtitleTranslator.Translation" />
 
-            <!-- 原文对照：次级信息 -->
+            <!-- 原文：紧随译文下方，字号与灰度退居次级，无需冗余标题 -->
             <TextView
+                android:id="@+id/tvOriginalText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/overlay_original_label"
-                android:textAppearance="@style/TextAppearance.SubtitleTranslator.SectionLabel" />
-
-            <!-- 原文 + 整句收藏：收藏按钮紧跟原文，句中的生词收藏仍由下方词卡负责 -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:gravity="top"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/tvOriginalText"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textSize="14sp"
-                    android:textColor="@color/text_secondary"
-                    android:lineSpacingMultiplier="1.35" />
-
-                <ImageButton
-                    android:id="@+id/btnSaveSentence"
-                    android:layout_width="@dimen/touch_target"
-                    android:layout_height="@dimen/touch_target"
-                    android:layout_marginStart="4dp"
-                    android:background="@drawable/bg_icon_button"
-                    android:contentDescription="@string/action_save_sentence"
-                    android:padding="12dp"
-                    android:scaleType="fitCenter"
-                    android:src="@drawable/ic_bookmark_border"
-                    android:visibility="gone" />
-            </LinearLayout>
+                android:layout_marginTop="6dp"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:lineSpacingMultiplier="1.35" />
 
             <!-- 字幕区与单词区的分隔线 -->
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginVertical="16dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="10dp"
                 android:background="@color/divider" />
 
             <!-- 重点词汇标题行：标题 + 词数 -->
@@ -185,13 +158,13 @@
                 android:id="@+id/wordsContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="2dp"
                 android:orientation="vertical" />
 
         </LinearLayout>
     </ScrollView>
 
-    <!-- 底部操作栏（固定）：上一句 / 收起面板 / 下一句 -->
+    <!-- 底部操作栏（固定）：上一句 / 居中收起面板 / 下一句 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="48dp"
@@ -203,34 +176,46 @@
             android:id="@+id/btnPreviousSubtitle"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:padding="12dp"
+            android:padding="13dp"
             android:scaleType="fitCenter"
-            android:background="@drawable/bg_icon_button"
+            android:background="@drawable/bg_nav_icon_button"
             android:src="@drawable/ic_skip_previous"
             android:contentDescription="@string/overlay_previous_subtitle" />
 
-        <TextView
+        <LinearLayout
             android:id="@+id/btnCollapse"
             android:layout_width="0dp"
             android:layout_height="48dp"
             android:layout_weight="1"
             android:gravity="center"
+            android:orientation="horizontal"
             android:clickable="true"
             android:focusable="true"
-            android:background="?attr/selectableItemBackground"
-            android:drawableStart="@drawable/ic_expand_less"
-            android:drawablePadding="4dp"
-            android:text="@string/overlay_collapse_hint"
-            android:textSize="12sp"
-            android:textColor="@color/text_secondary" />
+            android:background="?attr/selectableItemBackground">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_expand_less"
+                app:tint="@color/text_secondary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="@string/overlay_collapse_hint"
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary" />
+        </LinearLayout>
 
         <ImageButton
             android:id="@+id/btnNextSubtitle"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:padding="12dp"
+            android:padding="13dp"
             android:scaleType="fitCenter"
-            android:background="@drawable/bg_icon_button"
+            android:background="@drawable/bg_nav_icon_button"
             android:src="@drawable/ic_skip_next"
             android:contentDescription="@string/overlay_next_subtitle" />
     </LinearLayout>

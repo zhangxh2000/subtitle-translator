@@ -28,10 +28,10 @@
 
     <!-- 译文：浮窗的第一视觉焦点 -->
     <style name="TextAppearance.SubtitleTranslator.Translation" parent="TextAppearance.Material3.HeadlineMedium">
-        <item name="android:textSize">24sp</item>
+        <item name="android:textSize">21sp</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/accent_dim</item>
-        <item name="android:lineSpacingMultiplier">1.45</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:lineSpacingMultiplier">1.35</item>
     </style>
 
     <style name="TextAppearance.SubtitleTranslator.Body" parent="TextAppearance.Material3.BodyMedium">

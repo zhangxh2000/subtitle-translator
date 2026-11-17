@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 底部导航与次级操作圆形按钮：48dp 触摸区内的 36dp 柔和圆形底色 -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="?attr/colorControlHighlight">
+    <item>
+        <inset android:inset="6dp">
+            <shape android:shape="oval">
+                <solid android:color="@color/card_bg" />
+            </shape>
+        </inset>
+    </item>
+</ripple>

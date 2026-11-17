@@ -13,6 +13,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.animation.LinearInterpolator
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -273,10 +274,10 @@ class TranslationOverlayView @JvmOverloads constructor(
     }
 
     /**
-     * AI 图标：暗色表示普通译文，请求中转圈，强调色表示当前内容来自 AI
+     * AI 胶囊入口：暗色表示普通译文，请求中图标转圈，强调色表示当前内容来自 AI
      */
     private fun setupAiButton() {
-        findViewById<ImageButton>(R.id.btnAiTranslate)?.setOnClickListener {
+        findViewById<View>(R.id.btnAiTranslate)?.setOnClickListener {
             if (!aiTranslated && !aiLoading) {
                 onAiTranslateListener?.invoke()
             }
@@ -285,14 +286,22 @@ class TranslationOverlayView @JvmOverloads constructor(
     }
 
     private fun refreshAiButton() {
-        val button = findViewById<ImageButton>(R.id.btnAiTranslate) ?: return
+        val button = findViewById<View>(R.id.btnAiTranslate) ?: return
+        val icon = findViewById<ImageView>(R.id.ivAiTranslateIcon)
+        val label = findViewById<TextView>(R.id.tvAiTranslateLabel)
+        val highlighted = aiLoading || aiTranslated
+        val fgColor = context.getColor(
+            if (highlighted) R.color.on_accent_container else R.color.text_secondary
+        )
+        val bgColor = context.getColor(
+            if (highlighted) R.color.accent_container else R.color.surface_variant
+        )
+
         button.isEnabled = !aiLoading
         button.alpha = 1f
-        button.imageTintList = ColorStateList.valueOf(
-            context.getColor(
-                if (aiLoading || aiTranslated) R.color.accent else R.color.text_secondary
-            )
-        )
+        button.backgroundTintList = ColorStateList.valueOf(bgColor)
+        icon?.imageTintList = ColorStateList.valueOf(fgColor)
+        label?.setTextColor(fgColor)
         button.contentDescription = context.getString(
             when {
                 aiLoading -> R.string.overlay_ai_translating
@@ -300,7 +309,7 @@ class TranslationOverlayView @JvmOverloads constructor(
                 else -> R.string.overlay_ai_translate
             }
         )
-        updateAiLoadingAnimation(button)
+        updateAiLoadingAnimation(icon ?: button)
     }
 
     /** AI 请求可能持续十几秒：图标持续旋转，给用户明确的进行中反馈 */
