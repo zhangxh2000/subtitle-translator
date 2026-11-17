@@ -32,25 +32,47 @@ class NetworkMonitor(context: Context) : NetworkStatus {
             capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
 
-    /** 每次网络真正可用时发出一个事件，用于补发离线期间积压的变更 */
+    /**
+     * 网络从不可用恢复到真正可用时发出一个事件，用于补发离线期间积压的变更。
+     *
+     * 注册回调时系统会立刻回调一次当前网络，之后每次能力变化（信号强度、
+     * 验证状态等）也会回调；只在「离线 -> 在线」的边沿发事件，避免一次启动
+     * 触发多次同步。
+     */
     val onlineEvents: Flow<Unit> = callbackFlow {
         val manager = connectivityManager
         if (manager == null) {
             awaitClose { }
             return@callbackFlow
         }
+
+        // 以当前状态为基线：注册回调时系统会立刻回报一次现有网络，
+        // 那不是「恢复」，启动时的首次同步由登录态恢复触发。
+        var wasOnline = isOnline()
+        fun notify(online: Boolean) {
+            if (online && !wasOnline) trySend(Unit)
+            wasOnline = online
+        }
+
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
-                if (isOnline()) trySend(Unit)
+                notify(isOnline())
             }
 
             override fun onCapabilitiesChanged(
                 network: Network,
                 networkCapabilities: NetworkCapabilities
             ) {
-                if (networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
-                    trySend(Unit)
-                }
+                notify(
+                    networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                        networkCapabilities.hasCapability(
+                            NetworkCapabilities.NET_CAPABILITY_VALIDATED
+                        )
+                )
+            }
+
+            override fun onLost(network: Network) {
+                wasOnline = false
             }
         }
         manager.registerDefaultNetworkCallback(callback)

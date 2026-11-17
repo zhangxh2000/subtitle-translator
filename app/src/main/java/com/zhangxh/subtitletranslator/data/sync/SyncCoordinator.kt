@@ -12,6 +12,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * 同步触发编排
@@ -27,6 +28,7 @@ class SyncCoordinator(
     private val authManager: AuthManager,
     private val networkMonitor: NetworkMonitor,
     private val scope: CoroutineScope,
+    private val debounceMs: Long = DEBOUNCE_MS,
     private val sync: suspend () -> SyncResult
 ) {
 
@@ -60,9 +62,15 @@ class SyncCoordinator(
             networkMonitor.onlineEvents.collect { trigger() }
         }
         scope.launch {
-            // CONFLATED：连点收藏时只保留一次待处理信号
+            // 等一个安静窗口：期间有新信号就重新计时。
+            // 启动时恢复登录态与网络回调几乎同时触发，旧实现「取到信号就 delay」
+            // 会把它们拆成两次同步，这里合并成一次。
             for (ignored in requests) {
-                delay(DEBOUNCE_MS)
+                var merged = 1
+                while (withTimeoutOrNull(debounceMs) { requests.receive() } != null) {
+                    merged++
+                }
+                Log.d(tag, "合并 $merged 次触发，开始同步")
                 runSync()
             }
         }
