@@ -48,6 +48,14 @@ class TranslationOverlayView @JvmOverloads constructor(
         private const val AI_LOADING_ANIM_MS = 900L
 
         /**
+         * 词典里的领域标签（如 [计]、[俚]、[医]）
+         *
+         * 字幕学习场景下这些标签是噪音：有的会单独成段，有的跟在释义前面，
+         * 展示前统一剥掉；只剩标签的分段过滤为空后自然消失。
+         */
+        private val DOMAIN_TAG = Regex("^\\[[^\\]]{1,4}]\\s*")
+
+        /**
          * 计算悬浮窗高度
          *
          * 内容不多时按内容撑开；内容过多（单词释义很长时很常见）时按屏幕高度封顶，
@@ -499,7 +507,14 @@ class TranslationOverlayView @JvmOverloads constructor(
             .inflate(R.layout.item_word_entry, parent, false)
             .apply {
                 findViewById<TextView>(R.id.tvWord)?.text = wordEntry.word
-                findViewById<TextView>(R.id.tvPhonetic)?.text = wordEntry.phonetic
+
+                // 音标按词典惯例用斜杠包裹；词典数据偶尔自带 /…/ 或 [ ]，避免重复包裹
+                val phonetic = wordEntry.phonetic.trim()
+                findViewById<TextView>(R.id.tvPhonetic)?.text = when {
+                    phonetic.isEmpty() -> ""
+                    phonetic.startsWith("/") || phonetic.startsWith("[") -> phonetic
+                    else -> "/$phonetic/"
+                }
 
                 // 释义：紧凑内联排版（每个词性精选前 3 个核心词义，词性之间用 · 连接），
                 // 避免单个多义词把词卡撑得像整页词典。
@@ -581,7 +596,7 @@ class TranslationOverlayView @JvmOverloads constructor(
             }
             val concise = meaning.chineseDefinition
                 .split(Regex("[;；,，、]"))
-                .map { it.trim() }
+                .map { DOMAIN_TAG.replace(it.trim(), "").trim() }
                 .filter { it.isNotEmpty() }
                 .take(3)
                 .joinToString("，")
