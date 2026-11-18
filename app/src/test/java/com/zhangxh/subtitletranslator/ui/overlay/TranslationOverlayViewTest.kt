@@ -303,15 +303,15 @@ class TranslationOverlayViewTest {
         )
     }
 
-    /** 右上角关闭按钮：48dp 触摸区 + 圆形 tonal 底色 */
+    /** 右上角关闭按钮：48dp 触摸区 + 按下反馈背景 */
     @Test
-    fun `close button has a circular background and a 48dp touch target`() {
+    fun `close button has a pressed-state background and a 48dp touch target`() {
         val overlay = overlay()
         val close = requireNotNull(overlay.findViewById<ImageButton>(R.id.btnClose))
         val density = overlay.resources.displayMetrics.density
 
         assertEquals(48f, close.layoutParams.width / density, 0.5f)
-        assertNotNull("关闭按钮需要圆形底色", close.background)
+        assertNotNull("关闭按钮需要按下反馈背景", close.background)
     }
 
     /** 底部「收起面板」与关闭按钮行为一致 */

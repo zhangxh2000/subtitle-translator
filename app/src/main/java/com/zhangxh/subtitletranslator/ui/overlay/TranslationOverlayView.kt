@@ -130,13 +130,19 @@ class TranslationOverlayView @JvmOverloads constructor(
      * 之后 WindowManager 按本方法返回的高度布局时，weight 会重新分配空间。
      */
     fun measureNaturalHeight(widthPx: Int): Int {
-        val scroll = findViewById<ScrollView>(R.id.contentScroll) ?: return 0
-        val lp = scroll.layoutParams as? LinearLayout.LayoutParams ?: return 0
-        val savedHeight = lp.height
-        val savedWeight = lp.weight
-        lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
-        lp.weight = 0f
-        scroll.layoutParams = lp
+        findViewById<ScrollView>(R.id.contentScroll) ?: return 0
+
+        // ScrollView 装在带 weight 的 FrameLayout 里（底部叠了一层渐隐）：
+        // 自然测量时把外层框还原成 wrap_content，ScrollView 用 match_parent 跟随即可。
+        val scrollFrame = findViewById<View>(R.id.wordsScrollFrame)
+        val frameLp = scrollFrame?.layoutParams as? LinearLayout.LayoutParams
+        val savedFrameHeight = frameLp?.height
+        val savedFrameWeight = frameLp?.weight
+        if (frameLp != null) {
+            frameLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            frameLp.weight = 0f
+            scrollFrame.layoutParams = frameLp
+        }
 
         // 横屏双栏布局里，外层双栏行与右侧生词列也是 0dp/match_parent，自然测量时需同步临时还原为 wrap_content
         val bodyRow = findViewById<View>(R.id.overlayBodyRow)
@@ -197,9 +203,11 @@ class TranslationOverlayView @JvmOverloads constructor(
             bodyLp.weight = savedBodyWeight ?: 1f
             bodyRow.layoutParams = bodyLp
         }
-        lp.height = savedHeight
-        lp.weight = savedWeight
-        scroll.layoutParams = lp
+        if (frameLp != null) {
+            frameLp.height = savedFrameHeight ?: 0
+            frameLp.weight = savedFrameWeight ?: 1f
+            scrollFrame.layoutParams = frameLp
+        }
         return naturalHeight
     }
 
@@ -341,13 +349,16 @@ class TranslationOverlayView @JvmOverloads constructor(
         val fgColor = context.getColor(
             if (highlighted) R.color.on_accent else R.color.overlay_ai_pill_text
         )
-        val bgColor = context.getColor(
-            if (highlighted) R.color.accent else R.color.overlay_ai_pill_bg
-        )
 
         button.isEnabled = !aiLoading
         button.alpha = 1f
-        button.backgroundTintList = ColorStateList.valueOf(bgColor)
+        // 只在高亮时给背景上色；普通态清掉 tint，保留纸感胶囊自己的描边，
+        // 否则整块背景会被染成纯色、连描边一起盖掉。
+        button.backgroundTintList = if (highlighted) {
+            ColorStateList.valueOf(context.getColor(R.color.accent))
+        } else {
+            null
+        }
         icon?.imageTintList = ColorStateList.valueOf(fgColor)
         label?.setTextColor(fgColor)
         button.contentDescription = context.getString(
@@ -521,21 +532,16 @@ class TranslationOverlayView @JvmOverloads constructor(
                 val meaningsText = formatCompactMeanings(wordEntry)
                 findViewById<TextView>(R.id.tvMeanings)?.text = meaningsText
 
-                // 难度标签：低饱和底色 + 同色系文字
+                // 难度标识：编辑纸感方案下去掉色块胶囊，只用同色系文字区分
                 val difficultyView = findViewById<TextView>(R.id.tvDifficulty)
                 val difficulty = wordEntry.difficulty
-                val (backgroundRes, textRes) = when (difficulty) {
-                    WordDifficulty.HARD ->
-                        R.color.difficulty_hard_bg to R.color.difficulty_hard_text
-                    WordDifficulty.MEDIUM ->
-                        R.color.difficulty_medium_bg to R.color.difficulty_medium_text
-                    else ->
-                        R.color.difficulty_easy_bg to R.color.difficulty_easy_text
+                val difficultyTextColor = when (difficulty) {
+                    WordDifficulty.HARD -> R.color.difficulty_hard_text
+                    WordDifficulty.MEDIUM -> R.color.difficulty_medium_text
+                    else -> R.color.difficulty_easy_text
                 }
                 difficultyView?.text = context.getString(difficulty.labelRes())
-                difficultyView?.backgroundTintList =
-                    ColorStateList.valueOf(context.getColor(backgroundRes))
-                difficultyView?.setTextColor(context.getColor(textRes))
+                difficultyView?.setTextColor(context.getColor(difficultyTextColor))
 
                 // 点喇叭朗读单词。图标可点之后会吃掉自己的按下事件，
                 // 所以图标区域内长按不再冒泡到下面那个复制监听 —— 属预期行为。

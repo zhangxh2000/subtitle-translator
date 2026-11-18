@@ -8,12 +8,13 @@
     android:paddingEnd="@dimen/word_card_padding_end"
     android:paddingBottom="9dp"
     android:layout_marginTop="6dp"
-    android:background="@drawable/bg_overlay_card">
+    android:background="@drawable/bg_overlay_divider_bottom">
 
     <!--
       难度标签：要与单词行中心对齐。
       单词行被 40dp 的朗读/收藏按钮撑高，标签高 20dp，
       所以下移 (40-20)/2 = 10dp —— 改按钮高度或标签高度时这个值要跟着改。
+      编辑纸感方案里不再用色块胶囊，只用同色系文字，减少卡片上的噪点。
     -->
     <TextView
         android:id="@+id/tvDifficulty"
@@ -21,12 +22,10 @@
         android:layout_height="20dp"
         android:layout_marginTop="10dp"
         android:minWidth="24dp"
-        android:paddingHorizontal="6dp"
         android:gravity="center"
         android:textSize="10sp"
         android:textStyle="bold"
-        android:textColor="@color/difficulty_medium_text"
-        android:background="@drawable/bg_difficulty_tag" />
+        android:textColor="@color/difficulty_medium_text" />
 
     <!-- 单词信息 -->
     <LinearLayout

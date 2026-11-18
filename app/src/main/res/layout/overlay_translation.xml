@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-  翻译结果覆盖层（竖屏：柔和云灰底画布 + 固定纯白字幕卡片 + 独立滚动生词区）
+  翻译结果覆盖层（竖屏 · 编辑纸感：无卡片、发丝分隔线 + 固定字幕块）
 
   核心设计：
-  1. 字幕双语主卡片固定在 ScrollView 之外（Sticky Hero）：往下滑看生词时，
-     原句与译文始终留在顶部对照，不会滚丢，词卡也不会被顶部按钮生硬腰斩。
-  2. ScrollView 只承载「重点词汇」列表，按屏幕高度封顶时独立滚动。
+  1. 字幕双语块固定在 ScrollView 之外（Sticky Hero）：往下滑看生词时，
+     原句与译文始终留在顶部对照，不会滚丢；
+  2. 不使用白卡片分层，靠字号层级与 1dp 发丝线组织内容；
+  3. ScrollView 只承载「重点词汇」列表，按屏幕高度封顶时独立滚动。
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -12,11 +13,12 @@
     android:layout_marginHorizontal="12dp"
     android:orientation="vertical"
     android:background="@drawable/bg_translation_overlay"
-    android:paddingHorizontal="@dimen/overlay_padding_horizontal"
-    android:paddingTop="10dp"
-    android:paddingBottom="10dp">
+    android:paddingStart="@dimen/overlay_padding_horizontal"
+    android:paddingTop="8dp"
+    android:paddingEnd="@dimen/overlay_padding_horizontal"
+    android:paddingBottom="4dp">
 
-    <!-- 顶部工具栏（固定）：左侧 AI 翻译纠错胶囊，右侧整句收藏 + 关闭 -->
+    <!-- 顶部工具栏：左侧 AI 翻译纠错胶囊，右侧整句收藏 + 关闭（幽灵图标） -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -24,7 +26,7 @@
         android:gravity="center_vertical"
         android:baselineAligned="false">
 
-        <!-- AI 精译：左侧品牌微描边胶囊，请求中图标旋转，完成后高亮 -->
+        <!-- AI 精译：纸感描边胶囊，请求中图标旋转，完成后高亮 -->
         <LinearLayout
             android:id="@+id/btnAiTranslate"
             android:layout_width="wrap_content"
@@ -69,41 +71,37 @@
             android:layout_width="@dimen/touch_target"
             android:layout_height="@dimen/touch_target"
             android:layout_marginEnd="2dp"
-            android:background="@drawable/bg_nav_icon_button"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/action_save_sentence"
-            android:padding="13dp"
+            android:padding="14dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_bookmark_border"
             android:tint="@color/text_secondary"
             android:visibility="gone" />
 
+        <!-- 关闭：用主文字色收尾，与其它操作区分层级 -->
         <ImageButton
             android:id="@+id/btnClose"
             android:layout_width="@dimen/touch_target"
             android:layout_height="@dimen/touch_target"
-            android:padding="13dp"
+            android:padding="14dp"
             android:scaleType="fitCenter"
-            android:background="@drawable/bg_nav_icon_button"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_close"
-            android:tint="@color/text_secondary"
+            android:tint="@color/text_primary"
             android:contentDescription="@string/action_close" />
     </LinearLayout>
 
-    <!-- 固定字幕主舞台卡片（Sticky Hero）：带左侧品牌竖向饰条，不随生词滚动而消失 -->
+    <!-- 固定字幕块（Sticky Hero）：无卡片，带左侧品牌竖饰条 -->
     <LinearLayout
         android:id="@+id/subtitleHeroCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:background="@drawable/bg_overlay_card"
-        android:orientation="horizontal"
-        android:paddingStart="14dp"
-        android:paddingTop="14dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="14dp">
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
 
         <View
-            android:layout_width="3.5dp"
+            android:layout_width="2.5dp"
             android:layout_height="match_parent"
             android:layout_marginTop="2dp"
             android:layout_marginBottom="2dp"
@@ -113,7 +111,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="14dp"
             android:orientation="vertical">
 
             <!-- 译文：第一视觉焦点 -->
@@ -128,20 +126,28 @@
                 android:id="@+id/tvOriginalText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="8dp"
                 android:textSize="14sp"
                 android:textColor="@color/text_secondary"
                 android:lineSpacingMultiplier="1.35" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- 重点词汇标题行（固定在滚动区上方）：标题 + 词数 -->
+    <!-- 字幕块与词表之间的发丝分隔线 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="14dp"
+        android:background="@color/overlay_divider" />
+
+    <!-- 重点词汇标题行：标题 + 词数，与词条左内边距对齐 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="10dp"
         android:layout_marginBottom="2dp"
-        android:paddingHorizontal="2dp"
+        android:paddingStart="@dimen/word_card_padding"
+        android:paddingEnd="@dimen/word_card_padding"
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
@@ -162,28 +168,41 @@
 
     <!--
       0dp + weight=1：窗口高度封顶后，滚动区只承载生词列表，
-      顶部工具栏、字幕主卡片与底部操作栏始终固定可见。
+      顶部工具栏、字幕块与底部操作栏始终固定可见。
     -->
-    <ScrollView
-        android:id="@+id/contentScroll"
+    <!-- 滚动区 + 底部渐隐：内容被视口截断时给出「还能滑」的视觉提示 -->
+    <FrameLayout
+        android:id="@+id/wordsScrollFrame"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:scrollbars="vertical">
+        android:layout_weight="1">
 
-        <LinearLayout
-            android:id="@+id/wordsContainer"
+        <ScrollView
+            android:id="@+id/contentScroll"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingBottom="4dp"
-            android:orientation="vertical" />
-    </ScrollView>
+            android:layout_height="match_parent"
+            android:scrollbars="vertical">
 
-    <!-- 底部操作栏（固定）：上一句 / 居中收起面板 / 下一句 -->
+            <LinearLayout
+                android:id="@+id/wordsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="4dp"
+                android:orientation="vertical" />
+        </ScrollView>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="20dp"
+            android:layout_gravity="bottom"
+            android:background="@drawable/bg_scroll_fade"
+            android:importantForAccessibility="no" />
+    </FrameLayout>
+
+    <!-- 底部操作栏（固定）：上一句 / 居中收起 / 下一句，全部为幽灵图标 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:layout_marginTop="4dp"
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
@@ -191,9 +210,9 @@
             android:id="@+id/btnPreviousSubtitle"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:padding="13dp"
+            android:padding="14dp"
             android:scaleType="fitCenter"
-            android:background="@drawable/bg_nav_icon_button"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_skip_previous"
             android:tint="@color/text_secondary"
             android:contentDescription="@string/overlay_previous_subtitle" />
@@ -229,9 +248,9 @@
             android:id="@+id/btnNextSubtitle"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:padding="13dp"
+            android:padding="14dp"
             android:scaleType="fitCenter"
-            android:background="@drawable/bg_nav_icon_button"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_skip_next"
             android:tint="@color/text_secondary"
             android:contentDescription="@string/overlay_next_subtitle" />

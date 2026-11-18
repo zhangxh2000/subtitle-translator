@@ -23,16 +23,13 @@
     <color name="status_bg">#FFEDF5DF</color>
     <color name="status_stroke">#FFC6D99B</color>
 
-    <!-- 翻译浮窗（方案2：柔和云灰底画布 + 纯白悬浮卡片，去满屏灰豆绿） -->
-    <color name="overlay_canvas_bg">#FFF3F5EF</color>
-    <color name="overlay_canvas_stroke">#FFDFE4D7</color>
-    <color name="overlay_card_bg">#FFFFFFFF</color>
-    <color name="overlay_card_stroke">#FFE4E9DC</color>
-    <color name="overlay_control_bg">#FFFFFFFF</color>
-    <color name="overlay_control_stroke">#FFE1E6D9</color>
-    <color name="overlay_ai_pill_bg">#FFECF4DA</color>
-    <color name="overlay_ai_pill_stroke">#FFC9DCA0</color>
-    <color name="overlay_ai_pill_text">#FF3D520E</color>
+    <!-- 翻译浮窗（编辑纸感：暖纸画布、无卡片、发丝分隔线） -->
+    <color name="overlay_canvas_bg">#FFF8F7F2</color>
+    <color name="overlay_canvas_stroke">#FFE6E3DA</color>
+    <color name="overlay_divider">#FFECE9E0</color>
+    <color name="overlay_ai_pill_bg">#FFF8F7F2</color>
+    <color name="overlay_ai_pill_stroke">#FFC9CBAE</color>
+    <color name="overlay_ai_pill_text">#FF5A6A1F</color>
 
     <!-- 深橄榄绿在浅底上保持文字与图标对比度；按钮文字使用白色。 -->
     <color name="accent">#FF5E7D18</color>
@@ -46,11 +43,8 @@
     <!-- 服务运行中「停止」按钮的警示色 -->
     <color name="stop_button">#FFB3261E</color>
 
-    <!-- 难度标签：低饱和底色 + 同色系文字 -->
-    <color name="difficulty_hard_bg">#FFFCE8E6</color>
+    <!-- 难度标识：无底色，仅用同色系文字区分 -->
     <color name="difficulty_hard_text">#FFA32117</color>
-    <color name="difficulty_medium_bg">#FFFFF3D6</color>
     <color name="difficulty_medium_text">#FF805700</color>
-    <color name="difficulty_easy_bg">#FFE4F3E6</color>
     <color name="difficulty_easy_text">#FF276B36</color>
 </resources>

@@ -18,15 +18,12 @@
     <color name="status_bg">#FF16200F</color>
     <color name="status_stroke">#FF334C25</color>
 
-    <!-- 翻译浮窗（夜间模式保持深色高对比分层） -->
+    <!-- 翻译浮窗（夜间编辑纸感：深墨画布、无卡片、发丝分隔线） -->
     <color name="overlay_canvas_bg">#FF14161B</color>
     <color name="overlay_canvas_stroke">#FF2A2D36</color>
-    <color name="overlay_card_bg">#FF1E2027</color>
-    <color name="overlay_card_stroke">#FF2E323C</color>
-    <color name="overlay_control_bg">#FF22252D</color>
-    <color name="overlay_control_stroke">#FF323640</color>
-    <color name="overlay_ai_pill_bg">#FF263112</color>
-    <color name="overlay_ai_pill_stroke">#FF44591D</color>
+    <color name="overlay_divider">#FF2A2D36</color>
+    <color name="overlay_ai_pill_bg">#FF202718</color>
+    <color name="overlay_ai_pill_stroke">#FF3E4A22</color>
     <color name="overlay_ai_pill_text">#FFD6F67A</color>
 
     <color name="accent">#FFB9E64B</color>
@@ -38,10 +35,7 @@
 
     <color name="stop_button">#FFB3261E</color>
 
-    <color name="difficulty_hard_bg">#FF3A2326</color>
     <color name="difficulty_hard_text">#FFFF8A80</color>
-    <color name="difficulty_medium_bg">#FF3A3320</color>
     <color name="difficulty_medium_text">#FFFFCC80</color>
-    <color name="difficulty_easy_bg">#FF233A2A</color>
     <color name="difficulty_easy_text">#FFA5D6A7</color>
 </resources>

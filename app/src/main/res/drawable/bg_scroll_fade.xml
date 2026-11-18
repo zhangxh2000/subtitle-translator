@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?><!-- 生词列表底部渐隐：提示下方还有内容可滚动 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="90"
+        android:endColor="@android:color/transparent"
+        android:startColor="@color/overlay_canvas_bg" />
+</shape>
