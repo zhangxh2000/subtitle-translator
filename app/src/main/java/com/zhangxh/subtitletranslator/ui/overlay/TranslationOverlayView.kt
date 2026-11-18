@@ -12,6 +12,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.LinearInterpolator
+import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -130,10 +131,12 @@ class TranslationOverlayView @JvmOverloads constructor(
      * 之后 WindowManager 按本方法返回的高度布局时，weight 会重新分配空间。
      */
     fun measureNaturalHeight(widthPx: Int): Int {
-        findViewById<ScrollView>(R.id.contentScroll) ?: return 0
+        val scroll = findViewById<ScrollView>(R.id.contentScroll) ?: return 0
 
-        // ScrollView 装在带 weight 的 FrameLayout 里（底部叠了一层渐隐）：
-        // 自然测量时把外层框还原成 wrap_content，ScrollView 用 match_parent 跟随即可。
+        // ScrollView 现在装在带 weight 的 FrameLayout 里（底部叠了一层渐隐）。
+        // 自然测量时必须同时把外层框和 ScrollView 自己都还原成 wrap_content：
+        // 只还原外层框的话，ScrollView 仍是 match_parent，在 wrap 容器里会被按
+        // 可用空间测量，算出的自然高度偏小，窗口就会矮于内容、把词条裁掉。
         val scrollFrame = findViewById<View>(R.id.wordsScrollFrame)
         val frameLp = scrollFrame?.layoutParams as? LinearLayout.LayoutParams
         val savedFrameHeight = frameLp?.height
@@ -142,6 +145,13 @@ class TranslationOverlayView @JvmOverloads constructor(
             frameLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
             frameLp.weight = 0f
             scrollFrame.layoutParams = frameLp
+        }
+
+        val scrollLp = scroll.layoutParams as? FrameLayout.LayoutParams
+        val savedScrollHeight = scrollLp?.height
+        if (scrollLp != null) {
+            scrollLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            scroll.layoutParams = scrollLp
         }
 
         // 横屏双栏布局里，外层双栏行与右侧生词列也是 0dp/match_parent，自然测量时需同步临时还原为 wrap_content
@@ -202,6 +212,10 @@ class TranslationOverlayView @JvmOverloads constructor(
             bodyLp.height = savedBodyHeight ?: 0
             bodyLp.weight = savedBodyWeight ?: 1f
             bodyRow.layoutParams = bodyLp
+        }
+        if (scrollLp != null) {
+            scrollLp.height = savedScrollHeight ?: ViewGroup.LayoutParams.MATCH_PARENT
+            scroll.layoutParams = scrollLp
         }
         if (frameLp != null) {
             frameLp.height = savedFrameHeight ?: 0
