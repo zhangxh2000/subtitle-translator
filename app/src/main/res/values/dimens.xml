@@ -27,4 +27,7 @@
     <!-- 词卡内图标：40dp 点击区 + 8dp padding = 24dp 图标 -->
     <dimen name="word_icon_size">40dp</dimen>
     <dimen name="word_icon_padding">8dp</dimen>
+    <!-- 生词列表底部渐隐高度；列表内容底部也留同样高度的空白，
+         滚到底时最后一条词条才能完全露出，不被渐隐遮住。 -->
+    <dimen name="overlay_scroll_fade_height">20dp</dimen>
 </resources>

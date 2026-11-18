@@ -229,13 +229,14 @@
                         android:id="@+id/wordsContainer"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:paddingBottom="2dp"
+                        android:paddingBottom="@dimen/overlay_scroll_fade_height"
                         android:orientation="vertical" />
                 </ScrollView>
 
                 <View
+                    android:id="@+id/scrollFade"
                     android:layout_width="match_parent"
-                    android:layout_height="20dp"
+                    android:layout_height="@dimen/overlay_scroll_fade_height"
                     android:layout_gravity="bottom"
                     android:background="@drawable/bg_scroll_fade"
                     android:importantForAccessibility="no" />

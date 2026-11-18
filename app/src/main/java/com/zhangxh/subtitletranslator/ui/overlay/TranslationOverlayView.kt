@@ -12,7 +12,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.LinearInterpolator
-import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -120,6 +119,7 @@ class TranslationOverlayView @JvmOverloads constructor(
         setupNavigationButtons()
         setupSentenceSaveButton()
         setupAiButton()
+        setupScrollFade()
     }
 
     /**
@@ -131,12 +131,12 @@ class TranslationOverlayView @JvmOverloads constructor(
      * 之后 WindowManager 按本方法返回的高度布局时，weight 会重新分配空间。
      */
     fun measureNaturalHeight(widthPx: Int): Int {
-        val scroll = findViewById<ScrollView>(R.id.contentScroll) ?: return 0
+        findViewById<ScrollView>(R.id.contentScroll) ?: return 0
 
-        // ScrollView 现在装在带 weight 的 FrameLayout 里（底部叠了一层渐隐）。
-        // 自然测量时必须同时把外层框和 ScrollView 自己都还原成 wrap_content：
-        // 只还原外层框的话，ScrollView 仍是 match_parent，在 wrap 容器里会被按
-        // 可用空间测量，算出的自然高度偏小，窗口就会矮于内容、把词条裁掉。
+        // ScrollView 装在带 weight 的 FrameLayout 里（底部叠了一层渐隐）。
+        // 自然测量时只需把外层框还原成 wrap_content + weight=0：
+        // 子 View 在 UNSPECIFIED 的高度约束下，match_parent 与 wrap_content
+        // 得到的测量规格相同，都会按内容自然高度测量，无需再改 ScrollView 自己。
         val scrollFrame = findViewById<View>(R.id.wordsScrollFrame)
         val frameLp = scrollFrame?.layoutParams as? LinearLayout.LayoutParams
         val savedFrameHeight = frameLp?.height
@@ -145,13 +145,6 @@ class TranslationOverlayView @JvmOverloads constructor(
             frameLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
             frameLp.weight = 0f
             scrollFrame.layoutParams = frameLp
-        }
-
-        val scrollLp = scroll.layoutParams as? FrameLayout.LayoutParams
-        val savedScrollHeight = scrollLp?.height
-        if (scrollLp != null) {
-            scrollLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
-            scroll.layoutParams = scrollLp
         }
 
         // 横屏双栏布局里，外层双栏行与右侧生词列也是 0dp/match_parent，自然测量时需同步临时还原为 wrap_content
@@ -213,16 +206,34 @@ class TranslationOverlayView @JvmOverloads constructor(
             bodyLp.weight = savedBodyWeight ?: 1f
             bodyRow.layoutParams = bodyLp
         }
-        if (scrollLp != null) {
-            scrollLp.height = savedScrollHeight ?: ViewGroup.LayoutParams.MATCH_PARENT
-            scroll.layoutParams = scrollLp
-        }
         if (frameLp != null) {
             frameLp.height = savedFrameHeight ?: 0
             frameLp.weight = savedFrameWeight ?: 1f
             scrollFrame.layoutParams = frameLp
         }
         return naturalHeight
+    }
+
+    /**
+     * 生词列表底部渐隐：只在确实还能继续往下滚时显示
+     *
+     * 渐隐叠在滚动区最底部 20dp 上：内容不足一屏时显示会压暗最后一条释义的下缘；
+     * 滚到底后若不撤掉，最后一行又会被遮罩盖住，看起来就像词条被裁断。
+     * 所以滚动位置或列表尺寸变化时都要重新判断。
+     */
+    private fun setupScrollFade() {
+        val scroll = findViewById<ScrollView>(R.id.contentScroll) ?: return
+        scroll.setOnScrollChangeListener { _, _, _, _, _ -> updateScrollFade() }
+        findViewById<View>(R.id.wordsContainer)?.addOnLayoutChangeListener {
+            _, _, _, _, _, _, _, _, _ -> updateScrollFade()
+        }
+        updateScrollFade()
+    }
+
+    private fun updateScrollFade() {
+        val scroll = findViewById<ScrollView>(R.id.contentScroll) ?: return
+        val fade = findViewById<View>(R.id.scrollFade) ?: return
+        fade.visibility = if (scroll.canScrollVertically(1)) View.VISIBLE else View.GONE
     }
 
     /**
