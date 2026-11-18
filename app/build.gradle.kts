@@ -19,6 +19,16 @@ android {
         val apiBaseUrl = (project.findProperty("apiBaseUrl") as? String)
             ?: "http://110.40.178.127/api/v1/"
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+
+        // Google Play 订阅商品 ID，多个用英文逗号分隔；必须与 Play Console 中创建的商品一致。
+        // 一个商品可以配置月付/年付等多个 base plan，客户端会把所有 offer 都展示出来。
+        val playSubscriptionProductIds =
+            (project.findProperty("playSubscriptionProductIds") as? String) ?: "premium"
+        buildConfigField(
+            "String",
+            "PLAY_SUBSCRIPTION_PRODUCT_IDS",
+            "\"$playSubscriptionProductIds\""
+        )
     }
 
     buildFeatures {
@@ -63,6 +73,10 @@ dependencies {
 
     // ML Kit 文字识别（离线）
     implementation("com.google.mlkit:text-recognition:16.0.0")
+
+    // Google Play 订阅。使用 Java 版 billing 而不是 billing-ktx：
+    // billing-ktx 9.x 的 Kotlin metadata 版本高于本项目 Kotlin 编译器，回调直接用协程桥接。
+    implementation("com.android.billingclient:billing:9.1.0")
 
     // Kotlin 协程
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")

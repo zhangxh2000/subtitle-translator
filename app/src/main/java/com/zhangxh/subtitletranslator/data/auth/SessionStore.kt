@@ -8,6 +8,7 @@ import androidx.security.crypto.MasterKey
 import com.google.gson.Gson
 import com.zhangxh.subtitletranslator.domain.auth.AuthTokens
 import com.zhangxh.subtitletranslator.domain.auth.AuthUser
+import com.zhangxh.subtitletranslator.domain.entitlement.Plan
 import java.time.Instant
 
 /**
@@ -51,7 +52,8 @@ internal class PrefsSessionStore(
         val displayName: String?,
         val status: String,
         val createdAtMillis: Long?,
-        val updatedAtMillis: Long?
+        val updatedAtMillis: Long?,
+        val plan: String? = null
     )
 
     override fun readUser(): AuthUser? = readSafely("读取用户") {
@@ -64,7 +66,9 @@ internal class PrefsSessionStore(
                 displayName = stored.displayName,
                 status = stored.status,
                 createdAt = stored.createdAtMillis?.let(Instant::ofEpochMilli),
-                updatedAt = stored.updatedAtMillis?.let(Instant::ofEpochMilli)
+                updatedAt = stored.updatedAtMillis?.let(Instant::ofEpochMilli),
+                plan = runCatching { Plan.valueOf(stored.plan.orEmpty()) }
+                    .getOrDefault(Plan.FREE)
             )
         }
     }
@@ -97,7 +101,8 @@ internal class PrefsSessionStore(
                             displayName = user.displayName,
                             status = user.status,
                             createdAtMillis = user.createdAt?.toEpochMilli(),
-                            updatedAtMillis = user.updatedAt?.toEpochMilli()
+                            updatedAtMillis = user.updatedAt?.toEpochMilli(),
+                            plan = user.plan.name
                         )
                     )
                 )

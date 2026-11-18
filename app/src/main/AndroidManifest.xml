@@ -81,6 +81,11 @@
             android:screenOrientation="portrait" />
 
         <activity
+            android:name=".ui.membership.MembershipActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <activity
             android:name=".ui.vocabulary.WordDetailActivity"
             android:exported="false"
             android:screenOrientation="portrait" />

@@ -116,14 +116,16 @@ AI 相关功能目前均未实现，本文档同时定义它们与现有免费�
 ### 分层
 
 - `domain/entitlement/`：只关心 `Plan`、`Feature`、`Membership`，不依赖任何支付 SDK。
-- `domain/membership/IMembershipRepository`：暴露 `StateFlow<Membership>`，提供 `refresh()`。
+- `domain/membership/IMembershipRepository`：暴露 `StateFlow<Membership>`、可购套餐与购买状态，提供 `refresh()`。
 - `data/membership/MembershipBackend`：渠道适配接口。
 
 ```kotlin
 interface MembershipBackend {
-    val membership: Flow<Membership>
+    val purchaseState: StateFlow<PurchaseState>
     suspend fun refresh(): Membership
+    suspend fun loadOffers(): List<SubscriptionOffer>
     suspend fun verifyPurchase(payload: PurchasePayload): Membership
+    suspend fun restorePurchases(): Membership
 }
 ```
 
@@ -139,15 +141,34 @@ interface MembershipBackend {
 ### 客户端流程
 
 1. 用户点击升级 → 未登录先登录（会员必须绑定账号）。
-2. `MembershipViewModel` 发出一次性 `LaunchPurchase` 事件，Activity 调起 Google Play 订阅页。
-3. 购买结果回到 Activity，转发给 ViewModel；ViewModel 调 `verifyPurchase` 后刷新权益。
+2. `MembershipViewModel` 发出一次性 `LaunchPurchase` 事件，Activity 通过
+   `PlayPurchaseLauncher` 调起 Google Play 订阅页。
+3. 购买结果由数据层 `BillingClient` 回调接收并提交服务端校验，成功后通过
+   `PurchaseState.Succeeded` 回流；Activity 不再转发购买结果。
 4. 应用启动、登录、回到前台时 `refresh()`；离线时使用带到期时间的本地缓存。
 5. 订阅到期、退款、撤销后自动降级为免费账号，学习数据保留。
 
 ### 合规
 
-- 订阅价格、周期、自动续费说明由 Google Play 商品信息展示，客户端另提供会员协议与退款说明。
+- 订阅价格、周期、自动续费说明由 Google Play 商品信息展示，客户端另提供自动续费说明。
 - 恢复购买入口：调用 `queryPurchasesAsync` 重新校验并恢复权益。
+- 已订阅用户可在会员页打开 Google Play 订阅管理页取消或变更订阅。
+
+### 客户端接入现状（2026-11）
+
+- **商品 ID**：读取 Gradle 属性 `playSubscriptionProductIds`（默认 `premium`，逗号分隔），
+  必须与 Play Console 中已启用的订阅商品一致；价格与周期完全使用 Play 返回的本地化文案。
+- **入口开关**：会员页读取公开配置 `features.subscriptions`；服务端关闭时展示“订阅即将上线”，
+  不出现可点击的假购买入口。`PROFILE` 页的会员卡片始终可见，但同样受该开关控制。
+- **接口**：`GET /api/v1/subscriptions/me` 与 `POST /api/v1/subscriptions/google-play/verify`
+  （旧文档中的 membership 路径在 404 时作为兼容回退）；verify 请求携带 `Idempotency-Key`，
+  body 为 `{productId, purchaseToken, obfuscatedAccountId}`。
+- **账号绑定**：`obfuscatedAccountId` 为登录用户 ID 的 SHA-256 十六进制串，
+  服务端校验时需使用相同算法；HTTP 日志对 purchaseToken 与该字段整段脱敏。
+- **服务端前置条件**：verify 需调用 Google Play Developer API 校验订阅、acknowledge 非测试购买，
+  并接入 RTDN 处理续费/退款/到期；这些未就绪前，客户端购买会以校验失败结束。
+- **功能开关与接口均未就绪时**：登录用户仍可通过服务端 `users.plan` 基线显示会员状态，
+  但无法完成新的订阅购买。
 
 ## 5. 现状差距
 
@@ -247,8 +268,8 @@ interface MembershipBackend {
 建议顺序与要点：
 
 1. **Google Play 订阅**：引入 Play Billing Library；实现 `GooglePlayMembershipBackend`；
-   服务端新增 `GET /api/v1/membership`、`POST /api/v1/membership/google-play/verify`，
-   并接入 RTDN。客户端加会员卡片、权益 BottomSheet、恢复购买、到期降级。
+   服务端新增 `GET /api/v1/subscriptions/me`、`POST /api/v1/subscriptions/google-play/verify`，
+   并接入 RTDN。客户端加会员卡片、权益页、恢复购买、到期降级。
 2. **AI 翻译**（已完成客户端接入）：浮窗译文区增加 AI 图标，上传字幕区域截图与前后字幕
    上下文，由服务端同时纠正原文并精译；服务端校验会员与每日额度，超限返回统一错误码
    并映射为升级/额度提示；失败保留基础翻译。

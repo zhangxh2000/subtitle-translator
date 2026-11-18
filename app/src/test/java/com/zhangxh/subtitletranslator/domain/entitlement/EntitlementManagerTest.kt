@@ -5,7 +5,11 @@ import com.zhangxh.subtitletranslator.domain.auth.AuthEvent
 import com.zhangxh.subtitletranslator.domain.auth.AuthManager
 import com.zhangxh.subtitletranslator.domain.auth.AuthState
 import com.zhangxh.subtitletranslator.domain.auth.AuthUser
+import com.zhangxh.subtitletranslator.domain.error.AppError
 import com.zhangxh.subtitletranslator.domain.membership.IMembershipRepository
+import com.zhangxh.subtitletranslator.domain.membership.MembershipException
+import com.zhangxh.subtitletranslator.domain.membership.PurchaseState
+import com.zhangxh.subtitletranslator.domain.membership.SubscriptionOffer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -96,6 +100,12 @@ class EntitlementManagerTest {
         initial: Membership = Membership()
     ) : IMembershipRepository {
         override val membership: StateFlow<Membership> = MutableStateFlow(initial)
-        override suspend fun refresh() = Unit
+        override val offers: StateFlow<List<SubscriptionOffer>> = MutableStateFlow(emptyList())
+        override val purchaseState: StateFlow<PurchaseState> = MutableStateFlow(PurchaseState.Idle)
+        override suspend fun refresh(force: Boolean) = Unit
+        override suspend fun loadOffers(): Result<List<SubscriptionOffer>> =
+            Result.failure(MembershipException(AppError.BILLING_OFFERS_UNAVAILABLE))
+        override suspend fun restorePurchases(): Result<Membership> =
+            Result.failure(MembershipException(AppError.BILLING_NO_PURCHASE_FOUND))
     }
 }

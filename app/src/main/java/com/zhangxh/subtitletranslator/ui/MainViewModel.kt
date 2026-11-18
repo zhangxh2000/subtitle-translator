@@ -16,6 +16,7 @@ import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
 import com.zhangxh.subtitletranslator.domain.auth.AuthEvent
 import com.zhangxh.subtitletranslator.domain.auth.AuthManager
+import com.zhangxh.subtitletranslator.domain.membership.IMembershipRepository
 import com.zhangxh.subtitletranslator.service.FloatingButtonService
 import com.zhangxh.subtitletranslator.ui.common.Event
 import com.zhangxh.subtitletranslator.ui.common.UiText
@@ -37,7 +38,9 @@ sealed class MainEvent {
 class MainViewModel @JvmOverloads constructor(
     application: Application,
     private val authManager: AuthManager =
-        (application as SubtitleTranslatorApplication).container.sessionManager
+        (application as SubtitleTranslatorApplication).container.sessionManager,
+    private val membershipRepository: IMembershipRepository =
+        (application as SubtitleTranslatorApplication).container.membershipRepository
 ) : AndroidViewModel(application) {
 
     private val _serviceRunning = MutableLiveData(FloatingButtonService.isRunning())
@@ -104,6 +107,8 @@ class MainViewModel @JvmOverloads constructor(
             awaitingOverlayPermission = false
             checkOverlayPermission()
         }
+        // 回到前台时校准会员状态（续费、退款由服务端 RTDN 更新，仓库内部有节流）
+        viewModelScope.launch { membershipRepository.refresh(force = false) }
     }
 
     fun onPermissionsResult(granted: Boolean) {

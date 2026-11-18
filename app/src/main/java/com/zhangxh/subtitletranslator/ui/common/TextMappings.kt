@@ -5,6 +5,7 @@ import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.domain.auth.AuthErrorCode
 import com.zhangxh.subtitletranslator.domain.error.AppError
 import com.zhangxh.subtitletranslator.domain.error.TranslationError
+import com.zhangxh.subtitletranslator.domain.membership.SubscriptionPeriod
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
 import com.zhangxh.subtitletranslator.domain.speech.PronouncerError
 import com.zhangxh.subtitletranslator.domain.translator.Language
@@ -107,6 +108,28 @@ fun CaptureOrientation.labelRes(): Int = when (this) {
     CaptureOrientation.UNKNOWN -> R.string.orientation_unknown
 }
 
+/** 订阅套餐名称（按周/按月/按年…） */
+@StringRes
+fun SubscriptionPeriod.planTitleRes(): Int = when (this) {
+    SubscriptionPeriod.WEEK -> R.string.membership_plan_weekly
+    SubscriptionPeriod.MONTH -> R.string.membership_plan_monthly
+    SubscriptionPeriod.QUARTER -> R.string.membership_plan_quarterly
+    SubscriptionPeriod.HALF_YEAR -> R.string.membership_plan_half_yearly
+    SubscriptionPeriod.YEAR -> R.string.membership_plan_yearly
+    SubscriptionPeriod.OTHER -> R.string.membership_plan_other
+}
+
+/** 价格后缀里的计费周期单位 */
+@StringRes
+fun SubscriptionPeriod.periodLabelRes(): Int = when (this) {
+    SubscriptionPeriod.WEEK -> R.string.membership_period_week
+    SubscriptionPeriod.MONTH -> R.string.membership_period_month
+    SubscriptionPeriod.QUARTER -> R.string.membership_period_quarter
+    SubscriptionPeriod.HALF_YEAR -> R.string.membership_period_half_year
+    SubscriptionPeriod.YEAR -> R.string.membership_period_year
+    SubscriptionPeriod.OTHER -> R.string.membership_period_other
+}
+
 @StringRes
 fun AppError.messageRes(): Int = when (this) {
     AppError.CAPTURE_FAILED -> R.string.error_capture_failed
@@ -122,6 +145,14 @@ fun AppError.messageRes(): Int = when (this) {
     AppError.TRANSLATION_SERVICE_UNAVAILABLE -> R.string.error_translation_service_unavailable
     AppError.TRANSLATION_RATE_LIMITED -> R.string.error_translation_rate_limited
     AppError.MEMBERSHIP_REQUIRED -> R.string.error_ai_membership_required
+    AppError.MEMBERSHIP_LOGIN_REQUIRED -> R.string.error_membership_login_required
+    AppError.BILLING_UNAVAILABLE -> R.string.error_billing_unavailable
+    AppError.BILLING_OFFERS_UNAVAILABLE -> R.string.error_billing_offers_unavailable
+    AppError.BILLING_PURCHASE_FAILED -> R.string.error_billing_purchase_failed
+    AppError.BILLING_PURCHASE_PENDING -> R.string.error_billing_purchase_pending
+    AppError.BILLING_ALREADY_SUBSCRIBED -> R.string.error_billing_already_subscribed
+    AppError.BILLING_VERIFICATION_FAILED -> R.string.error_billing_verification_failed
+    AppError.BILLING_NO_PURCHASE_FOUND -> R.string.error_billing_no_purchase_found
     AppError.NO_SUBTITLE_DETECTED -> R.string.error_no_subtitle_detected
     AppError.INVALID_IMAGE -> R.string.error_invalid_image
     AppError.SOURCE_LANGUAGE_REQUIRED -> R.string.error_source_language_required

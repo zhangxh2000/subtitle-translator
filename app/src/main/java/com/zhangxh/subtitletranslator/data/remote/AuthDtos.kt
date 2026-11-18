@@ -3,6 +3,7 @@ package com.zhangxh.subtitletranslator.data.remote
 import com.zhangxh.subtitletranslator.domain.auth.AuthTokens
 import com.zhangxh.subtitletranslator.domain.auth.AuthUser
 import com.zhangxh.subtitletranslator.domain.config.AppConfig
+import com.zhangxh.subtitletranslator.domain.entitlement.Plan
 import com.zhangxh.subtitletranslator.domain.config.FeatureFlags
 import com.zhangxh.subtitletranslator.domain.config.LanguagePair
 import com.zhangxh.subtitletranslator.domain.config.LegalVersions
@@ -22,7 +23,9 @@ data class UserDto(
     val displayName: String?,
     val status: String,
     val createdAt: String?,
-    val updatedAt: String?
+    val updatedAt: String?,
+    /** 服务端账号等级：free / member；旧服务端没有该字段时按免费处理 */
+    val plan: String? = null
 )
 
 data class TokensDto(
@@ -117,7 +120,8 @@ fun UserDto.toDomain(): AuthUser = AuthUser(
     displayName = displayName,
     status = status,
     createdAt = createdAt.toInstantOrNull(),
-    updatedAt = updatedAt.toInstantOrNull()
+    updatedAt = updatedAt.toInstantOrNull(),
+    plan = if (plan.equals("member", ignoreCase = true)) Plan.MEMBER else Plan.FREE
 )
 
 /** Token 时间解析失败属于无效响应，由调用方映射成 INVALID_RESPONSE */

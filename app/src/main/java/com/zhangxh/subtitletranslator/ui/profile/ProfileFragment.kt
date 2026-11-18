@@ -14,10 +14,15 @@ import com.zhangxh.subtitletranslator.BuildConfig
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
 import com.zhangxh.subtitletranslator.domain.auth.AuthState
+import com.zhangxh.subtitletranslator.domain.entitlement.Plan
 import com.zhangxh.subtitletranslator.ui.LanguageSettingsActivity
 import com.zhangxh.subtitletranslator.ui.SettingsActivity
 import com.zhangxh.subtitletranslator.ui.auth.RegisterActivity
 import com.zhangxh.subtitletranslator.ui.common.auth.LoginGate
+import com.zhangxh.subtitletranslator.ui.membership.MembershipActivity
+import java.text.DateFormat
+import java.time.Instant
+import java.util.Date
 
 /**
  * 我的 Tab
@@ -31,6 +36,8 @@ class ProfileFragment : Fragment() {
     private lateinit var loginGate: LoginGate
 
     private lateinit var loading: View
+    private lateinit var membershipCard: View
+    private lateinit var tvMembershipSubtitle: TextView
     private lateinit var guestGroup: View
     private lateinit var userGroup: View
     private lateinit var tvAvatar: TextView
@@ -58,6 +65,8 @@ class ProfileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         loading = view.findViewById(R.id.profileLoading)
+        membershipCard = view.findViewById(R.id.membershipCard)
+        tvMembershipSubtitle = view.findViewById(R.id.tvMembershipSubtitle)
         guestGroup = view.findViewById(R.id.guestGroup)
         userGroup = view.findViewById(R.id.userGroup)
         tvAvatar = view.findViewById(R.id.tvAvatar)
@@ -66,6 +75,13 @@ class ProfileFragment : Fragment() {
         tvVerified = view.findViewById(R.id.tvVerified)
         btnLogout = view.findViewById(R.id.btnLogout)
 
+        membershipCard.setOnClickListener {
+            if (viewModel.uiState.value?.authState is AuthState.LoggedIn) {
+                startActivity(Intent(requireContext(), MembershipActivity::class.java))
+            } else {
+                loginGate.launchLoginDirectly()
+            }
+        }
         view.findViewById<View>(R.id.btnGuestLogin).setOnClickListener {
             loginGate.launchLoginDirectly()
         }
@@ -91,18 +107,22 @@ class ProfileFragment : Fragment() {
         when (val auth = state.authState) {
             AuthState.Loading -> {
                 loading.isVisible = true
+                membershipCard.isVisible = false
                 guestGroup.isVisible = false
                 userGroup.isVisible = false
                 btnLogout.isVisible = false
             }
             AuthState.Guest -> {
                 loading.isVisible = false
+                membershipCard.isVisible = true
+                tvMembershipSubtitle.setText(R.string.profile_membership_subtitle_guest)
                 guestGroup.isVisible = true
                 userGroup.isVisible = false
                 btnLogout.isVisible = false
             }
             is AuthState.LoggedIn -> {
                 loading.isVisible = false
+                renderMembership(state)
                 guestGroup.isVisible = false
                 userGroup.isVisible = true
                 btnLogout.isVisible = true
@@ -124,6 +144,23 @@ class ProfileFragment : Fragment() {
             }
         }
     }
+
+    private fun renderMembership(state: ProfileUiState) {
+        membershipCard.isVisible = true
+        val subtitle = when {
+            state.plan != Plan.MEMBER ->
+                getString(R.string.profile_membership_subtitle_free)
+            state.membershipExpiresAt != null -> getString(
+                R.string.profile_membership_subtitle_member,
+                formatDate(state.membershipExpiresAt)
+            )
+            else -> getString(R.string.profile_membership_subtitle_member_no_expiry)
+        }
+        tvMembershipSubtitle.text = subtitle
+    }
+
+    private fun formatDate(instant: Instant): String =
+        DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date.from(instant))
 
     private fun showAbout() {
         MaterialAlertDialogBuilder(requireContext())

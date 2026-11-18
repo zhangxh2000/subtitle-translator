@@ -14,11 +14,14 @@ import com.zhangxh.subtitletranslator.data.auth.TokenRefresher
 import com.zhangxh.subtitletranslator.data.config.RemoteConfigRepository
 import com.zhangxh.subtitletranslator.data.entitlement.EntitlementManager
 import com.zhangxh.subtitletranslator.data.history.SqliteTranslationHistoryRepository
-import com.zhangxh.subtitletranslator.data.membership.DefaultMembershipBackend
+import com.zhangxh.subtitletranslator.data.membership.MembershipCache
 import com.zhangxh.subtitletranslator.data.membership.MembershipRepositoryImpl
+import com.zhangxh.subtitletranslator.data.membership.googleplay.GooglePlayMembershipBackend
+import com.zhangxh.subtitletranslator.data.membership.googleplay.PlayPurchaseLauncher
 import com.zhangxh.subtitletranslator.data.net.NetworkMonitor
 import com.zhangxh.subtitletranslator.data.remote.AiTranslationApi
 import com.zhangxh.subtitletranslator.data.remote.AuthApi
+import com.zhangxh.subtitletranslator.data.remote.MembershipApi
 import com.zhangxh.subtitletranslator.data.remote.RetrofitFactory
 import com.zhangxh.subtitletranslator.data.remote.SentenceApi
 import com.zhangxh.subtitletranslator.data.remote.TranslationApi
@@ -96,12 +99,22 @@ class AppContainer(context: Context) {
     /**
      * 会员状态与权限判断
      *
-     * 当前渠道未接入订阅，所有登录用户都是免费账号；
-     * 后续替换 [membershipBackend] 即可接入 Google Play 或其它渠道，上层无需改动。
+     * Google Play 是当前订阅渠道；购买 token 只提交给自有后端校验，
+     * 客户端本地状态仅用于入口展示。其它分发渠道替换 backend 即可，上层无需改动。
      */
-    private val membershipBackend = DefaultMembershipBackend()
-    val membershipRepository: IMembershipRepository =
-        MembershipRepositoryImpl(membershipBackend, appScope)
+    private val googlePlayMembershipBackend = GooglePlayMembershipBackend(
+        context = context,
+        api = authRetrofit.create(MembershipApi::class.java),
+        authManager = sessionManager,
+        scope = appScope
+    )
+    val membershipRepository: IMembershipRepository = MembershipRepositoryImpl(
+        backend = googlePlayMembershipBackend,
+        authManager = sessionManager,
+        cache = MembershipCache(context),
+        scope = appScope
+    )
+    val playPurchaseLauncher: PlayPurchaseLauncher = googlePlayMembershipBackend
     val entitlementManager: IEntitlementManager =
         EntitlementManager(sessionManager, membershipRepository, appScope)
 

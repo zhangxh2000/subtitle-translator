@@ -30,7 +30,7 @@ class HttpLoggingInterceptor : Interceptor {
 
         /** 只保留 key，值统一替换为 *** */
         val SENSITIVE_FIELD = Regex(
-            """("(?:password|newPassword|oldPassword|confirmPassword|accessToken|refreshToken|token|secret|email)"\s*:\s*)"(?:[^"\\]|\\.)*"""",
+            """("(?:password|newPassword|oldPassword|confirmPassword|accessToken|refreshToken|purchaseToken|obfuscatedAccountId|token|secret|email)"\s*:\s*)"(?:[^"\\]|\\.)*"""",
             RegexOption.IGNORE_CASE
         )
     }

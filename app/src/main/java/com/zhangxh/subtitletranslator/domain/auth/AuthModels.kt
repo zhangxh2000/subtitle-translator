@@ -1,11 +1,14 @@
 package com.zhangxh.subtitletranslator.domain.auth
 
+import com.zhangxh.subtitletranslator.domain.entitlement.Plan
 import java.time.Instant
 
 /**
  * 登录用户
  *
  * 只保留界面需要的字段；服务端新增字段时客户端忽略即可。
+ * [plan] 是服务端下发的账号等级基线，订阅接口返回的会员状态会覆盖它；
+ * 它不能替代服务端对 AI 请求的实时校验。
  */
 data class AuthUser(
     val id: String,
@@ -14,7 +17,8 @@ data class AuthUser(
     val displayName: String?,
     val status: String,
     val createdAt: Instant?,
-    val updatedAt: Instant?
+    val updatedAt: Instant?,
+    val plan: Plan = Plan.FREE
 ) {
     /** 展示名优先用昵称，其次邮箱，最后用户 ID */
     val displayLabel: String
