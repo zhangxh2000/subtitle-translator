@@ -18,6 +18,17 @@
     <color name="status_bg">#FF16200F</color>
     <color name="status_stroke">#FF334C25</color>
 
+    <!-- 翻译浮窗（夜间模式保持深色高对比分层） -->
+    <color name="overlay_canvas_bg">#FF14161B</color>
+    <color name="overlay_canvas_stroke">#FF2A2D36</color>
+    <color name="overlay_card_bg">#FF1E2027</color>
+    <color name="overlay_card_stroke">#FF2E323C</color>
+    <color name="overlay_control_bg">#FF22252D</color>
+    <color name="overlay_control_stroke">#FF323640</color>
+    <color name="overlay_ai_pill_bg">#FF263112</color>
+    <color name="overlay_ai_pill_stroke">#FF44591D</color>
+    <color name="overlay_ai_pill_text">#FFD6F67A</color>
+
     <color name="accent">#FFB9E64B</color>
     <color name="accent_dim">#FFCBE97F</color>
     <color name="on_accent">#FF101114</color>

@@ -130,6 +130,33 @@ class TranslationOverlayView @JvmOverloads constructor(
         lp.weight = 0f
         scroll.layoutParams = lp
 
+        // 横屏双栏布局里，外层双栏行与右侧生词列也是 0dp/match_parent，自然测量时需同步临时还原为 wrap_content
+        val bodyRow = findViewById<View>(R.id.overlayBodyRow)
+        val bodyLp = bodyRow?.layoutParams as? LinearLayout.LayoutParams
+        val savedBodyHeight = bodyLp?.height
+        val savedBodyWeight = bodyLp?.weight
+        if (bodyLp != null) {
+            bodyLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            bodyLp.weight = 0f
+            bodyRow.layoutParams = bodyLp
+        }
+
+        val wordsCol = findViewById<View>(R.id.wordsColumn)
+        val wordsColLp = wordsCol?.layoutParams as? LinearLayout.LayoutParams
+        val savedWordsColHeight = wordsColLp?.height
+        if (wordsColLp != null) {
+            wordsColLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            wordsCol.layoutParams = wordsColLp
+        }
+
+        val heroCard = findViewById<View>(R.id.subtitleHeroCard)
+        val heroLp = heroCard?.layoutParams as? LinearLayout.LayoutParams
+        val savedHeroHeight = heroLp?.height
+        if (heroLp != null) {
+            heroLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            heroCard.layoutParams = heroLp
+        }
+
         // 自然测量时面板不能是 match_parent，否则会按可用高度撑满
         val panel = getChildAt(0)
         val panelLp = panel?.layoutParams as? LinearLayout.LayoutParams
@@ -148,6 +175,19 @@ class TranslationOverlayView @JvmOverloads constructor(
         if (panelLp != null) {
             panelLp.height = savedPanelHeight ?: ViewGroup.LayoutParams.MATCH_PARENT
             panel.layoutParams = panelLp
+        }
+        if (heroLp != null) {
+            heroLp.height = savedHeroHeight ?: ViewGroup.LayoutParams.WRAP_CONTENT
+            heroCard.layoutParams = heroLp
+        }
+        if (wordsColLp != null) {
+            wordsColLp.height = savedWordsColHeight ?: ViewGroup.LayoutParams.MATCH_PARENT
+            wordsCol.layoutParams = wordsColLp
+        }
+        if (bodyLp != null) {
+            bodyLp.height = savedBodyHeight ?: 0
+            bodyLp.weight = savedBodyWeight ?: 1f
+            bodyRow.layoutParams = bodyLp
         }
         lp.height = savedHeight
         lp.weight = savedWeight
@@ -169,8 +209,8 @@ class TranslationOverlayView @JvmOverloads constructor(
             visibility = if (result.originalText.isBlank()) View.GONE else View.VISIBLE
         }
 
-        // 译文
-        findViewById<TextView>(R.id.tvTranslatedText)?.text = result.translatedText
+                // 译文在横屏左栏里一行约 10~11 个汉字，设为 break_strategy=balanced 让两行长短均匀，避免单字孤行
+                findViewById<TextView>(R.id.tvTranslatedText)?.text = result.translatedText
 
         // AI 状态：新一轮基础翻译默认回到暗色
         setAiTranslated(aiTranslated)
@@ -291,10 +331,10 @@ class TranslationOverlayView @JvmOverloads constructor(
         val label = findViewById<TextView>(R.id.tvAiTranslateLabel)
         val highlighted = aiLoading || aiTranslated
         val fgColor = context.getColor(
-            if (highlighted) R.color.on_accent_container else R.color.text_secondary
+            if (highlighted) R.color.on_accent else R.color.overlay_ai_pill_text
         )
         val bgColor = context.getColor(
-            if (highlighted) R.color.accent_container else R.color.surface_variant
+            if (highlighted) R.color.accent else R.color.overlay_ai_pill_bg
         )
 
         button.isEnabled = !aiLoading
@@ -356,6 +396,9 @@ class TranslationOverlayView @JvmOverloads constructor(
 
     private fun bindSavedState(button: android.widget.ImageButton, saved: Boolean) {
         button.setImageResource(if (saved) R.drawable.ic_bookmark else R.drawable.ic_bookmark_border)
+        button.imageTintList = ColorStateList.valueOf(
+            context.getColor(if (saved) R.color.accent else R.color.text_secondary)
+        )
         button.contentDescription = context.getString(
             if (saved) R.string.action_unsave_word else R.string.action_save_word
         )
@@ -370,6 +413,9 @@ class TranslationOverlayView @JvmOverloads constructor(
     fun setSentenceSaved(saved: Boolean) {
         findViewById<android.widget.ImageButton>(R.id.btnSaveSentence)?.apply {
             setImageResource(if (saved) R.drawable.ic_bookmark else R.drawable.ic_bookmark_border)
+            imageTintList = ColorStateList.valueOf(
+                context.getColor(if (saved) R.color.accent else R.color.text_secondary)
+            )
             contentDescription = context.getString(
                 if (saved) R.string.action_unsave_sentence else R.string.action_save_sentence
             )
@@ -455,22 +501,9 @@ class TranslationOverlayView @JvmOverloads constructor(
                 findViewById<TextView>(R.id.tvWord)?.text = wordEntry.word
                 findViewById<TextView>(R.id.tvPhonetic)?.text = wordEntry.phonetic
 
-                // 释义：词性用强调色，释义本身保持中性色
-                val meaningsText = SpannableStringBuilder()
-                wordEntry.meanings.forEachIndexed { index, meaning ->
-                    if (index > 0) meaningsText.append("\n")
-                    if (meaning.partOfSpeech.isNotEmpty()) {
-                        val start = meaningsText.length
-                        meaningsText.append("[${meaning.partOfSpeech}] ")
-                        meaningsText.setSpan(
-                            ForegroundColorSpan(context.getColor(R.color.accent)),
-                            start,
-                            meaningsText.length,
-                            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                        )
-                    }
-                    meaningsText.append(meaning.chineseDefinition)
-                }
+                // 释义：紧凑内联排版（每个词性精选前 3 个核心词义，词性之间用 · 连接），
+                // 避免单个多义词把词卡撑得像整页词典。
+                val meaningsText = formatCompactMeanings(wordEntry)
                 findViewById<TextView>(R.id.tvMeanings)?.text = meaningsText
 
                 // 难度标签：低饱和底色 + 同色系文字
@@ -491,8 +524,11 @@ class TranslationOverlayView @JvmOverloads constructor(
 
                 // 点喇叭朗读单词。图标可点之后会吃掉自己的按下事件，
                 // 所以图标区域内长按不再冒泡到下面那个复制监听 —— 属预期行为。
-                findViewById<android.widget.ImageButton>(R.id.btnPronounce)?.setOnClickListener {
-                    onPronounceListener?.invoke(wordEntry.word)
+                findViewById<android.widget.ImageButton>(R.id.btnPronounce)?.apply {
+                    imageTintList = ColorStateList.valueOf(context.getColor(R.color.text_secondary))
+                    setOnClickListener {
+                        onPronounceListener?.invoke(wordEntry.word)
+                    }
                 }
 
                 // 收藏到生词库：tag 存归一化后的词键，服务异步查回收藏状态时按它匹配行
@@ -510,5 +546,48 @@ class TranslationOverlayView @JvmOverloads constructor(
                     true
                 }
             }
+    }
+
+    /**
+     * 将词条的多词性释义精简为高密度的单段文本：
+     * - 每个词性最多保留前 3 个同义词条，过滤词典里的冗余近义词堆砌；
+     * - 不同词性之间用 `  ·  ` 内联分隔，词性标签着色。
+     */
+    private fun formatCompactMeanings(wordEntry: WordEntry): SpannableStringBuilder {
+        val builder = SpannableStringBuilder()
+        val accentColor = context.getColor(R.color.accent)
+        val dividerColor = context.getColor(R.color.text_secondary)
+
+        wordEntry.meanings.take(3).forEachIndexed { index, meaning ->
+            if (index > 0) {
+                val sepStart = builder.length
+                builder.append("  ·  ")
+                builder.setSpan(
+                    ForegroundColorSpan(dividerColor),
+                    sepStart,
+                    builder.length,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+            if (meaning.partOfSpeech.isNotEmpty()) {
+                val posStart = builder.length
+                builder.append("${meaning.partOfSpeech} ")
+                builder.setSpan(
+                    ForegroundColorSpan(accentColor),
+                    posStart,
+                    builder.length,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+            val concise = meaning.chineseDefinition
+                .split(Regex("[;；,，、]"))
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .take(3)
+                .joinToString("，")
+                .ifEmpty { meaning.chineseDefinition }
+            builder.append(concise)
+        }
+        return builder
     }
 }

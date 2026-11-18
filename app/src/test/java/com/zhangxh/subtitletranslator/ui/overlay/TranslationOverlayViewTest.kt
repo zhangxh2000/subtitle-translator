@@ -130,20 +130,36 @@ class TranslationOverlayViewTest {
             content.height > scroll.height
         )
 
-        // 内容再高，底部操作栏也必须留在面板内，不能被挤出窗口
+        // 内容再高，底部收起条也必须留在面板内，不能被挤出窗口
         val collapse = requireNotNull(overlay.findViewById<View>(R.id.btnCollapse))
-        val footerBar = collapse.parent as View
         val panelRoot = overlay.getChildAt(0)
+        val scrollBottomInPanel = run {
+            var y = scroll.bottom
+            var p = scroll.parent as? View
+            while (p != null && p !== panelRoot) {
+                y += p.top
+                p = p.parent as? View
+            }
+            y
+        }
+        val collapseTopInPanel = if (collapse.parent === panelRoot) {
+            collapse.top
+        } else {
+            (collapse.parent as View).top
+        }
+        val collapseBottomInPanel = if (collapse.parent === panelRoot) {
+            collapse.bottom
+        } else {
+            (collapse.parent as View).bottom
+        }
         assertTrue(
-            "底部操作栏被挤出面板：footer=${footerBar.top}..${footerBar.bottom}, panel=$capped, " +
-                "overlay=${overlay.measuredHeight}, panelRoot=${panelRoot.measuredHeight}, " +
-                "scroll=${scroll.top}..${scroll.bottom}/${scroll.measuredHeight}",
-            footerBar.bottom <= capped
+            "底部操作栏被挤出面板：footer=$collapseTopInPanel..$collapseBottomInPanel, panel=$capped, " +
+                "overlay=${overlay.measuredHeight}, panelRoot=${panelRoot.measuredHeight}",
+            collapseBottomInPanel <= capped
         )
         assertTrue(
-            "底部操作栏应与滚动区不重叠：scroll=${scroll.top}..${scroll.bottom}, " +
-                "footer=${footerBar.top}..${footerBar.bottom}",
-            footerBar.top >= scroll.bottom
+            "底部操作栏应与滚动区不重叠：scrollBottom=$scrollBottomInPanel, footerTop=$collapseTopInPanel",
+            collapseTopInPanel >= scrollBottomInPanel
         )
     }
 

@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  翻译结果覆盖层（横屏双栏：左句右词 + 顶部一体化导航栏 + 云灰画布与纯白卡片）
+
+  横屏宽度充裕但垂直高度极宝贵：
+  1. 顶部一体化工具栏聚合「AI 翻译纠错」「整句收藏」「上一句」「下一句」「关闭」，
+     释放近 40dp 纵向空间给双栏主体。
+  2. 左侧 43% 宽度固定展示「字幕双语主舞台卡片」（带品牌竖向饰条），永远不会因滚看生词而消失。
+  3. 右侧 57% 宽度独立承载「重点词汇」滚动列表，首屏即可同时完整展示字幕与 2 张精炼词卡。
+  4. 底部保留超薄居中「^ 收起面板后继续观看」轻触提示条。
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="12dp"
+    android:orientation="vertical"
+    android:background="@drawable/bg_translation_overlay"
+    android:paddingHorizontal="18dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="6dp">
+
+    <!-- 顶部一体化工具栏（固定）：左侧 AI 翻译纠错，右侧整句收藏 + 上一句/下一句 + 关闭 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:baselineAligned="false">
+
+        <!-- AI 精译：左侧品牌微描边胶囊，请求中图标旋转，完成后高亮 -->
+        <LinearLayout
+            android:id="@+id/btnAiTranslate"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/touch_target"
+            android:background="@drawable/bg_ai_pill_button"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="14dp"
+            android:contentDescription="@string/overlay_ai_translate">
+
+            <ImageView
+                android:id="@+id/ivAiTranslateIcon"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:importantForAccessibility="no"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_ai_translate" />
+
+            <TextView
+                android:id="@+id/tvAiTranslateLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:maxLines="1"
+                android:text="@string/overlay_ai_translate"
+                android:textColor="@color/overlay_ai_pill_text"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <!-- 整句收藏 -->
+        <ImageButton
+            android:id="@+id/btnSaveSentence"
+            android:layout_width="@dimen/touch_target"
+            android:layout_height="@dimen/touch_target"
+            android:background="@drawable/bg_nav_icon_button"
+            android:contentDescription="@string/action_save_sentence"
+            android:padding="13dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_bookmark_border"
+            app:tint="@color/text_secondary"
+            android:visibility="gone" />
+
+        <!-- 上一句 -->
+        <ImageButton
+            android:id="@+id/btnPreviousSubtitle"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:padding="13dp"
+            android:scaleType="fitCenter"
+            android:background="@drawable/bg_nav_icon_button"
+            android:src="@drawable/ic_skip_previous"
+            android:contentDescription="@string/overlay_previous_subtitle" />
+
+        <!-- 下一句 -->
+        <ImageButton
+            android:id="@+id/btnNextSubtitle"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:padding="13dp"
+            android:scaleType="fitCenter"
+            android:background="@drawable/bg_nav_icon_button"
+            android:src="@drawable/ic_skip_next"
+            android:contentDescription="@string/overlay_next_subtitle" />
+
+        <ImageButton
+            android:id="@+id/btnClose"
+            android:layout_width="@dimen/touch_target"
+            android:layout_height="@dimen/touch_target"
+            android:padding="13dp"
+            android:scaleType="fitCenter"
+            android:background="@drawable/bg_nav_icon_button"
+            android:src="@drawable/ic_close"
+            app:tint="@color/text_secondary"
+            android:contentDescription="@string/action_close" />
+    </LinearLayout>
+
+    <!--
+      中间双栏主体（0dp + weight=1）：
+      左栏固定字幕主卡片（不随右侧生词滚动），右栏为重点词汇标题 + ScrollView。
+    -->
+    <LinearLayout
+        android:id="@+id/overlayBodyRow"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal"
+        android:baselineAligned="false">
+
+        <!-- 左栏（43%）：固定字幕主舞台卡片 -->
+        <LinearLayout
+            android:id="@+id/subtitleHeroCard"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="0.43"
+            android:background="@drawable/bg_overlay_card"
+            android:orientation="horizontal"
+            android:paddingStart="14dp"
+            android:paddingTop="14dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="14dp">
+
+            <View
+                android:layout_width="3.5dp"
+                android:layout_height="match_parent"
+                android:layout_marginTop="2dp"
+                android:layout_marginBottom="2dp"
+                android:background="@drawable/bg_subtitle_accent_bar" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:orientation="vertical">
+
+                <!-- 译文：第一视觉焦点 -->
+                <TextView
+                    android:id="@+id/tvTranslatedText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:breakStrategy="balanced"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:lineSpacingMultiplier="1.32" />
+
+                <!-- 原文：紧随译文下方 -->
+                <TextView
+                    android:id="@+id/tvOriginalText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textSize="13.5sp"
+                    android:textColor="@color/text_secondary"
+                    android:lineSpacingMultiplier="1.35" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 右栏（57%）：重点词汇标题 + 独立滚动词卡列表 -->
+        <LinearLayout
+            android:id="@+id/wordsColumn"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="0.57"
+            android:layout_marginStart="12dp"
+            android:orientation="vertical">
+
+            <!-- 重点词汇标题行：标题 + 词数 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="2dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/overlay_key_words"
+                    android:textAppearance="@style/TextAppearance.SubtitleTranslator.SectionLabel" />
+
+                <TextView
+                    android:id="@+id/tvWordCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="@style/TextAppearance.SubtitleTranslator.Caption"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <ScrollView
+                android:id="@+id/contentScroll"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:scrollbars="vertical">
+
+                <LinearLayout
+                    android:id="@+id/wordsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingBottom="2dp"
+                    android:orientation="vertical" />
+            </ScrollView>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 底部紧凑收起条（固定） -->
+    <LinearLayout
+        android:id="@+id/btnCollapse"
+        android:layout_width="match_parent"
+        android:layout_height="28dp"
+        android:layout_marginTop="2dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackground">
+
+        <ImageView
+            android:layout_width="15dp"
+            android:layout_height="15dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_expand_less"
+            app:tint="@color/text_secondary" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:text="@string/overlay_collapse_hint"
+            android:textSize="11.5sp"
+            android:textColor="@color/text_secondary" />
+    </LinearLayout>
+
+</LinearLayout>
