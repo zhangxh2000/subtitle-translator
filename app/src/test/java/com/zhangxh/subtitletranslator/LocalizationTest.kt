@@ -30,9 +30,9 @@ class LocalizationTest {
 
     @Test
     fun `app name is localized in all supported languages`() {
-        assertEquals("Subtitle Translator", contextFor("en").getString(R.string.app_name))
-        assertEquals("字幕翻译助手", contextFor("zh-Hans").getString(R.string.app_name))
-        assertEquals("字幕翻譯助手", contextFor("zh-Hant").getString(R.string.app_name))
+        assertEquals("SubPick", contextFor("en").getString(R.string.app_name))
+        assertEquals("字幕拾词", contextFor("zh-Hans").getString(R.string.app_name))
+        assertEquals("字幕拾詞", contextFor("zh-Hant").getString(R.string.app_name))
     }
 
     @Test

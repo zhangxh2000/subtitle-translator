@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- 通用 -->
-    <string name="app_name">字幕翻译助手</string>
+    <string name="app_name">字幕拾词</string>
     <string name="action_back">返回</string>
     <string name="action_close">关闭</string>
     <string name="action_share">分享</string>
@@ -34,7 +34,7 @@
     <string name="main_overlay_permission_hint">请开启悬浮窗权限</string>
     <string name="main_permissions_required">需要相关权限才能使用</string>
     <string name="main_projection_required">需要屏幕录制权限才能截图翻译</string>
-    <string name="main_service_started">字幕翻译助手已启动</string>
+    <string name="main_service_started">字幕拾词已启动</string>
     <string name="main_service_stopped">字幕翻译已停止</string>
 
     <!-- 翻译浮窗 -->
@@ -48,7 +48,7 @@
     <string name="overlay_navigation_not_found">没有找到相邻字幕</string>
     <string name="overlay_navigation_recognition_failed">无法识别字幕</string>
     <string name="overlay_navigation_permission_required">需要通知使用权才能在字幕之间跳转</string>
-    <string name="overlay_navigation_accessibility_required">请在系统无障碍设置中开启「字幕翻译助手诊断」，开启后重新翻译。</string>
+    <string name="overlay_navigation_accessibility_required">请在系统无障碍设置中开启「字幕拾词诊断」，开启后重新翻译。</string>
     <string name="overlay_navigation_progress_bar_missing">没有找到播放进度条，请确认播放控件可以显示</string>
     <string name="overlay_seeking_adjacent_subtitle">正在定位字幕…</string>
     <string name="overlay_ai_translate">AI 翻译纠错</string>
@@ -263,8 +263,8 @@
     <string name="guest_quota_phrase_reached">游客最多收藏 20 个短语，登录后不限量并云端备份</string>
     <string name="clipboard_label_translation">翻译结果</string>
     <string name="toast_copied">已复制到剪贴板</string>
-    <string name="media_notification_listener_label">字幕翻译助手媒体控制</string>
-    <string name="accessibility_service_label">字幕翻译助手诊断</string>
+    <string name="media_notification_listener_label">字幕拾词媒体控制</string>
+    <string name="accessibility_service_label">字幕拾词诊断</string>
     <string name="accessibility_service_description">用于读取当前播放器的进度条进行字幕跳转，控件隐藏时会在视频非中心区域点一下唤出控件；不会自动读取屏幕内容。</string>
     <string name="notification_channel_name">字幕翻译服务</string>
     <string name="notification_channel_description">保持字幕翻译悬浮窗运行</string>
@@ -436,7 +436,7 @@
 
     <!-- 关于 -->
     <string name="about_title">关于我们</string>
-    <string name="about_message">字幕翻译助手 %1$s\n\n识别屏幕上的字幕，并在悬浮窗中显示译文。</string>
+    <string name="about_message">字幕拾词 %1$s\n\n识别屏幕上的字幕，并在悬浮窗中显示译文。</string>
     <string name="about_terms_message">完整法律文本将在正式上线前提供。使用本应用即表示你已阅读并同意服务条款。</string>
     <string name="about_privacy_message">完整隐私政策将在正式上线前提供。截图仅在本机用于识别；选择云端引擎时，识别出的字幕文字会发送到应用的云端翻译服务；使用 AI 翻译时，裁剪后的字幕截图及最近的字幕上下文会发送到应用的云端翻译服务。收藏的词汇保存在本地，仅在登录后自动同步到你的账号。</string>
     <string name="about_ok">好的</string>
@@ -444,12 +444,12 @@
     <!-- 使用说明 -->
     <string name="help_title">怎么使用</string>
     <string name="help_subtitle">从启动悬浮翻译，到复习收藏的词汇。</string>
-    <string name="help_step_1_title">启动助手</string>
+    <string name="help_step_1_title">启动字幕拾词</string>
     <string name="help_step_1_desc">在首页点击「启动字幕翻译」，允许录屏和悬浮窗权限。</string>
     <string name="help_step_2_title">打开视频</string>
     <string name="help_step_2_desc">用任意会在屏幕上显示字幕的播放器播放视频。</string>
     <string name="help_step_3_title">点击悬浮球</string>
-    <string name="help_step_3_desc">助手会截取字幕、翻译并在悬浮窗中显示结果；用左右箭头切换上下句。</string>
+    <string name="help_step_3_desc">字幕拾词会截取字幕、翻译并在悬浮窗中显示结果；用左右箭头切换上下句。</string>
     <string name="help_step_4_title">复习收藏的内容</string>
     <string name="help_step_4_desc">收藏单词时会保留字幕上下文，可在「学习」页复习。</string>
     <string name="help_close">知道了</string>

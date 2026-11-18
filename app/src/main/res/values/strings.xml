@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- General -->
-    <string name="app_name">Subtitle Translator</string>
+    <string name="app_name">SubPick</string>
     <string name="action_back">Back</string>
     <string name="action_close">Close</string>
     <string name="action_share">Share</string>
@@ -39,7 +39,7 @@
     <string name="main_overlay_permission_hint">Please allow display over other apps</string>
     <string name="main_permissions_required">Permissions are required to use this feature</string>
     <string name="main_projection_required">Screen recording permission is required to translate subtitles</string>
-    <string name="main_service_started">Subtitle translator started</string>
+    <string name="main_service_started">SubPick started</string>
     <string name="main_service_stopped">Subtitle translation stopped</string>
 
     <!-- Translation overlay -->
@@ -53,7 +53,7 @@
     <string name="overlay_navigation_not_found">No adjacent subtitle found</string>
     <string name="overlay_navigation_recognition_failed">Could not read the subtitle</string>
     <string name="overlay_navigation_permission_required">Notification access is required to jump between subtitles</string>
-    <string name="overlay_navigation_accessibility_required">Enable “Subtitle Translator diagnostics” in Accessibility settings, then translate again.</string>
+    <string name="overlay_navigation_accessibility_required">Enable “SubPick diagnostics” in Accessibility settings, then translate again.</string>
     <string name="overlay_navigation_progress_bar_missing">Could not find the player\'s progress bar. Make sure playback controls are available.</string>
     <string name="overlay_seeking_adjacent_subtitle">Finding subtitle…</string>
     <string name="overlay_ai_translate">AI translation and correction</string>
@@ -268,8 +268,8 @@
     <string name="guest_quota_phrase_reached">Guest limit: 20 phrases. Sign in for unlimited cloud saves.</string>
     <string name="clipboard_label_translation">Translation result</string>
     <string name="toast_copied">Copied to clipboard</string>
-    <string name="media_notification_listener_label">Subtitle Translator media control</string>
-    <string name="accessibility_service_label">Subtitle Translator diagnostics</string>
+    <string name="media_notification_listener_label">SubPick media control</string>
+    <string name="accessibility_service_label">SubPick diagnostics</string>
     <string name="accessibility_service_description">Reads the current player\'s progress bar for subtitle navigation and may tap outside the video center to reveal playback controls. It does not read screen content automatically.</string>
     <string name="notification_channel_name">Subtitle translation service</string>
     <string name="notification_channel_description">Keeps the subtitle translation overlay running</string>
@@ -441,7 +441,7 @@
 
     <!-- About -->
     <string name="about_title">About</string>
-    <string name="about_message">Subtitle Translator %1$s\n\nReads on-screen subtitles and translates them in a floating window.</string>
+    <string name="about_message">SubPick %1$s\n\nReads on-screen subtitles and translates them in a floating window.</string>
     <string name="about_terms_message">The full legal text will be provided before release. By using this app, you confirm that you have read and accept the Terms of Service.</string>
     <string name="about_privacy_message">The full privacy policy will be provided before release. Screenshots are processed on your device for recognition; when a cloud engine is selected, the recognized subtitle text is sent to the app\'s translation service. When AI translation is used, the cropped subtitle image and recent subtitle context are sent to the app\'s translation service. Saved words stay on this device and sync automatically to your account only while you are signed in.</string>
     <string name="about_ok">OK</string>
@@ -449,12 +449,12 @@
     <!-- Help -->
     <string name="help_title">How to use</string>
     <string name="help_subtitle">From starting the floating assistant to reviewing words.</string>
-    <string name="help_step_1_title">Start the assistant</string>
+    <string name="help_step_1_title">Start SubPick</string>
     <string name="help_step_1_desc">Tap “Start subtitle translation” on Home and allow screen capture and display over other apps.</string>
     <string name="help_step_2_title">Open a video</string>
     <string name="help_step_2_desc">Play a video in any player that shows subtitles on screen.</string>
     <string name="help_step_3_title">Tap the floating ball</string>
-    <string name="help_step_3_desc">The assistant captures the subtitle, translates it and shows the result in the floating window. Use the arrows to move between lines.</string>
+    <string name="help_step_3_desc">SubPick captures the subtitle, translates it and shows the result in the floating window. Use the arrows to move between lines.</string>
     <string name="help_step_4_title">Review what you save</string>
     <string name="help_step_4_desc">Bookmark a word to keep its subtitle context, then review it in the Learning tab.</string>
     <string name="help_close">Got it</string>
