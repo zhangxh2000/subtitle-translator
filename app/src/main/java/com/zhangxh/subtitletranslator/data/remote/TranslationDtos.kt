@@ -39,5 +39,11 @@ data class TranslationQuotaDto(
     val used: Int? = null,
     val remaining: Int? = null,
     val resetAt: String? = null,
-    val unlimited: Boolean = false
+    val unlimited: Boolean = false,
+    /** 429 新契约：距离额度重置的秒数 */
+    val retryAfterSeconds: Long? = null,
+    /** 429 新契约：额度重置时刻（ISO-8601） */
+    val resetsAt: String? = null,
+    /** 429 新契约：服务端计算额度所用的时区 */
+    val timeZone: String? = null
 )

@@ -42,6 +42,7 @@ object RetrofitFactory {
     ): Retrofit {
         val client = OkHttpClient.Builder()
             .addInterceptor(BaseHeadersInterceptor())
+            .addInterceptor(TranslationHeadersInterceptor())
             .addInterceptor(AuthInterceptor(tokenProvider))
             .addInterceptor(AuthRetryInterceptor(tokenRefresher))
             .addInterceptor(HttpLoggingInterceptor())

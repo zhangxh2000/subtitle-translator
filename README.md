@@ -170,7 +170,8 @@
 - 游客额度只限制新增，已超限的存量仍可查看、复习和删除；短语额度同时统计短语与字幕句子收藏。
 - 翻译通道由登录态自动决定，设置页不再提供引擎选项：游客始终使用 ML Kit；登录用户优先云端。
 - 免费账号的云端额度按服务端自然日计数，每日 10 次；超额后服务端返回 429
-  `TRANSLATION_DAILY_QUOTA_EXCEEDED`，客户端回退 ML Kit 并每天最多提示一次「主应用受限」弹窗。
+  `QUOTA_EXCEEDED`，`error.details` 带 `limit` / `retryAfterSeconds` / `resetsAt` / `timeZone`，
+  客户端回退 ML Kit 并每天最多提示一次「主应用受限」弹窗。
 - 会员的云端额度由服务端标记为 `unlimited`，客户端不限制次数。
 - 学习历史目前只保存在本地，登录也不会同步到其他设备；会员同样没有云端历史。
 - 会员目前实际生效的差异只有 AI 图片精译；AI 字幕识别、语境分析、口语发现、练习生成尚未实现。
@@ -253,8 +254,10 @@ subtitle-translator/
 `subtitle-translator-server`，客户端只调用后端 `POST /api/v1/translations/text`。
 
 **额度协议**：成功响应在 `data.quota` 返回当日额度（`limit` / `used` / `remaining` /
-`resetAt` / `unlimited`）；超额返回 HTTP 429，错误码
-`TRANSLATION_DAILY_QUOTA_EXCEEDED`，`error.details.quota` 带同一结构。
+`resetAt` / `unlimited`）；超额返回 HTTP 429，错误码 `QUOTA_EXCEEDED`，`error.details`
+直接带 `limit` / `retryAfterSeconds` / `resetsAt` / `timeZone`。客户端兼容旧契约的
+`TRANSLATION_DAILY_QUOTA_EXCEEDED` + `error.details.quota`。翻译请求由 OkHttp 拦截器统一附加
+`X-Client-Timezone: <IANA 时区>`，服务端据此计算每日额度的重置时刻。
 客户端不主动查询额度（没有 GET quota 接口），只消费翻译响应里的字段并缓存最近一次结果：
 `remaining=0` 时直接走本地，避免重复请求；每个重置周期最多提示一次，提示后打开主应用的受限弹窗。
 登录、退出或账号切换后缓存自动失效。
@@ -423,6 +426,11 @@ python3 scripts/import_ecdict.py --csv ecdict.csv --lemma lemma.en.txt
 4. 悬浮窗位置会自动记忆，下次启动时恢复上次位置
 
 ## 最近更新
+
+- 云端额度协议跟进服务端变更：翻译请求新增 `X-Client-Timezone` 请求头；429 错误码改为
+  `QUOTA_EXCEEDED`，`error.details` 直接返回 `limit` / `retryAfterSeconds` / `resetsAt` /
+  `timeZone`。客户端兼容旧的 `TRANSLATION_DAILY_QUOTA_EXCEEDED` + `details.quota` 结构，
+  并在响应缺少 `remaining` 时按额度耗尽处理，避免继续发起注定失败的云端请求
 
 - 翻译通道改为按登录态自动选择，设置页移除「翻译引擎」选项：游客固定使用 ML Kit；
   登录用户优先云端文本翻译。免费账号每日 10 次（服务端计数），超额返回 429 后自动回退

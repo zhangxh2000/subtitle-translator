@@ -36,7 +36,16 @@ class CloudQuotaGuard(
 
     /** 服务端返回额度超限：写入缓存并通知界面（每个重置周期一次） */
     fun onQuotaExceeded(userId: String, quota: CloudTranslationQuota?) {
-        cache.save(userId, quota ?: CloudTranslationQuota(remaining = 0))
+        // 429 已明确表示额度耗尽；新契约的 details 没有 remaining，必须补成 0，
+        // 否则缓存会认为额度未知，后续仍会继续请求云端。
+        val exhausted = (quota ?: CloudTranslationQuota()).let {
+            if (it.unlimited) it else it.copy(remaining = 0)
+        }
+        Log.i(
+            TAG,
+            "云端额度超限: limit=${exhausted.limit ?: "-"}, resetAt=${exhausted.resetAt ?: "-"}"
+        )
+        cache.save(userId, exhausted)
         notifyIfExhausted(userId)
     }
 

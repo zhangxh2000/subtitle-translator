@@ -115,6 +115,8 @@ class BackendTranslatorTest {
         val error = result.exceptionOrNull() as TranslationException
         assertEquals(AppError.TRANSLATION_DAILY_QUOTA_EXCEEDED, error.error.code)
         assertEquals(10, error.error.quota?.limit)
+        assertEquals(0, error.error.quota?.remaining)
+        assertEquals(Instant.parse("2099-01-01T00:00:00Z"), error.error.quota?.resetAt)
         assertFalse(guard.canUseCloud("user-1"))
     }
 
@@ -144,9 +146,9 @@ class BackendTranslatorTest {
         val body = ResponseBody.create(
             MediaType.parse("application/json")!!,
             """
-            {"error":{"code":"TRANSLATION_DAILY_QUOTA_EXCEEDED","message":"quota",
-            "details":{"quota":{"limit":10,"used":10,"remaining":0,
-            "resetAt":"2099-01-01T00:00:00+08:00","unlimited":false}}}}
+            {"error":{"code":"QUOTA_EXCEEDED","message":"quota",
+            "details":{"limit":10,"retryAfterSeconds":3600,
+            "resetsAt":"2099-01-01T00:00:00Z","timeZone":"Asia/Shanghai"}}}
             """.trimIndent()
         )
         return HttpException(Response.error<Any>(429, body))

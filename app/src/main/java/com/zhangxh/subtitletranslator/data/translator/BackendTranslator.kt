@@ -154,7 +154,10 @@ class BackendTranslator(
                     Log.i(TAG, "云端翻译当日额度已用尽")
                     quotaGuard.onQuotaExceeded(userId, error.quota)
                 }
-                Log.w(TAG, "云端翻译失败: HTTP ${e.code()}, code=${error.code}")
+                Log.w(
+                    TAG,
+                    "云端翻译失败: HTTP ${e.code()}, code=${error.code}, detail=${error.detail}"
+                )
                 Result.failure(TranslationException(error, e))
             } catch (e: IOException) {
                 Log.w(TAG, "云端翻译网络异常: ${e.javaClass.simpleName}")

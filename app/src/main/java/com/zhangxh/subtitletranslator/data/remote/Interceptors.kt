@@ -8,6 +8,7 @@ import com.zhangxh.subtitletranslator.data.auth.TokenRefresher
 import okhttp3.Interceptor
 import okhttp3.Response
 import java.io.IOException
+import java.time.ZoneId
 import java.util.Locale
 
 /** 公共请求头：错误文案语言、客户端版本、平台 */
@@ -22,6 +23,25 @@ class BaseHeadersInterceptor : Interceptor {
             .header("User-Agent", "SubtitleTranslator/${BuildConfig.VERSION_NAME} (Android ${Build.VERSION.SDK_INT})")
             .build()
         return chain.proceed(request)
+    }
+}
+
+/**
+ * 翻译接口附加客户端时区
+ *
+ * 服务端按该时区计算每日免费额度的重置时刻；只加在 /translations/ 请求上，
+ * 登录、会员等其它接口不需要。
+ */
+class TranslationHeadersInterceptor : Interceptor {
+    override fun intercept(chain: Interceptor.Chain): Response {
+        val request = chain.request()
+        if (!request.url().encodedPath().contains("/translations/")) {
+            return chain.proceed(request)
+        }
+        val zoned = request.newBuilder()
+            .header("X-Client-Timezone", ZoneId.systemDefault().id)
+            .build()
+        return chain.proceed(zoned)
     }
 }
 
