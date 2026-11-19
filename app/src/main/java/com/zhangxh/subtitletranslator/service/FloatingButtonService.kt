@@ -62,6 +62,8 @@ import com.zhangxh.subtitletranslator.ui.floating.FloatingButtonWindow
 import com.zhangxh.subtitletranslator.ui.floating.NavigationStatusWindow
 import com.zhangxh.subtitletranslator.ui.floating.QuickMenuCallbacks
 import com.zhangxh.subtitletranslator.ui.floating.QuickMenuWindow
+import com.zhangxh.subtitletranslator.ui.floating.QuotaExceededWindow
+import com.zhangxh.subtitletranslator.ui.membership.MembershipActivity
 import com.zhangxh.subtitletranslator.ui.overlay.OverlayEffect
 import com.zhangxh.subtitletranslator.ui.overlay.OverlayMetricsProvider
 import com.zhangxh.subtitletranslator.ui.overlay.OverlayWindowCallbacks
@@ -74,6 +76,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import java.time.Instant
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
@@ -130,6 +133,7 @@ class FloatingButtonService : Service() {
     private var overlayWindow: TranslationOverlayWindow? = null
     private var quickMenuWindow: QuickMenuWindow? = null
     private var navigationStatusWindow: NavigationStatusWindow? = null
+    private var quotaExceededWindow: QuotaExceededWindow? = null
 
     private var translationCoordinator: ITranslationCoordinator? = null
     private var navigationController: SubtitleNavigationController? = null
@@ -231,6 +235,14 @@ class FloatingButtonService : Service() {
                 onDebugCapture = { openAppScreen(DebugCaptureActivity::class.java) }
             )
         )
+        quotaExceededWindow = QuotaExceededWindow(
+            context = this,
+            windowManager = windowManager,
+            metricsProvider = metricsProvider,
+            callbacks = QuotaExceededWindow.Callbacks(
+                onViewMembership = { openAppScreen(MembershipActivity::class.java) }
+            )
+        )
 
         observeCloudQuotaEvents()
     }
@@ -287,6 +299,7 @@ class FloatingButtonService : Service() {
         quickMenuWindow?.relayout()
         overlayWindow?.relayout()
         navigationStatusWindow?.relayout()
+        quotaExceededWindow?.relayout()
     }
 
     /**
@@ -559,28 +572,36 @@ class FloatingButtonService : Service() {
      * 云端额度用尽提示
      *
      * 翻译器在后台线程发现额度为 0 时只发事件，不能直接启动 Activity；
-     * 这里统一在主线程 Toast + 打开主应用的受限弹窗。每天最多触发一次。
+     * 这里优先在屏幕顶部弹悬浮提示，窗口不可用时回退到 Toast + 主应用弹窗。
+     * 每个重置周期最多触发一次。
      */
     private fun observeCloudQuotaEvents() {
         serviceScope.launch {
             cloudQuotaNotifier.events.collect { event ->
-                Log.i(TAG, "云端翻译额度用尽，打开受限提示: resetAt=${event.resetAt ?: "-"}")
-                Toast.makeText(
-                    this@FloatingButtonService,
-                    R.string.error_translation_daily_quota_exceeded,
-                    Toast.LENGTH_LONG
-                ).show()
-                openCloudQuotaDialog()
+                Log.i(TAG, "云端翻译额度用尽: resetAt=${event.resetAt ?: "-"}")
+                val shown = quotaExceededWindow?.show(event.resetAt) == true
+                if (shown) {
+                    Log.d(TAG, "已显示悬浮额度提示")
+                } else {
+                    Log.w(TAG, "悬浮额度提示不可用，回退到主界面弹窗")
+                    Toast.makeText(
+                        this@FloatingButtonService,
+                        R.string.error_translation_daily_quota_exceeded,
+                        Toast.LENGTH_LONG
+                    ).show()
+                    openCloudQuotaDialog(event.resetAt)
+                }
             }
         }
     }
 
-    private fun openCloudQuotaDialog() {
+    private fun openCloudQuotaDialog(resetAt: Instant?) {
         try {
             startActivity(
                 Intent(this, MainActivity::class.java).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                     putExtra(MainActivity.EXTRA_SHOW_CLOUD_QUOTA_EXCEEDED, true)
+                    putExtra(MainActivity.EXTRA_CLOUD_QUOTA_RESET_AT, resetAt?.toEpochMilli() ?: -1L)
                 }
             )
         } catch (e: Exception) {
@@ -672,6 +693,8 @@ class FloatingButtonService : Service() {
         quickMenuWindow = null
         navigationStatusWindow?.release()
         navigationStatusWindow = null
+        quotaExceededWindow?.release()
+        quotaExceededWindow = null
         overlayWindow?.release()
         overlayWindow = null
         mediaGate.release()
@@ -693,6 +716,7 @@ class FloatingButtonService : Service() {
     private fun releaseTranslationComponents() {
         quickMenuWindow?.dismiss()
         navigationStatusWindow?.hide()
+        quotaExceededWindow?.dismiss()
         overlayWindow?.hide(animated = false)
 
         presenter?.let { overlayPresenter ->

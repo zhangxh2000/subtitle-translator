@@ -6,8 +6,8 @@ import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.View
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -18,7 +18,9 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.progressindicator.CircularProgressIndicator
+import com.google.android.material.radiobutton.MaterialRadioButton
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
 import com.zhangxh.subtitletranslator.domain.membership.SubscriptionOffer
@@ -41,6 +43,8 @@ class MembershipActivity : BaseActivity() {
 
     private val viewModel: MembershipViewModel by viewModels()
 
+    private lateinit var toolbar: MaterialToolbar
+    private lateinit var restoreMenuItem: MenuItem
     private lateinit var membershipLoading: CircularProgressIndicator
     private lateinit var heroCard: View
     private lateinit var benefitsSection: View
@@ -53,9 +57,9 @@ class MembershipActivity : BaseActivity() {
     private lateinit var btnOffersRetry: MaterialButton
     private lateinit var tvOffersEmpty: TextView
     private lateinit var offersContainer: LinearLayout
+    private lateinit var purchaseFooter: View
     private lateinit var guestHint: TextView
     private lateinit var btnSubscribe: MaterialButton
-    private lateinit var btnRestore: MaterialButton
     private lateinit var tvLegal: TextView
     private lateinit var comingSoonSection: View
 
@@ -73,12 +77,21 @@ class MembershipActivity : BaseActivity() {
         setContentView(R.layout.activity_membership)
         bindViews()
 
-        findViewById<MaterialToolbar>(R.id.toolbar).apply {
+        toolbar.apply {
             setNavigationContentDescription(R.string.action_back)
             setNavigationOnClickListener { finish() }
+            setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    R.id.action_restore -> {
+                        viewModel.onRestoreClicked()
+                        true
+                    }
+                    else -> false
+                }
+            }
         }
+        restoreMenuItem = toolbar.menu.findItem(R.id.action_restore)
         btnSubscribe.setOnClickListener { viewModel.onSubscribeClicked() }
-        btnRestore.setOnClickListener { viewModel.onRestoreClicked() }
         btnManage.setOnClickListener { viewModel.onManageClicked() }
         btnOffersRetry.setOnClickListener { viewModel.reload() }
 
@@ -92,6 +105,7 @@ class MembershipActivity : BaseActivity() {
     }
 
     private fun bindViews() {
+        toolbar = findViewById(R.id.toolbar)
         membershipLoading = findViewById(R.id.membershipLoading)
         heroCard = findViewById(R.id.heroCard)
         benefitsSection = findViewById(R.id.benefitsSection)
@@ -104,9 +118,9 @@ class MembershipActivity : BaseActivity() {
         btnOffersRetry = findViewById(R.id.btnOffersRetry)
         tvOffersEmpty = findViewById(R.id.tvOffersEmpty)
         offersContainer = findViewById(R.id.offersContainer)
+        purchaseFooter = findViewById(R.id.purchaseFooter)
         guestHint = findViewById(R.id.tvGuestHint)
         btnSubscribe = findViewById(R.id.btnSubscribe)
-        btnRestore = findViewById(R.id.btnRestore)
         tvLegal = findViewById(R.id.tvLegal)
         comingSoonSection = findViewById(R.id.comingSoonSection)
     }
@@ -124,11 +138,12 @@ class MembershipActivity : BaseActivity() {
         }.orEmpty()
 
         val showPurchase = !state.loading && state.subscriptionsEnabled && !state.isMember
+        purchaseFooter.isVisible = showPurchase
         offersSection.isVisible = showPurchase && !state.isGuest
         guestHint.isVisible = showPurchase && state.isGuest
         btnSubscribe.isVisible = showPurchase
-        btnRestore.isVisible = showPurchase && !state.isGuest
-        tvLegal.isVisible = !state.loading && state.subscriptionsEnabled
+        tvLegal.isVisible = showPurchase
+        updateRestoreAction(state)
 
         offersProgress.isVisible = state.offersLoading
         tvOffersError.isVisible = state.offersError != null
@@ -146,15 +161,23 @@ class MembershipActivity : BaseActivity() {
         btnSubscribe.text = when {
             state.isGuest -> getString(R.string.membership_login_action)
             state.purchaseInProgress -> getString(R.string.membership_processing)
-            selected != null -> getString(
+            selected != null && selected.formattedPrice.isNotBlank() -> getString(
                 R.string.membership_subscribe_with_price,
                 selected.formattedPrice
             )
             else -> getString(R.string.membership_subscribe)
         }
-        btnRestore.isEnabled = !busy
-        btnRestore.text = getString(
-            if (state.restoring) R.string.membership_restoring else R.string.membership_restore
+    }
+
+    private fun updateRestoreAction(state: MembershipUiState) {
+        val show = !state.loading &&
+            state.subscriptionsEnabled &&
+            !state.isMember &&
+            !state.isGuest
+        restoreMenuItem.isVisible = show
+        restoreMenuItem.isEnabled = show && !state.purchaseInProgress && !state.restoring
+        restoreMenuItem.title = getString(
+            if (state.restoring) R.string.membership_restoring else R.string.membership_restore_short
         )
     }
 
@@ -167,10 +190,11 @@ class MembershipActivity : BaseActivity() {
         offers.forEach { offer ->
             val item = inflater.inflate(R.layout.item_membership_offer, offersContainer, false)
             val card = item.findViewById<MaterialCardView>(R.id.offerCard)
+            val radio = item.findViewById<MaterialRadioButton>(R.id.offerRadio)
+            val badge = item.findViewById<TextView>(R.id.tvOfferBadge)
             val title = item.findViewById<TextView>(R.id.tvOfferTitle)
             val price = item.findViewById<TextView>(R.id.tvOfferPrice)
             val note = item.findViewById<TextView>(R.id.tvOfferNote)
-            val check = item.findViewById<ImageView>(R.id.ivOfferCheck)
 
             title.setText(offer.period.planTitleRes())
             price.text = if (offer.formattedPrice.isBlank()) {
@@ -182,24 +206,26 @@ class MembershipActivity : BaseActivity() {
                     getString(offer.period.periodLabelRes())
                 )
             }
-            note.isVisible = offer.hasFreeTrial || offer.formattedPrice.isNotBlank()
+            badge.isVisible = offer.hasFreeTrial
             note.setText(
-                if (offer.hasFreeTrial) R.string.membership_offer_trial
+                if (offer.hasFreeTrial) R.string.membership_offer_trial_note
                 else R.string.membership_offer_renews
-            )
-            note.setTextColor(
-                getColor(if (offer.hasFreeTrial) R.color.accent else R.color.text_secondary)
             )
 
             val selected = offer.key == selectedKey
-            check.isVisible = selected
+            radio.isChecked = selected
+            card.setCardBackgroundColor(
+                getColor(if (selected) R.color.accent_container else R.color.surface_tile)
+            )
             card.strokeWidth = if (selected) dp(2) else dp(1)
             card.strokeColor = getColor(if (selected) R.color.accent else R.color.card_stroke)
             item.setOnClickListener { viewModel.onOfferSelected(offer.key) }
 
             val params = item.layoutParams as? LinearLayout.LayoutParams
-                ?: LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT)
+                ?: LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
             if (offersContainer.childCount > 0) params.topMargin = dp(10)
             item.layoutParams = params
             offersContainer.addView(item)
@@ -221,9 +247,22 @@ class MembershipActivity : BaseActivity() {
             MembershipEvent.OpenLogin ->
                 loginLauncher.launch(Intent(this, LoginActivity::class.java))
             MembershipEvent.OpenSubscriptionManagement -> openSubscriptionManagement()
+            MembershipEvent.PurchaseSucceeded -> showPurchaseSuccessDialog()
             is MembershipEvent.ShowMessage ->
                 Toast.makeText(this, event.text.resolve(this), Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun showPurchaseSuccessDialog() {
+        Log.i(TAG, "会员购买成功，展示成功提示")
+        val content = layoutInflater.inflate(R.layout.dialog_purchase_success, null)
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setView(content)
+            .create()
+        content.findViewById<View>(R.id.btnPurchaseSuccessDone).setOnClickListener {
+            dialog.dismiss()
+        }
+        dialog.show()
     }
 
     private fun openSubscriptionManagement() {

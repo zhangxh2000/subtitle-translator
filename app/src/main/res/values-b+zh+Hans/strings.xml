@@ -97,9 +97,21 @@
 
     <!-- 云端翻译额度 -->
     <string name="cloud_quota_exceeded_title">云端翻译额度已用完</string>
-    <string name="cloud_quota_exceeded_message">今天的 10 次免费云端翻译已用完，字幕将继续在本机离线翻译。升级会员可无限使用云端翻译，或等额度重置后再试。</string>
+    <string name="cloud_quota_exceeded_message">今天的 10 次免费云端翻译已用完，字幕将继续在本机离线翻译。</string>
+    <string name="cloud_quota_resets_at">额度重置：%1$s</string>
+    <string name="cloud_quota_free_row">免费版 · 每日 10 次云端翻译</string>
+    <string name="cloud_quota_pro_row">会员 · 云端翻译不限次数 + AI 图片精译</string>
+    <string name="cloud_quota_offline_hint">仍可继续使用离线翻译。</string>
     <string name="cloud_quota_exceeded_membership">查看会员</string>
-    <string name="cloud_quota_exceeded_dismiss">暂不</string>
+    <string name="cloud_quota_exceeded_dismiss">稍后再说</string>
+
+    <string name="quota_prompt_title">云端额度已用完</string>
+    <string name="quota_prompt_message">每天 10 次免费云端翻译已用完，已自动切换为离线翻译。</string>
+    <string name="quota_prompt_reset_at">额度重置：%1$s</string>
+    <string name="quota_prompt_benefit">会员：云端翻译不限次数 + AI 图片精译</string>
+    <string name="quota_prompt_later">稍后再说</string>
+    <string name="quota_prompt_upgrade">升级会员</string>
+    <string name="quota_prompt_close">关闭</string>
 
     <!-- 生词筛选强度 -->
     <string name="difficulty_filter_loose">宽松（多显示一些词）</string>
@@ -480,34 +492,41 @@
     <string name="auth_register_success">注册成功，已自动登录。</string>
 
     <!-- 会员 / Google Play 订阅 -->
-    <string name="profile_membership_title">会员</string>
-    <string name="profile_membership_subtitle_free">解锁全部 AI 能力</string>
-    <string name="profile_membership_subtitle_guest">登录后解锁全部 AI 能力</string>
+    <string name="profile_membership_subtitle_free">每天 10 次免费云端翻译</string>
+    <string name="profile_membership_subtitle_guest">登录后每天可用 10 次免费云端翻译</string>
     <string name="profile_membership_subtitle_member">有效期至 %1$s</string>
     <string name="profile_membership_subtitle_member_no_expiry">会员已生效</string>
+    <string name="profile_membership_member_desc">云端翻译不限次数 + AI 图片精译</string>
+    <string name="profile_membership_action_free">查看方案</string>
+    <string name="profile_membership_action_guest">登录</string>
 
+    <string name="membership_brand_name">字幕拾词 Pro</string>
     <string name="membership_title">会员</string>
-    <string name="membership_hero_title">解锁完整 AI 学习体验</string>
-    <string name="membership_hero_subtitle">用 AI 识别、翻译、语境解析和练习，把每一句字幕变成可掌握的表达。</string>
-    <string name="membership_member_chip">会员</string>
+    <string name="membership_hero_badge">字幕拾词 PRO</string>
+    <string name="membership_hero_title">云端翻译，不限次数</string>
+    <string name="membership_hero_subtitle">升级会员，云端翻译不限次数，并解锁 AI 图片精译；离线翻译始终免费。</string>
+    <string name="membership_member_chip">PRO</string>
     <string name="membership_status_active">会员已生效</string>
     <string name="membership_expires_at">有效期至 %1$s</string>
-    <string name="membership_benefits_title">会员权益</string>
-    <string name="membership_benefit_recognition_title">AI 字幕识别</string>
-    <string name="membership_benefit_recognition_desc">结合视频上下文纠正低置信度 OCR。</string>
-    <string name="membership_benefit_translation_title">AI 精译</string>
-    <string name="membership_benefit_translation_desc">不只翻译句子，也理解场景，给出更自然的译文。</string>
-    <string name="membership_benefit_context_title">AI 语境分析</string>
-    <string name="membership_benefit_context_desc">解释单词在当前台词中的含义与语气。</string>
-    <string name="membership_benefit_spoken_title">AI 口语发现</string>
-    <string name="membership_benefit_spoken_desc">发现值得收藏的地道表达与固定搭配。</string>
-    <string name="membership_benefit_practice_title">AI 练习</string>
-    <string name="membership_benefit_practice_desc">把收藏的词生成填空、改写和造句练习。</string>
-    <string name="membership_offers_title">选择套餐</string>
+    <string name="membership_member_summary">云端翻译不限次数 + AI 图片精译</string>
+    <string name="membership_benefits_title">免费版与会员</string>
+    <string name="membership_compare_free">免费版</string>
+    <string name="membership_compare_pro">会员</string>
+    <string name="membership_feature_cloud_title">云端翻译</string>
+    <string name="membership_feature_cloud_free">每日 10 次</string>
+    <string name="membership_feature_cloud_member">不限次数</string>
+    <string name="membership_feature_ai_title">AI 图片精译</string>
+    <string name="membership_feature_offline_title">离线翻译与词典</string>
+    <string name="membership_feature_sync_title">词汇云同步</string>
+    <string name="membership_feature_included">已包含</string>
+    <string name="membership_feature_none">—</string>
+    <string name="membership_compare_note">云端翻译需登录后使用；离线翻译与词汇云同步为两档共有能力。</string>
+    <string name="membership_offers_title">选择方案</string>
     <string name="membership_offers_loading">正在加载套餐…</string>
     <string name="membership_offers_empty">暂时没有可购买的套餐。</string>
     <string name="membership_offers_retry">重试</string>
-    <string name="membership_offer_trial">含免费试用</string>
+    <string name="membership_offer_trial">免费试用</string>
+    <string name="membership_offer_trial_note">试用结束后自动续费</string>
     <string name="membership_offer_renews">自动续费订阅</string>
     <string name="membership_price_period">%1$s / %2$s</string>
     <string name="membership_period_week">周</string>
@@ -524,14 +543,16 @@
     <string name="membership_plan_other">订阅</string>
     <string name="membership_subscribe">订阅</string>
     <string name="membership_subscribe_with_price">订阅 · %1$s</string>
-    <string name="membership_restore">恢复购买</string>
+    <string name="membership_restore_short">恢复</string>
     <string name="membership_restoring">正在恢复…</string>
     <string name="membership_processing">处理中…</string>
-    <string name="membership_manage">管理订阅</string>
+    <string name="membership_manage">管理</string>
     <string name="membership_coming_soon_title">订阅即将上线</string>
     <string name="membership_coming_soon_message">商店配置正在完成中，订阅开放后会在这里展示会员权益。</string>
     <string name="membership_legal">订阅会自动续费，直到你在 Google Play 中取消。价格由 Google Play 展示，可能因地区而异。</string>
-    <string name="membership_purchase_success">会员已开通。</string>
+    <string name="membership_purchase_success_title">会员已开通</string>
+    <string name="membership_purchase_success_message">云端翻译不限次数，AI 图片精译已解锁。</string>
+    <string name="membership_purchase_success_action">开始使用</string>
     <string name="membership_restore_success">会员已恢复。</string>
     <string name="membership_restore_none">该账号没有找到有效订阅。</string>
     <string name="membership_login_required">登录后即可订阅。</string>

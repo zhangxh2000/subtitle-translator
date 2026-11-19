@@ -47,4 +47,13 @@
     <color name="difficulty_hard_text">#FFA32117</color>
     <color name="difficulty_medium_text">#FF805700</color>
     <color name="difficulty_easy_text">#FF276B36</color>
+
+    <!-- 会员渐变卡：深橄榄绿底 + 浅色文字，夜间使用深绿底 -->
+    <color name="membership_hero_start">#FF3F5A0C</color>
+    <color name="membership_hero_end">#FF7A9E22</color>
+    <color name="membership_hero_text">#FFFFFFFF</color>
+    <color name="membership_hero_text_secondary">#FFDCE9C4</color>
+    <color name="membership_hero_badge_bg">#33FFFFFF</color>
+    <color name="membership_hero_button_bg">#FFFFFFFF</color>
+    <color name="membership_hero_button_text">#FF3F5A0C</color>
 </resources>

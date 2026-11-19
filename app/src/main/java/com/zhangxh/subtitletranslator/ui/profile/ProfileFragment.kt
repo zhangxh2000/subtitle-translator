@@ -36,8 +36,12 @@ class ProfileFragment : Fragment() {
     private lateinit var loginGate: LoginGate
 
     private lateinit var loading: View
-    private lateinit var membershipCard: View
+    private lateinit var membershipEntryCard: View
     private lateinit var tvMembershipSubtitle: TextView
+    private lateinit var btnMembershipAction: TextView
+    private lateinit var memberCard: View
+    private lateinit var tvMemberExpiry: TextView
+    private lateinit var btnManageMembership: View
     private lateinit var guestGroup: View
     private lateinit var userGroup: View
     private lateinit var tvAvatar: TextView
@@ -65,8 +69,12 @@ class ProfileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         loading = view.findViewById(R.id.profileLoading)
-        membershipCard = view.findViewById(R.id.membershipCard)
+        membershipEntryCard = view.findViewById(R.id.membershipEntryCard)
         tvMembershipSubtitle = view.findViewById(R.id.tvMembershipSubtitle)
+        btnMembershipAction = view.findViewById(R.id.btnMembershipAction)
+        memberCard = view.findViewById(R.id.memberCard)
+        tvMemberExpiry = view.findViewById(R.id.tvMemberExpiry)
+        btnManageMembership = view.findViewById(R.id.btnManageMembership)
         guestGroup = view.findViewById(R.id.guestGroup)
         userGroup = view.findViewById(R.id.userGroup)
         tvAvatar = view.findViewById(R.id.tvAvatar)
@@ -75,13 +83,10 @@ class ProfileFragment : Fragment() {
         tvVerified = view.findViewById(R.id.tvVerified)
         btnLogout = view.findViewById(R.id.btnLogout)
 
-        membershipCard.setOnClickListener {
-            if (viewModel.uiState.value?.authState is AuthState.LoggedIn) {
-                startActivity(Intent(requireContext(), MembershipActivity::class.java))
-            } else {
-                loginGate.launchLoginDirectly()
-            }
-        }
+        membershipEntryCard.setOnClickListener { openMembershipOrLogin() }
+        btnMembershipAction.setOnClickListener { openMembershipOrLogin() }
+        memberCard.setOnClickListener { openMembership() }
+        btnManageMembership.setOnClickListener { openMembership() }
         view.findViewById<View>(R.id.btnGuestLogin).setOnClickListener {
             loginGate.launchLoginDirectly()
         }
@@ -107,22 +112,28 @@ class ProfileFragment : Fragment() {
         when (val auth = state.authState) {
             AuthState.Loading -> {
                 loading.isVisible = true
-                membershipCard.isVisible = false
+                membershipEntryCard.isVisible = false
+                memberCard.isVisible = false
                 guestGroup.isVisible = false
                 userGroup.isVisible = false
                 btnLogout.isVisible = false
             }
             AuthState.Guest -> {
                 loading.isVisible = false
-                membershipCard.isVisible = true
-                tvMembershipSubtitle.setText(R.string.profile_membership_subtitle_guest)
+                renderFreeMembership(isGuest = true)
+                memberCard.isVisible = false
                 guestGroup.isVisible = true
                 userGroup.isVisible = false
                 btnLogout.isVisible = false
             }
             is AuthState.LoggedIn -> {
                 loading.isVisible = false
-                renderMembership(state)
+                if (state.plan == Plan.MEMBER) {
+                    renderMemberMembership(state)
+                } else {
+                    renderFreeMembership(isGuest = false)
+                }
+                memberCard.isVisible = state.plan == Plan.MEMBER
                 guestGroup.isVisible = false
                 userGroup.isVisible = true
                 btnLogout.isVisible = true
@@ -145,18 +156,35 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    private fun renderMembership(state: ProfileUiState) {
-        membershipCard.isVisible = true
-        val subtitle = when {
-            state.plan != Plan.MEMBER ->
-                getString(R.string.profile_membership_subtitle_free)
-            state.membershipExpiresAt != null -> getString(
-                R.string.profile_membership_subtitle_member,
-                formatDate(state.membershipExpiresAt)
-            )
-            else -> getString(R.string.profile_membership_subtitle_member_no_expiry)
+    private fun renderFreeMembership(isGuest: Boolean) {
+        membershipEntryCard.isVisible = true
+        tvMembershipSubtitle.setText(
+            if (isGuest) R.string.profile_membership_subtitle_guest
+            else R.string.profile_membership_subtitle_free
+        )
+        btnMembershipAction.setText(
+            if (isGuest) R.string.profile_membership_action_guest
+            else R.string.profile_membership_action_free
+        )
+    }
+
+    private fun renderMemberMembership(state: ProfileUiState) {
+        membershipEntryCard.isVisible = false
+        tvMemberExpiry.text = state.membershipExpiresAt?.let {
+            getString(R.string.profile_membership_subtitle_member, formatDate(it))
+        } ?: getString(R.string.profile_membership_subtitle_member_no_expiry)
+    }
+
+    private fun openMembershipOrLogin() {
+        if (viewModel.uiState.value?.authState is AuthState.LoggedIn) {
+            openMembership()
+        } else {
+            loginGate.launchLoginDirectly()
         }
-        tvMembershipSubtitle.text = subtitle
+    }
+
+    private fun openMembership() {
+        startActivity(Intent(requireContext(), MembershipActivity::class.java))
     }
 
     private fun formatDate(instant: Instant): String =

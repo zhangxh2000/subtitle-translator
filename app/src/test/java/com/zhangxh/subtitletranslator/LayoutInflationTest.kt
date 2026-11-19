@@ -50,6 +50,9 @@ class LayoutInflationTest {
             R.layout.item_debug_capture,
             R.layout.floating_button,
             R.layout.floating_menu,
+            R.layout.floating_quota_exceeded,
+            R.layout.dialog_cloud_quota_exceeded,
+            R.layout.dialog_purchase_success,
             R.layout.overlay_translation
         )
     }
@@ -74,9 +77,13 @@ class LayoutInflationTest {
      */
     @Test
     fun `overlay layouts inflate with app theme`() {
-        listOf(R.layout.floating_button, R.layout.floating_menu, R.layout.overlay_translation)
-            .forEach { layoutId ->
-                assertNotNull(inflate(layoutId, R.style.Theme_SubtitleTranslator))
-            }
+        listOf(
+            R.layout.floating_button,
+            R.layout.floating_menu,
+            R.layout.floating_quota_exceeded,
+            R.layout.overlay_translation
+        ).forEach { layoutId ->
+            assertNotNull(inflate(layoutId, R.style.Theme_SubtitleTranslator))
+        }
     }
 }

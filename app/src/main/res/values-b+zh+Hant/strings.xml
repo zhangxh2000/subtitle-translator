@@ -97,9 +97,21 @@
 
     <!-- 雲端翻譯額度 -->
     <string name="cloud_quota_exceeded_title">雲端翻譯額度已用完</string>
-    <string name="cloud_quota_exceeded_message">今天的 10 次免費雲端翻譯已用完，字幕將繼續在本機離線翻譯。升級會員可無限使用雲端翻譯，或等額度重置後再試。</string>
+    <string name="cloud_quota_exceeded_message">今天的 10 次免費雲端翻譯已用完，字幕將繼續在本機離線翻譯。</string>
+    <string name="cloud_quota_resets_at">額度重置：%1$s</string>
+    <string name="cloud_quota_free_row">免費版 · 每日 10 次雲端翻譯</string>
+    <string name="cloud_quota_pro_row">會員 · 雲端翻譯不限次數 + AI 圖片精譯</string>
+    <string name="cloud_quota_offline_hint">仍可繼續使用離線翻譯。</string>
     <string name="cloud_quota_exceeded_membership">查看會員</string>
-    <string name="cloud_quota_exceeded_dismiss">暫不</string>
+    <string name="cloud_quota_exceeded_dismiss">稍後再說</string>
+
+    <string name="quota_prompt_title">雲端額度已用完</string>
+    <string name="quota_prompt_message">每天 10 次免費雲端翻譯已用完，已自動切換為離線翻譯。</string>
+    <string name="quota_prompt_reset_at">額度重置：%1$s</string>
+    <string name="quota_prompt_benefit">會員：雲端翻譯不限次數 + AI 圖片精譯</string>
+    <string name="quota_prompt_later">稍後再說</string>
+    <string name="quota_prompt_upgrade">升級會員</string>
+    <string name="quota_prompt_close">關閉</string>
 
     <!-- 生詞篩選強度 -->
     <string name="difficulty_filter_loose">寬鬆（多顯示一些詞）</string>
@@ -480,34 +492,41 @@
     <string name="auth_register_success">註冊成功，已自動登入。</string>
 
     <!-- 會員 / Google Play 訂閱 -->
-    <string name="profile_membership_title">會員</string>
-    <string name="profile_membership_subtitle_free">解鎖全部 AI 能力</string>
-    <string name="profile_membership_subtitle_guest">登入後解鎖全部 AI 能力</string>
+    <string name="profile_membership_subtitle_free">每天 10 次免費雲端翻譯</string>
+    <string name="profile_membership_subtitle_guest">登入後每天可用 10 次免費雲端翻譯</string>
     <string name="profile_membership_subtitle_member">有效期至 %1$s</string>
     <string name="profile_membership_subtitle_member_no_expiry">會員已生效</string>
+    <string name="profile_membership_member_desc">雲端翻譯不限次數 + AI 圖片精譯</string>
+    <string name="profile_membership_action_free">查看方案</string>
+    <string name="profile_membership_action_guest">登入</string>
 
+    <string name="membership_brand_name">字幕拾詞 Pro</string>
     <string name="membership_title">會員</string>
-    <string name="membership_hero_title">解鎖完整 AI 學習體驗</string>
-    <string name="membership_hero_subtitle">用 AI 辨識、翻譯、語境解析和練習，把每一句字幕變成可掌握的表達。</string>
-    <string name="membership_member_chip">會員</string>
+    <string name="membership_hero_badge">字幕拾詞 PRO</string>
+    <string name="membership_hero_title">雲端翻譯，不限次數</string>
+    <string name="membership_hero_subtitle">升級會員，雲端翻譯不限次數，並解鎖 AI 圖片精譯；離線翻譯始終免費。</string>
+    <string name="membership_member_chip">PRO</string>
     <string name="membership_status_active">會員已生效</string>
     <string name="membership_expires_at">有效期至 %1$s</string>
-    <string name="membership_benefits_title">會員權益</string>
-    <string name="membership_benefit_recognition_title">AI 字幕辨識</string>
-    <string name="membership_benefit_recognition_desc">結合影片上下文修正低信賴度 OCR。</string>
-    <string name="membership_benefit_translation_title">AI 精譯</string>
-    <string name="membership_benefit_translation_desc">不只翻譯句子，也理解場景，給出更自然的譯文。</string>
-    <string name="membership_benefit_context_title">AI 語境分析</string>
-    <string name="membership_benefit_context_desc">解釋單字在目前台詞中的含義與語氣。</string>
-    <string name="membership_benefit_spoken_title">AI 口語發現</string>
-    <string name="membership_benefit_spoken_desc">發現值得收藏的道地表達與固定搭配。</string>
-    <string name="membership_benefit_practice_title">AI 練習</string>
-    <string name="membership_benefit_practice_desc">把收藏的詞生成填空、改寫和造句練習。</string>
+    <string name="membership_member_summary">雲端翻譯不限次數 + AI 圖片精譯</string>
+    <string name="membership_benefits_title">免費版與會員</string>
+    <string name="membership_compare_free">免費版</string>
+    <string name="membership_compare_pro">會員</string>
+    <string name="membership_feature_cloud_title">雲端翻譯</string>
+    <string name="membership_feature_cloud_free">每日 10 次</string>
+    <string name="membership_feature_cloud_member">不限次數</string>
+    <string name="membership_feature_ai_title">AI 圖片精譯</string>
+    <string name="membership_feature_offline_title">離線翻譯與詞典</string>
+    <string name="membership_feature_sync_title">詞彙雲端同步</string>
+    <string name="membership_feature_included">已包含</string>
+    <string name="membership_feature_none">—</string>
+    <string name="membership_compare_note">雲端翻譯需登入後使用；離線翻譯與詞彙雲端同步為兩檔共有能力。</string>
     <string name="membership_offers_title">選擇方案</string>
     <string name="membership_offers_loading">正在載入方案…</string>
     <string name="membership_offers_empty">暫時沒有可購買的方案。</string>
     <string name="membership_offers_retry">重試</string>
-    <string name="membership_offer_trial">含免費試用</string>
+    <string name="membership_offer_trial">免費試用</string>
+    <string name="membership_offer_trial_note">試用結束後自動續訂</string>
     <string name="membership_offer_renews">自動續訂訂閱</string>
     <string name="membership_price_period">%1$s / %2$s</string>
     <string name="membership_period_week">週</string>
@@ -524,14 +543,16 @@
     <string name="membership_plan_other">訂閱</string>
     <string name="membership_subscribe">訂閱</string>
     <string name="membership_subscribe_with_price">訂閱 · %1$s</string>
-    <string name="membership_restore">恢復購買</string>
+    <string name="membership_restore_short">恢復</string>
     <string name="membership_restoring">正在恢復…</string>
     <string name="membership_processing">處理中…</string>
-    <string name="membership_manage">管理訂閱</string>
+    <string name="membership_manage">管理</string>
     <string name="membership_coming_soon_title">訂閱即將上線</string>
     <string name="membership_coming_soon_message">商店設定正在完成中，訂閱開放後會在這裡展示會員權益。</string>
     <string name="membership_legal">訂閱會自動續訂，直到你在 Google Play 中取消。價格由 Google Play 顯示，可能因地區而異。</string>
-    <string name="membership_purchase_success">會員已開通。</string>
+    <string name="membership_purchase_success_title">會員已開通</string>
+    <string name="membership_purchase_success_message">雲端翻譯不限次數，AI 圖片精譯已解鎖。</string>
+    <string name="membership_purchase_success_action">開始使用</string>
     <string name="membership_restore_success">會員已恢復。</string>
     <string name="membership_restore_none">該帳號沒有找到有效訂閱。</string>
     <string name="membership_login_required">登入後即可訂閱。</string>

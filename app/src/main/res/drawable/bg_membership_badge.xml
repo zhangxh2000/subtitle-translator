@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 会员卡上的小徽章：半透明胶囊，文字颜色由调用方按底色设置 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/membership_hero_badge_bg" />
+    <corners android:radius="999dp" />
+</shape>

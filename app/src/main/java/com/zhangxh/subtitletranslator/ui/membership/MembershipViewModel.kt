@@ -30,6 +30,7 @@ sealed class MembershipEvent {
     data class LaunchPurchase(val offer: SubscriptionOffer) : MembershipEvent()
     data object OpenLogin : MembershipEvent()
     data object OpenSubscriptionManagement : MembershipEvent()
+    data object PurchaseSucceeded : MembershipEvent()
     data class ShowMessage(val text: UiText) : MembershipEvent()
 }
 
@@ -150,7 +151,8 @@ class MembershipViewModel @JvmOverloads constructor(
                 val wasBusy = _uiState.value?.purchaseInProgress == true
                 update { it.copy(purchaseInProgress = false, restoring = false) }
                 if (wasBusy && !restoreInFlight) {
-                    emitMessage(R.string.membership_purchase_success)
+                    Log.i(TAG, "购买成功，通知界面展示开通结果")
+                    emit(MembershipEvent.PurchaseSucceeded)
                 }
             }
             PurchaseState.Cancelled -> {

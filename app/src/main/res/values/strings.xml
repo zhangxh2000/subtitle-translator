@@ -102,9 +102,21 @@
 
     <!-- Cloud translation quota -->
     <string name="cloud_quota_exceeded_title">Cloud translation limit reached</string>
-    <string name="cloud_quota_exceeded_message">You\'ve used today\'s 10 free cloud translations. Subtitles will continue to be translated offline on this device. Upgrade to a membership for unlimited cloud translation, or try again after the quota resets.</string>
-    <string name="cloud_quota_exceeded_membership">View membership</string>
+    <string name="cloud_quota_exceeded_message">Today\'s 10 free cloud translations are used up. Subtitles keep translating offline on this device.</string>
+    <string name="cloud_quota_resets_at">Quota resets: %1$s</string>
+    <string name="cloud_quota_free_row">Free plan · 10 cloud translations / day</string>
+    <string name="cloud_quota_pro_row">Pro · Unlimited cloud translation + AI image translation</string>
+    <string name="cloud_quota_offline_hint">Offline translation remains available.</string>
+    <string name="cloud_quota_exceeded_membership">See Pro</string>
     <string name="cloud_quota_exceeded_dismiss">Not now</string>
+
+    <string name="quota_prompt_title">Cloud limit reached</string>
+    <string name="quota_prompt_message">10 free cloud translations a day have been used. Offline translation will continue.</string>
+    <string name="quota_prompt_reset_at">Resets %1$s</string>
+    <string name="quota_prompt_benefit">Pro: unlimited cloud translation + AI image translation</string>
+    <string name="quota_prompt_later">Later</string>
+    <string name="quota_prompt_upgrade">See Pro</string>
+    <string name="quota_prompt_close">Close</string>
 
     <!-- Vocabulary filter levels -->
     <string name="difficulty_filter_loose">Loose (show more)</string>
@@ -485,34 +497,41 @@
     <string name="auth_register_success">Account created. You are signed in.</string>
 
     <!-- Membership / Google Play subscriptions -->
-    <string name="profile_membership_title">Membership</string>
-    <string name="profile_membership_subtitle_free">Unlock every AI feature</string>
-    <string name="profile_membership_subtitle_guest">Sign in to unlock every AI feature</string>
+    <string name="profile_membership_subtitle_free">10 free cloud translations a day</string>
+    <string name="profile_membership_subtitle_guest">Sign in for 10 free cloud translations a day</string>
     <string name="profile_membership_subtitle_member">Active until %1$s</string>
     <string name="profile_membership_subtitle_member_no_expiry">Membership active</string>
+    <string name="profile_membership_member_desc">Unlimited cloud translation + AI image translation</string>
+    <string name="profile_membership_action_free">View plans</string>
+    <string name="profile_membership_action_guest">Sign in</string>
 
+    <string name="membership_brand_name">SubPick Pro</string>
     <string name="membership_title">Membership</string>
-    <string name="membership_hero_title">Unlock the full AI experience</string>
-    <string name="membership_hero_subtitle">AI recognition, translation, context insights and practice — built for learning from subtitles.</string>
-    <string name="membership_member_chip">MEMBER</string>
-    <string name="membership_status_active">Membership active</string>
+    <string name="membership_hero_badge">SUBPICK PRO</string>
+    <string name="membership_hero_title">Translate without limits</string>
+    <string name="membership_hero_subtitle">Go Pro for unlimited cloud translation and AI image translation. Offline translation stays free for everyone.</string>
+    <string name="membership_member_chip">PRO</string>
+    <string name="membership_status_active">Pro membership active</string>
     <string name="membership_expires_at">Valid until %1$s</string>
-    <string name="membership_benefits_title">MEMBER BENEFITS</string>
-    <string name="membership_benefit_recognition_title">AI subtitle recognition</string>
-    <string name="membership_benefit_recognition_desc">Corrects low-confidence OCR with the surrounding video context.</string>
-    <string name="membership_benefit_translation_title">AI translation</string>
-    <string name="membership_benefit_translation_desc">Natural translations that understand the scene, not just the sentence.</string>
-    <string name="membership_benefit_context_title">AI context analysis</string>
-    <string name="membership_benefit_context_desc">Explains what a word means in the line you are watching.</string>
-    <string name="membership_benefit_spoken_title">AI spoken discovery</string>
-    <string name="membership_benefit_spoken_desc">Finds idioms and colloquial phrases worth saving.</string>
-    <string name="membership_benefit_practice_title">AI practice</string>
-    <string name="membership_benefit_practice_desc">Turns saved words into fill-in-the-blank and paraphrase exercises.</string>
+    <string name="membership_member_summary">Unlimited cloud translation + AI image translation</string>
+    <string name="membership_benefits_title">FREE VS PRO</string>
+    <string name="membership_compare_free">Free</string>
+    <string name="membership_compare_pro">Pro</string>
+    <string name="membership_feature_cloud_title">Cloud translation</string>
+    <string name="membership_feature_cloud_free">10 / day</string>
+    <string name="membership_feature_cloud_member">Unlimited</string>
+    <string name="membership_feature_ai_title">AI image translation</string>
+    <string name="membership_feature_offline_title">Offline translation &amp; dictionary</string>
+    <string name="membership_feature_sync_title">Vocabulary cloud sync</string>
+    <string name="membership_feature_included">Included</string>
+    <string name="membership_feature_none">—</string>
+    <string name="membership_compare_note">Cloud translation requires sign-in. Offline translation and vocabulary sync work on both plans.</string>
     <string name="membership_offers_title">CHOOSE A PLAN</string>
     <string name="membership_offers_loading">Loading plans…</string>
     <string name="membership_offers_empty">No plans are available right now.</string>
     <string name="membership_offers_retry">Retry</string>
-    <string name="membership_offer_trial">Free trial included</string>
+    <string name="membership_offer_trial">Free trial</string>
+    <string name="membership_offer_trial_note">Auto-renews after the trial</string>
     <string name="membership_offer_renews">Auto-renewing subscription</string>
     <string name="membership_price_period">%1$s / %2$s</string>
     <string name="membership_period_week">week</string>
@@ -529,14 +548,16 @@
     <string name="membership_plan_other">Subscription</string>
     <string name="membership_subscribe">Subscribe</string>
     <string name="membership_subscribe_with_price">Subscribe · %1$s</string>
-    <string name="membership_restore">Restore purchase</string>
+    <string name="membership_restore_short">Restore</string>
     <string name="membership_restoring">Restoring…</string>
     <string name="membership_processing">Processing…</string>
-    <string name="membership_manage">Manage subscription</string>
+    <string name="membership_manage">Manage</string>
     <string name="membership_coming_soon_title">Subscriptions are coming soon</string>
     <string name="membership_coming_soon_message">We are finishing the store setup. Member benefits will appear here when subscriptions open.</string>
     <string name="membership_legal">Subscriptions renew automatically until cancelled. Manage or cancel anytime in Google Play. Prices are shown by Google Play and may vary by region.</string>
-    <string name="membership_purchase_success">You are now a member.</string>
+    <string name="membership_purchase_success_title">You\'re Pro now</string>
+    <string name="membership_purchase_success_message">Unlimited cloud translation and AI image translation are now active.</string>
+    <string name="membership_purchase_success_action">Start using it</string>
     <string name="membership_restore_success">Membership restored.</string>
     <string name="membership_restore_none">No active subscription found for this account.</string>
     <string name="membership_login_required">Sign in to subscribe.</string>

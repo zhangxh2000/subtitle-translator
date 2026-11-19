@@ -9,10 +9,13 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
+import android.view.View
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.core.view.isVisible
 import androidx.navigation.NavController
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
@@ -23,6 +26,8 @@ import com.zhangxh.subtitletranslator.ui.BaseActivity
 import com.zhangxh.subtitletranslator.ui.MainEvent
 import com.zhangxh.subtitletranslator.ui.MainViewModel
 import com.zhangxh.subtitletranslator.ui.membership.MembershipActivity
+import java.text.DateFormat
+import java.util.Date
 
 /**
  * 应用壳
@@ -41,6 +46,7 @@ class MainActivity : BaseActivity() {
 
         /** 悬浮窗发现云端额度用尽时，打开主界面并展示受限弹窗 */
         const val EXTRA_SHOW_CLOUD_QUOTA_EXCEEDED = "extra_show_cloud_quota_exceeded"
+        const val EXTRA_CLOUD_QUOTA_RESET_AT = "extra_cloud_quota_reset_at"
         const val TAB_LEARNING = "learning"
         const val TAB_VOCABULARY = "vocabulary"
     }
@@ -89,9 +95,11 @@ class MainActivity : BaseActivity() {
     private fun handleIntent(intent: Intent) {
         // 取出后移除 extra，避免同一个 Intent 再次进入 handleIntent 时重复弹窗
         if (intent.getBooleanExtra(EXTRA_SHOW_CLOUD_QUOTA_EXCEEDED, false)) {
+            val resetAtMillis = intent.getLongExtra(EXTRA_CLOUD_QUOTA_RESET_AT, -1L)
             intent.removeExtra(EXTRA_SHOW_CLOUD_QUOTA_EXCEEDED)
+            intent.removeExtra(EXTRA_CLOUD_QUOTA_RESET_AT)
             navigateTo(R.id.homeFragment)
-            showCloudQuotaExceededDialog()
+            showCloudQuotaExceededDialog(resetAtMillis.takeIf { it > 0 })
             return
         }
         if (intent.getBooleanExtra(EXTRA_RESTART_SERVICE, false)) {
@@ -114,19 +122,29 @@ class MainActivity : BaseActivity() {
     /**
      * 云端免费额度用尽
      *
-     * 当前是占位设计：主应用受限弹窗，引导升级会员。文案与视觉后续再细化。
+     * 对比框只展示代码里真实生效的两项差异：免费版每日 10 次、会员不限次数并解锁 AI 图片精译。
      */
-    private fun showCloudQuotaExceededDialog() {
-        Log.i(TAG, "展示云端翻译额度受限弹窗")
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.cloud_quota_exceeded_title)
-            .setMessage(R.string.cloud_quota_exceeded_message)
-            .setPositiveButton(R.string.cloud_quota_exceeded_membership) { _, _ ->
-                startActivity(Intent(this, MembershipActivity::class.java))
-            }
-            .setNegativeButton(R.string.cloud_quota_exceeded_dismiss, null)
-            .show()
+    private fun showCloudQuotaExceededDialog(resetAtMillis: Long?) {
+        Log.i(TAG, "展示云端翻译额度受限弹窗: resetAt=${resetAtMillis ?: "-"}")
+        val content = layoutInflater.inflate(R.layout.dialog_cloud_quota_exceeded, null)
+        content.findViewById<TextView>(R.id.tvQuotaReset).apply {
+            isVisible = resetAtMillis != null
+            resetAtMillis?.let { text = getString(R.string.cloud_quota_resets_at, formatResetTime(it)) }
+        }
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setView(content)
+            .create()
+        content.findViewById<View>(R.id.btnQuotaDismiss).setOnClickListener { dialog.dismiss() }
+        content.findViewById<View>(R.id.btnQuotaUpgrade).setOnClickListener {
+            dialog.dismiss()
+            startActivity(Intent(this, MembershipActivity::class.java))
+        }
+        dialog.show()
     }
+
+    private fun formatResetTime(epochMillis: Long): String =
+        DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+            .format(Date(epochMillis))
 
     private fun setupBackNavigation() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
