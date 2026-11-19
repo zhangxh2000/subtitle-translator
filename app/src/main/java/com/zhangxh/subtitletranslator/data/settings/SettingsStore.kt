@@ -4,7 +4,6 @@ import android.content.Context
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
 import com.zhangxh.subtitletranslator.domain.settings.ITranslationSettings
 import com.zhangxh.subtitletranslator.domain.translator.Language
-import com.zhangxh.subtitletranslator.domain.translator.TranslationEngine
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficultyFilter
 
 /**
@@ -26,10 +25,6 @@ class SettingsStore(context: Context) : ITranslationSettings {
         get() = prefs.getString(KEY_TARGET_LANG, Language.CHINESE.code) ?: Language.CHINESE.code
         set(value) = prefs.edit().putString(KEY_TARGET_LANG, value).apply()
 
-    var translationEngine: TranslationEngine
-        get() = TranslationEngine.fromName(prefs.getString(KEY_TRANSLATION_ENGINE, null))
-        set(value) = prefs.edit().putString(KEY_TRANSLATION_ENGINE, value.name).apply()
-
     var difficultyFilter: WordDifficultyFilter
         get() = WordDifficultyFilter.fromName(prefs.getString(KEY_DIFFICULTY_FILTER, null))
         set(value) = prefs.edit().putString(KEY_DIFFICULTY_FILTER, value.name).apply()
@@ -50,6 +45,5 @@ class SettingsStore(context: Context) : ITranslationSettings {
         const val KEY_DIFFICULTY_FILTER = "difficulty_filter"
         const val KEY_DEBUG_CAPTURE = "debug_capture_enabled"
         const val KEY_PREPROCESS_MODE = "ocr_preprocess_mode"
-        const val KEY_TRANSLATION_ENGINE = "translation_engine"
     }
 }

@@ -9,7 +9,6 @@ import com.zhangxh.subtitletranslator.domain.membership.SubscriptionPeriod
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
 import com.zhangxh.subtitletranslator.domain.speech.PronouncerError
 import com.zhangxh.subtitletranslator.domain.translator.Language
-import com.zhangxh.subtitletranslator.domain.translator.TranslationEngine
 import com.zhangxh.subtitletranslator.domain.vocabulary.LearningStatus
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficulty
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficultyFilter
@@ -20,19 +19,6 @@ import com.zhangxh.subtitletranslator.util.CaptureOrientation
  *
  * 所有用户可见的名称和说明都从这里取，domain 层保持与语言无关。
  */
-
-@StringRes
-fun TranslationEngine.labelRes(): Int = when (this) {
-    TranslationEngine.ML_KIT -> R.string.engine_mlkit
-    TranslationEngine.BAIDU -> R.string.engine_baidu
-    TranslationEngine.GOOGLE -> R.string.engine_google
-}
-
-@StringRes
-fun TranslationEngine.hintRes(): Int = when (this) {
-    TranslationEngine.ML_KIT -> R.string.engine_hint_mlkit
-    TranslationEngine.BAIDU, TranslationEngine.GOOGLE -> R.string.engine_hint_cloud
-}
 
 @StringRes
 fun Language.displayNameRes(): Int = when (code) {
@@ -144,6 +130,8 @@ fun AppError.messageRes(): Int = when (this) {
     AppError.TRANSLATION_LOGIN_REQUIRED -> R.string.error_translation_login_required
     AppError.TRANSLATION_SERVICE_UNAVAILABLE -> R.string.error_translation_service_unavailable
     AppError.TRANSLATION_RATE_LIMITED -> R.string.error_translation_rate_limited
+    AppError.TRANSLATION_DAILY_QUOTA_EXCEEDED ->
+        R.string.error_translation_daily_quota_exceeded
     AppError.MEMBERSHIP_REQUIRED -> R.string.error_ai_membership_required
     AppError.MEMBERSHIP_LOGIN_REQUIRED -> R.string.error_membership_login_required
     AppError.BILLING_UNAVAILABLE -> R.string.error_billing_unavailable

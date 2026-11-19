@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,9 +18,11 @@ import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.zhangxh.subtitletranslator.ui.BaseActivity
 import com.zhangxh.subtitletranslator.ui.MainEvent
 import com.zhangxh.subtitletranslator.ui.MainViewModel
+import com.zhangxh.subtitletranslator.ui.membership.MembershipActivity
 
 /**
  * 应用壳
@@ -30,9 +33,14 @@ import com.zhangxh.subtitletranslator.ui.MainViewModel
 class MainActivity : BaseActivity() {
 
     companion object {
+        private const val TAG = "MainActivity"
+
         const val EXTRA_RESTART_SERVICE = "extra_restart_service"
         const val EXTRA_REQUEST_OVERLAY_PERMISSION = "extra_request_overlay_permission"
         const val EXTRA_OPEN_TAB = "extra_open_tab"
+
+        /** 悬浮窗发现云端额度用尽时，打开主界面并展示受限弹窗 */
+        const val EXTRA_SHOW_CLOUD_QUOTA_EXCEEDED = "extra_show_cloud_quota_exceeded"
         const val TAB_LEARNING = "learning"
         const val TAB_VOCABULARY = "vocabulary"
     }
@@ -79,6 +87,13 @@ class MainActivity : BaseActivity() {
     }
 
     private fun handleIntent(intent: Intent) {
+        // 取出后移除 extra，避免同一个 Intent 再次进入 handleIntent 时重复弹窗
+        if (intent.getBooleanExtra(EXTRA_SHOW_CLOUD_QUOTA_EXCEEDED, false)) {
+            intent.removeExtra(EXTRA_SHOW_CLOUD_QUOTA_EXCEEDED)
+            navigateTo(R.id.homeFragment)
+            showCloudQuotaExceededDialog()
+            return
+        }
         if (intent.getBooleanExtra(EXTRA_RESTART_SERVICE, false)) {
             navigateTo(R.id.homeFragment)
             Toast.makeText(this, R.string.main_restart_hint, Toast.LENGTH_LONG).show()
@@ -94,6 +109,23 @@ class MainActivity : BaseActivity() {
             TAB_LEARNING -> navigateTo(R.id.learningFragment)
             TAB_VOCABULARY -> navigateTo(R.id.vocabularyFragment)
         }
+    }
+
+    /**
+     * 云端免费额度用尽
+     *
+     * 当前是占位设计：主应用受限弹窗，引导升级会员。文案与视觉后续再细化。
+     */
+    private fun showCloudQuotaExceededDialog() {
+        Log.i(TAG, "展示云端翻译额度受限弹窗")
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.cloud_quota_exceeded_title)
+            .setMessage(R.string.cloud_quota_exceeded_message)
+            .setPositiveButton(R.string.cloud_quota_exceeded_membership) { _, _ ->
+                startActivity(Intent(this, MembershipActivity::class.java))
+            }
+            .setNegativeButton(R.string.cloud_quota_exceeded_dismiss, null)
+            .show()
     }
 
     private fun setupBackNavigation() {

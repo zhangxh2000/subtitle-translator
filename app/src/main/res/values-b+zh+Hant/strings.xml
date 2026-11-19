@@ -70,7 +70,6 @@
     <!-- 設定 -->
     <string name="settings_source_language">來源語言</string>
     <string name="settings_target_language">目標語言</string>
-    <string name="settings_translation_engine">翻譯引擎</string>
     <string name="settings_media_control">媒體控制</string>
     <string name="settings_media_access_granted">已授予通知使用權</string>
     <string name="settings_media_access_missing">未授予通知使用權</string>
@@ -96,12 +95,11 @@
     <string name="settings_note">提示：語言與生詞篩選設定在下次啟動翻譯服務時生效；偵錯截圖開關立即生效</string>
     <string name="settings_error_same_language">來源語言和目標語言不能相同</string>
 
-    <!-- 翻譯引擎 -->
-    <string name="engine_mlkit">ML Kit 離線（無需設定）</string>
-    <string name="engine_baidu">百度翻譯（雲端）</string>
-    <string name="engine_google">Google 翻譯（雲端）</string>
-    <string name="engine_hint_mlkit">完全離線、無需任何設定，但品質一般，字幕口語化時容易直譯。</string>
-    <string name="engine_hint_cloud">透過應用後端的雲端翻譯服務（需登入）；失敗時自動回退到離線翻譯。</string>
+    <!-- 雲端翻譯額度 -->
+    <string name="cloud_quota_exceeded_title">雲端翻譯額度已用完</string>
+    <string name="cloud_quota_exceeded_message">今天的 10 次免費雲端翻譯已用完，字幕將繼續在本機離線翻譯。升級會員可無限使用雲端翻譯，或等額度重置後再試。</string>
+    <string name="cloud_quota_exceeded_membership">查看會員</string>
+    <string name="cloud_quota_exceeded_dismiss">暫不</string>
 
     <!-- 生詞篩選強度 -->
     <string name="difficulty_filter_loose">寬鬆（多顯示一些詞）</string>
@@ -288,6 +286,7 @@
     <string name="error_translation_login_required">登入後才能使用雲端翻譯</string>
     <string name="error_translation_service_unavailable">雲端翻譯服務暫時無法使用</string>
     <string name="error_translation_rate_limited">雲端翻譯請求過於頻繁，請稍後再試</string>
+    <string name="error_translation_daily_quota_exceeded">今日免費雲端翻譯已用完，已切換為離線翻譯</string>
     <string name="error_ai_membership_required">AI 翻譯僅限會員使用</string>
     <string name="error_no_subtitle_detected">截圖中未辨識到字幕，請換一幀或檢查來源語言設定</string>
     <string name="error_invalid_image">字幕圖片處理失敗，請重試</string>
@@ -438,7 +437,7 @@
     <string name="about_title">關於我們</string>
     <string name="about_message">字幕拾詞 %1$s\n\n辨識螢幕上的字幕，並在懸浮視窗中顯示譯文。</string>
     <string name="about_terms_message">完整法律文本將在正式上線前提供。使用本應用程式即表示你已閱讀並同意服務條款。</string>
-    <string name="about_privacy_message">完整隱私權政策將在正式上線前提供。截圖僅在本機用於辨識；選擇雲端引擎時，辨識出的字幕文字會傳送到應用程式的雲端翻譯服務；使用 AI 翻譯時，裁剪後的字幕截圖及最近的字幕上下文會傳送到應用程式的雲端翻譯服務。收藏的詞彙保存在本地，僅在登入後自動同步到你的帳號。</string>
+    <string name="about_privacy_message">完整隱私權政策將在正式上線前提供。截圖僅在本機用於辨識；登入後辨識出的字幕文字會自動傳送到應用程式的雲端翻譯服務，遊客使用本機離線翻譯；使用 AI 翻譯時，裁剪後的字幕截圖及最近的字幕上下文會傳送到應用程式的雲端翻譯服務。收藏的詞彙保存在本地，僅在登入後自動同步到你的帳號。</string>
     <string name="about_ok">好的</string>
 
     <!-- 使用說明 -->

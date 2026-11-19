@@ -70,7 +70,6 @@
     <!-- 设置 -->
     <string name="settings_source_language">源语言</string>
     <string name="settings_target_language">目标语言</string>
-    <string name="settings_translation_engine">翻译引擎</string>
     <string name="settings_media_control">媒体控制</string>
     <string name="settings_media_access_granted">已授予通知使用权</string>
     <string name="settings_media_access_missing">未授予通知使用权</string>
@@ -96,12 +95,11 @@
     <string name="settings_note">提示：语言与生词筛选设置在下次启动翻译服务时生效；调试截图开关立即生效</string>
     <string name="settings_error_same_language">源语言和目标语言不能相同</string>
 
-    <!-- 翻译引擎 -->
-    <string name="engine_mlkit">ML Kit 离线（无需配置）</string>
-    <string name="engine_baidu">百度翻译（云端）</string>
-    <string name="engine_google">Google 翻译（云端）</string>
-    <string name="engine_hint_mlkit">完全离线、无需任何配置，但质量一般，字幕口语化时容易直译。</string>
-    <string name="engine_hint_cloud">通过应用后端的云端翻译服务（需登录）；失败时自动回退到离线翻译。</string>
+    <!-- 云端翻译额度 -->
+    <string name="cloud_quota_exceeded_title">云端翻译额度已用完</string>
+    <string name="cloud_quota_exceeded_message">今天的 10 次免费云端翻译已用完，字幕将继续在本机离线翻译。升级会员可无限使用云端翻译，或等额度重置后再试。</string>
+    <string name="cloud_quota_exceeded_membership">查看会员</string>
+    <string name="cloud_quota_exceeded_dismiss">暂不</string>
 
     <!-- 生词筛选强度 -->
     <string name="difficulty_filter_loose">宽松（多显示一些词）</string>
@@ -288,6 +286,7 @@
     <string name="error_translation_login_required">登录后才能使用云端翻译</string>
     <string name="error_translation_service_unavailable">云端翻译服务暂时不可用</string>
     <string name="error_translation_rate_limited">云端翻译请求过于频繁，请稍后再试</string>
+    <string name="error_translation_daily_quota_exceeded">今日免费云端翻译已用完，已切换为离线翻译</string>
     <string name="error_ai_membership_required">AI 翻译仅限会员使用</string>
     <string name="error_no_subtitle_detected">截图中未识别到字幕，请换一帧或检查源语言设置</string>
     <string name="error_invalid_image">字幕图片处理失败，请重试</string>
@@ -438,7 +437,7 @@
     <string name="about_title">关于我们</string>
     <string name="about_message">字幕拾词 %1$s\n\n识别屏幕上的字幕，并在悬浮窗中显示译文。</string>
     <string name="about_terms_message">完整法律文本将在正式上线前提供。使用本应用即表示你已阅读并同意服务条款。</string>
-    <string name="about_privacy_message">完整隐私政策将在正式上线前提供。截图仅在本机用于识别；选择云端引擎时，识别出的字幕文字会发送到应用的云端翻译服务；使用 AI 翻译时，裁剪后的字幕截图及最近的字幕上下文会发送到应用的云端翻译服务。收藏的词汇保存在本地，仅在登录后自动同步到你的账号。</string>
+    <string name="about_privacy_message">完整隐私政策将在正式上线前提供。截图仅在本机用于识别；登录后识别出的字幕文字会自动发送到应用的云端翻译服务，游客使用本机离线翻译；使用 AI 翻译时，裁剪后的字幕截图及最近的字幕上下文会发送到应用的云端翻译服务。收藏的词汇保存在本地，仅在登录后自动同步到你的账号。</string>
     <string name="about_ok">好的</string>
 
     <!-- 使用说明 -->

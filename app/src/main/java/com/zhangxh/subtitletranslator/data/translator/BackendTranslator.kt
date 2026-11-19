@@ -5,7 +5,6 @@ import com.zhangxh.subtitletranslator.data.auth.AuthSessionManager
 import com.zhangxh.subtitletranslator.data.remote.TextTranslationRequestDto
 import com.zhangxh.subtitletranslator.data.remote.TranslationApi
 import com.zhangxh.subtitletranslator.data.remote.TranslationSegmentDto
-import com.zhangxh.subtitletranslator.domain.auth.AuthState
 import com.zhangxh.subtitletranslator.domain.error.AppError
 import com.zhangxh.subtitletranslator.domain.error.TranslationError
 import com.zhangxh.subtitletranslator.domain.error.TranslationException
@@ -23,12 +22,13 @@ import java.util.concurrent.atomic.AtomicLong
  * 后端文本翻译（POST /api/v1/translations/text）
  *
  * 设备不再直连百度/Google：第三方凭据与供应商只在服务端配置，客户端只和自家后端通信。
- * 未登录、接口未开放、语言对不受支持或供应商失败时返回失败，
- * 由 [FallbackTranslator] 回退到 ML Kit，保证离线也能翻译。
+ * 未登录、接口未开放、语言对不受支持、供应商失败或当日额度用尽时返回失败，
+ * 由 [AccountAwareTranslator] 回退到 ML Kit，保证离线也能翻译。
  */
 class BackendTranslator(
     private val api: TranslationApi,
-    private val sessionManager: AuthSessionManager
+    private val sessionManager: AuthSessionManager,
+    private val quotaGuard: CloudQuotaGuard
 ) : ITranslator {
 
     internal companion object {
@@ -105,7 +105,8 @@ class BackendTranslator(
 
     override suspend fun translate(text: String, from: String, to: String): Result<String> =
         withContext(Dispatchers.IO) {
-            if (sessionManager.state.value !is AuthState.LoggedIn) {
+            val userId = sessionManager.currentUser()?.id
+            if (userId == null) {
                 // 游客不发起注定 401 的请求；回退到 ML Kit 不打扰用户
                 return@withContext failure(AppError.TRANSLATION_LOGIN_REQUIRED)
             }
@@ -122,6 +123,7 @@ class BackendTranslator(
             val segments = splitForServer(text)
                 ?: return@withContext failure(AppError.TRANSLATION_FAILED, "text too long")
 
+            Log.d(TAG, "云端翻译请求: ${segments.size} 段, $source → $target")
             try {
                 val expectedIds = segments.indices.map { "s$it" }
                 val response = api.translate(
@@ -135,14 +137,25 @@ class BackendTranslator(
                         }
                     )
                 )
+                response.data?.quota?.toDomain()?.let { quota ->
+                    quotaGuard.onQuotaReceived(userId, quota)
+                    Log.d(
+                        TAG,
+                        "云端翻译成功: unlimited=${quota.unlimited}, " +
+                            "remaining=${quota.remaining ?: "-"}"
+                    )
+                }
                 parseTranslatedSegments(response.data?.segments, expectedIds)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: HttpException) {
-                Log.w(TAG, "云端翻译失败: HTTP ${e.code()}")
-                Result.failure(
-                    TranslationException(e.toTranslationError(), e)
-                )
+                val error = e.toTranslationError()
+                if (error.code == AppError.TRANSLATION_DAILY_QUOTA_EXCEEDED) {
+                    Log.i(TAG, "云端翻译当日额度已用尽")
+                    quotaGuard.onQuotaExceeded(userId, error.quota)
+                }
+                Log.w(TAG, "云端翻译失败: HTTP ${e.code()}, code=${error.code}")
+                Result.failure(TranslationException(error, e))
             } catch (e: IOException) {
                 Log.w(TAG, "云端翻译网络异常: ${e.javaClass.simpleName}")
                 Result.failure(

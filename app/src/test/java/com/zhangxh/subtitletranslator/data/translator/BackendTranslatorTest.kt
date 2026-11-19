@@ -8,18 +8,25 @@ import com.zhangxh.subtitletranslator.data.remote.TextTranslationRequestDto
 import com.zhangxh.subtitletranslator.data.remote.TextTranslationResponseDto
 import com.zhangxh.subtitletranslator.data.remote.TranslatedSegmentDto
 import com.zhangxh.subtitletranslator.data.remote.TranslationApi
+import com.zhangxh.subtitletranslator.data.remote.TranslationQuotaDto
 import com.zhangxh.subtitletranslator.data.remote.TranslationSegmentDto
 import com.zhangxh.subtitletranslator.domain.auth.AuthTokens
 import com.zhangxh.subtitletranslator.domain.auth.AuthUser
 import com.zhangxh.subtitletranslator.domain.error.AppError
 import com.zhangxh.subtitletranslator.domain.error.TranslationException
 import kotlinx.coroutines.runBlocking
+import okhttp3.MediaType
+import okhttp3.ResponseBody
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import retrofit2.HttpException
+import retrofit2.Response
 import java.time.Instant
 import java.util.UUID
 
@@ -38,7 +45,7 @@ class BackendTranslatorTest {
             envelope(request) { segment -> "译:${segment.text}" }
         }
 
-        val result = BackendTranslator(api, loggedInSession())
+        val result = BackendTranslator(api, loggedInSession(), quotaGuard())
             .translate("Hello world", "en", "zh")
             .getOrThrow()
 
@@ -58,7 +65,7 @@ class BackendTranslatorTest {
             envelope(request) { segment -> segment.text.uppercase() }
         }
 
-        val result = BackendTranslator(api, loggedInSession())
+        val result = BackendTranslator(api, loggedInSession(), quotaGuard())
             .translate(text, "en", "zh")
             .getOrThrow()
 
@@ -74,15 +81,46 @@ class BackendTranslatorTest {
         val api = FakeTranslationApi { error("游客不应发起后端请求") }
         val guest = AuthSessionManager(InMemorySessionStore()).apply { clear(expired = false) }
 
-        val result = BackendTranslator(api, guest).translate("Hello", "en", "zh")
+        val result = BackendTranslator(api, guest, quotaGuard()).translate("Hello", "en", "zh")
 
         val error = result.exceptionOrNull() as TranslationException
         assertEquals(AppError.TRANSLATION_LOGIN_REQUIRED, error.error.code)
         assertEquals(0, api.requests.size)
     }
 
+    @Test
+    fun `success response caches remaining quota`() = runBlocking {
+        val guard = quotaGuard()
+        val api = FakeTranslationApi { request ->
+            envelope(request, quota = TranslationQuotaDto(limit = 10, used = 10, remaining = 0)) {
+                it.text
+            }
+        }
+
+        BackendTranslator(api, loggedInSession(), guard)
+            .translate("Hello", "en", "zh")
+            .getOrThrow()
+
+        assertFalse("额度为 0 后不应再尝试云端", guard.canUseCloud("user-1"))
+    }
+
+    @Test
+    fun `daily quota error maps to quota code and caches exhaustion`() = runBlocking {
+        val guard = quotaGuard()
+        val api = FakeTranslationApi { throw quotaExceededError() }
+
+        val result = BackendTranslator(api, loggedInSession(), guard)
+            .translate("Hello", "en", "zh")
+
+        val error = result.exceptionOrNull() as TranslationException
+        assertEquals(AppError.TRANSLATION_DAILY_QUOTA_EXCEEDED, error.error.code)
+        assertEquals(10, error.error.quota?.limit)
+        assertFalse(guard.canUseCloud("user-1"))
+    }
+
     private fun envelope(
         request: TextTranslationRequestDto,
+        quota: TranslationQuotaDto? = null,
         translation: (TranslationSegmentDto) -> String
     ): ApiEnvelope<TextTranslationResponseDto> = ApiEnvelope(
         TextTranslationResponseDto(
@@ -90,9 +128,29 @@ class BackendTranslatorTest {
             sequence = request.sequence,
             sourceLanguage = request.sourceLanguage,
             targetLanguage = request.targetLanguage,
-            segments = request.segments.map { TranslatedSegmentDto(it.id, translation(it)) }
+            segments = request.segments.map { TranslatedSegmentDto(it.id, translation(it)) },
+            quota = quota
         )
     )
+
+    private fun quotaGuard(): CloudQuotaGuard {
+        val cache = CloudQuotaCache(RuntimeEnvironment.getApplication())
+        cache.clear()
+        return CloudQuotaGuard(cache, CloudQuotaNotifier())
+    }
+
+    @Suppress("DEPRECATION")
+    private fun quotaExceededError(): HttpException {
+        val body = ResponseBody.create(
+            MediaType.parse("application/json")!!,
+            """
+            {"error":{"code":"TRANSLATION_DAILY_QUOTA_EXCEEDED","message":"quota",
+            "details":{"quota":{"limit":10,"used":10,"remaining":0,
+            "resetAt":"2099-01-01T00:00:00+08:00","unlimited":false}}}}
+            """.trimIndent()
+        )
+        return HttpException(Response.error<Any>(429, body))
+    }
 
     private fun loggedInSession(): AuthSessionManager =
         AuthSessionManager(InMemorySessionStore()).apply {

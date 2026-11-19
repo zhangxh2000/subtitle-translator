@@ -34,12 +34,14 @@ import com.zhangxh.subtitletranslator.data.screenshot.ScreenCaptureManagerImpl
 import com.zhangxh.subtitletranslator.data.settings.SettingsStore
 import com.zhangxh.subtitletranslator.data.speech.AndroidTtsPronouncer
 import com.zhangxh.subtitletranslator.data.translator.AiTranslator
-import com.zhangxh.subtitletranslator.data.translator.EngineSwitchingTranslator
+import com.zhangxh.subtitletranslator.data.translator.CloudQuotaGuard
+import com.zhangxh.subtitletranslator.data.translator.CloudQuotaNotifier
 import com.zhangxh.subtitletranslator.data.translator.TranslatorProvider
 import com.zhangxh.subtitletranslator.data.wordextractor.LocalWordExtractor
 import com.zhangxh.subtitletranslator.domain.ITranslationCoordinator
 import com.zhangxh.subtitletranslator.domain.TranslationCoordinator
 import com.zhangxh.subtitletranslator.domain.ai.AiTranslationUseCase
+import com.zhangxh.subtitletranslator.domain.entitlement.IEntitlementManager
 import com.zhangxh.subtitletranslator.domain.history.ITranslationHistoryRepository
 import com.zhangxh.subtitletranslator.domain.history.TranslationHistoryUseCase
 import com.zhangxh.subtitletranslator.domain.media.IMediaPlaybackGate
@@ -70,6 +72,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -144,6 +147,9 @@ class FloatingButtonService : Service() {
     private lateinit var translationApi: TranslationApi
     private lateinit var aiTranslationApi: AiTranslationApi
     private lateinit var authSessionManager: AuthSessionManager
+    private lateinit var entitlementManager: IEntitlementManager
+    private lateinit var cloudQuotaGuard: CloudQuotaGuard
+    private lateinit var cloudQuotaNotifier: CloudQuotaNotifier
 
     private val mediaGate: IMediaPlaybackGate by lazy { MediaPlaybackGate(this) }
     private val mediaPlaybackController by lazy { MediaSessionPlaybackController(this) }
@@ -173,6 +179,9 @@ class FloatingButtonService : Service() {
         translationApi = container.translationApi
         aiTranslationApi = container.aiTranslationApi
         authSessionManager = container.sessionManager
+        entitlementManager = container.entitlementManager
+        cloudQuotaGuard = container.cloudQuotaGuard
+        cloudQuotaNotifier = container.cloudQuotaNotifier
         historyRepository = container.translationHistory
         historyUseCase = TranslationHistoryUseCase(historyRepository)
         // 收藏控制器与页面共享进程级 Repository；服务不再直接调用 repository.toggle()
@@ -222,6 +231,8 @@ class FloatingButtonService : Service() {
                 onDebugCapture = { openAppScreen(DebugCaptureActivity::class.java) }
             )
         )
+
+        observeCloudQuotaEvents()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -325,19 +336,16 @@ class FloatingButtonService : Service() {
             )
 
             val ocrEngine = MLKitOcrEngine()
-            // 翻译引擎由用户在设置里选择：ML Kit 本地翻译；云端引擎走后端文本翻译接口，
-            // 第三方凭据只在服务端，未登录/失败时自动回退到离线引擎。
-            // 用 EngineSwitchingTranslator 每次翻译前读取设置：设置页可以在服务运行期间
-            // 从悬浮菜单打开，改完引擎必须在下一次翻译就生效，不能等重建录屏会话。
-            val translatorProvider = TranslatorProvider(
+            // 翻译通道按登录态自动选择：游客只用本地 ML Kit；登录用户优先云端，
+            // 失败或当日额度用尽时回退本地。每次翻译都会重新读取登录态，
+            // 服务运行期间登录 / 退出无需重启悬浮球。
+            val translator = TranslatorProvider(
                 context = this,
                 translationApi = translationApi,
-                sessionManager = authSessionManager
-            )
-            val translator = EngineSwitchingTranslator(
-                engineProvider = { settingsStore.translationEngine },
-                factory = { engine -> translatorProvider.create(engine) }
-            )
+                sessionManager = authSessionManager,
+                entitlementManager = entitlementManager,
+                quotaGuard = cloudQuotaGuard
+            ).create()
 
             // AI 精译与基础翻译链路独立：只在用户点击 AI 图标时调用
             val ai = AiTranslator(aiTranslationApi, authSessionManager)
@@ -545,6 +553,39 @@ class FloatingButtonService : Service() {
             if (started) R.string.a11y_dump_started else R.string.a11y_dump_unavailable,
             Toast.LENGTH_SHORT
         ).show()
+    }
+
+    /**
+     * 云端额度用尽提示
+     *
+     * 翻译器在后台线程发现额度为 0 时只发事件，不能直接启动 Activity；
+     * 这里统一在主线程 Toast + 打开主应用的受限弹窗。每天最多触发一次。
+     */
+    private fun observeCloudQuotaEvents() {
+        serviceScope.launch {
+            cloudQuotaNotifier.events.collect { event ->
+                Log.i(TAG, "云端翻译额度用尽，打开受限提示: resetAt=${event.resetAt ?: "-"}")
+                Toast.makeText(
+                    this@FloatingButtonService,
+                    R.string.error_translation_daily_quota_exceeded,
+                    Toast.LENGTH_LONG
+                ).show()
+                openCloudQuotaDialog()
+            }
+        }
+    }
+
+    private fun openCloudQuotaDialog() {
+        try {
+            startActivity(
+                Intent(this, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    putExtra(MainActivity.EXTRA_SHOW_CLOUD_QUOTA_EXCEEDED, true)
+                }
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "打开云端额度受限界面失败", e)
+        }
     }
 
     /** 跳转到 App 内的界面；服务启动 Activity 需要 NEW_TASK */

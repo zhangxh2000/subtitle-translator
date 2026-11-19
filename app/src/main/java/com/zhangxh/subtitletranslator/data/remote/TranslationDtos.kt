@@ -29,5 +29,15 @@ data class TextTranslationResponseDto(
     val sequence: Long?,
     val sourceLanguage: String?,
     val targetLanguage: String?,
-    val segments: List<TranslatedSegmentDto>?
+    val segments: List<TranslatedSegmentDto>?,
+    /** 免费账号的当日额度；会员为 unlimited=true，数值字段为 null */
+    val quota: TranslationQuotaDto? = null
+)
+
+data class TranslationQuotaDto(
+    val limit: Int? = null,
+    val used: Int? = null,
+    val remaining: Int? = null,
+    val resetAt: String? = null,
+    val unlimited: Boolean = false
 )

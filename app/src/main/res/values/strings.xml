@@ -75,7 +75,6 @@
     <!-- Settings -->
     <string name="settings_source_language">Source language</string>
     <string name="settings_target_language">Target language</string>
-    <string name="settings_translation_engine">Translation engine</string>
     <string name="settings_media_control">Media control</string>
     <string name="settings_media_access_granted">Notification access granted</string>
     <string name="settings_media_access_missing">Notification access not granted</string>
@@ -101,12 +100,11 @@
     <string name="settings_note">Note: language and vocabulary filter changes take effect the next time the translation service starts; the debug capture switch takes effect immediately.</string>
     <string name="settings_error_same_language">Source and target languages cannot be the same</string>
 
-    <!-- Translation engines -->
-    <string name="engine_mlkit">ML Kit offline (no setup)</string>
-    <string name="engine_baidu">Baidu Translate (cloud)</string>
-    <string name="engine_google">Google Translate (cloud)</string>
-    <string name="engine_hint_mlkit">Fully offline and needs no setup, but quality is modest and colloquial subtitles may be translated too literally.</string>
-    <string name="engine_hint_cloud">Translated through the app\'s cloud service (sign-in required); falls back to offline translation on failure.</string>
+    <!-- Cloud translation quota -->
+    <string name="cloud_quota_exceeded_title">Cloud translation limit reached</string>
+    <string name="cloud_quota_exceeded_message">You\'ve used today\'s 10 free cloud translations. Subtitles will continue to be translated offline on this device. Upgrade to a membership for unlimited cloud translation, or try again after the quota resets.</string>
+    <string name="cloud_quota_exceeded_membership">View membership</string>
+    <string name="cloud_quota_exceeded_dismiss">Not now</string>
 
     <!-- Vocabulary filter levels -->
     <string name="difficulty_filter_loose">Loose (show more)</string>
@@ -293,6 +291,7 @@
     <string name="error_translation_login_required">Sign in to use cloud translation</string>
     <string name="error_translation_service_unavailable">Cloud translation is temporarily unavailable</string>
     <string name="error_translation_rate_limited">Too many cloud translation requests. Try again later.</string>
+    <string name="error_translation_daily_quota_exceeded">Today\'s free cloud translations are used up. Using offline translation.</string>
     <string name="error_ai_membership_required">AI translation is available to members</string>
     <string name="error_no_subtitle_detected">No subtitle found in the screenshot. Try another frame or check the source language.</string>
     <string name="error_invalid_image">The subtitle image could not be processed. Please try again.</string>
@@ -443,7 +442,7 @@
     <string name="about_title">About</string>
     <string name="about_message">SubPick %1$s\n\nReads on-screen subtitles and translates them in a floating window.</string>
     <string name="about_terms_message">The full legal text will be provided before release. By using this app, you confirm that you have read and accept the Terms of Service.</string>
-    <string name="about_privacy_message">The full privacy policy will be provided before release. Screenshots are processed on your device for recognition; when a cloud engine is selected, the recognized subtitle text is sent to the app\'s translation service. When AI translation is used, the cropped subtitle image and recent subtitle context are sent to the app\'s translation service. Saved words stay on this device and sync automatically to your account only while you are signed in.</string>
+    <string name="about_privacy_message">The full privacy policy will be provided before release. Screenshots are processed on your device for recognition; while you are signed in, the recognized subtitle text is sent to the app\'s cloud translation service, while guests use on-device translation. When AI translation is used, the cropped subtitle image and recent subtitle context are sent to the app\'s translation service. Saved words stay on this device and sync automatically to your account only while you are signed in.</string>
     <string name="about_ok">OK</string>
 
     <!-- Help -->

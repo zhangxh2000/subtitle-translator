@@ -2,7 +2,6 @@ package com.zhangxh.subtitletranslator.data.settings
 
 import android.content.Context
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
-import com.zhangxh.subtitletranslator.domain.translator.TranslationEngine
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficultyFilter
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -46,7 +45,6 @@ class SettingsStoreTest {
     fun `defaults match the previous implementation`() {
         assertEquals("en", store.sourceLang)
         assertEquals("zh", store.targetLang)
-        assertEquals(TranslationEngine.ML_KIT, store.translationEngine)
         assertEquals(WordDifficultyFilter.LOOSE, store.difficultyFilter)
         assertEquals(OcrPreprocessMode.GRAYSCALE, store.preprocessMode)
         assertFalse(store.debugCaptureEnabled)
@@ -56,7 +54,6 @@ class SettingsStoreTest {
     fun `writes and reads back every setting`() {
         store.sourceLang = "ja"
         store.targetLang = "ko"
-        store.translationEngine = TranslationEngine.BAIDU
         store.difficultyFilter = WordDifficultyFilter.STRICT
         store.preprocessMode = OcrPreprocessMode.ADAPTIVE
         store.debugCaptureEnabled = true
@@ -65,7 +62,6 @@ class SettingsStoreTest {
         val reopened = SettingsStore(context)
         assertEquals("ja", reopened.sourceLang)
         assertEquals("ko", reopened.targetLang)
-        assertEquals(TranslationEngine.BAIDU, reopened.translationEngine)
         assertEquals(WordDifficultyFilter.STRICT, reopened.difficultyFilter)
         assertEquals(OcrPreprocessMode.ADAPTIVE, reopened.preprocessMode)
         assertTrue(reopened.debugCaptureEnabled)
@@ -74,12 +70,10 @@ class SettingsStoreTest {
     @Test
     fun `unknown enum names fall back to defaults`() {
         prefs().edit()
-            .putString(SettingsStore.KEY_TRANSLATION_ENGINE, "SOME_OLD_ENGINE")
             .putString(SettingsStore.KEY_PREPROCESS_MODE, "SOME_OLD_MODE")
             .putString(SettingsStore.KEY_DIFFICULTY_FILTER, "SOME_OLD_LEVEL")
             .commit()
 
-        assertEquals(TranslationEngine.ML_KIT, store.translationEngine)
         assertEquals(OcrPreprocessMode.GRAYSCALE, store.preprocessMode)
         assertEquals(WordDifficultyFilter.LOOSE, store.difficultyFilter)
     }
@@ -89,7 +83,6 @@ class SettingsStoreTest {
     fun `stored keys stay backward compatible`() {
         store.sourceLang = "ja"
         store.targetLang = "ko"
-        store.translationEngine = TranslationEngine.GOOGLE
         store.difficultyFilter = WordDifficultyFilter.STRICT
         store.preprocessMode = OcrPreprocessMode.FIXED
         store.debugCaptureEnabled = true
@@ -97,7 +90,6 @@ class SettingsStoreTest {
         val prefs = prefs()
         assertEquals("ja", prefs.getString("source_lang", null))
         assertEquals("ko", prefs.getString("target_lang", null))
-        assertEquals("GOOGLE", prefs.getString("translation_engine", null))
         assertEquals("STRICT", prefs.getString("difficulty_filter", null))
         assertEquals("FIXED", prefs.getString("ocr_preprocess_mode", null))
         assertTrue(prefs.getBoolean("debug_capture_enabled", false))

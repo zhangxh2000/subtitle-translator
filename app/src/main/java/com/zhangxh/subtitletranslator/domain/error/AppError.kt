@@ -1,5 +1,7 @@
 package com.zhangxh.subtitletranslator.domain.error
 
+import com.zhangxh.subtitletranslator.domain.translation.CloudTranslationQuota
+
 /**
  * 业务错误码
  *
@@ -23,6 +25,7 @@ enum class AppError {
     TRANSLATION_LOGIN_REQUIRED,
     TRANSLATION_SERVICE_UNAVAILABLE,
     TRANSLATION_RATE_LIMITED,
+    TRANSLATION_DAILY_QUOTA_EXCEEDED,
 
     // 会员专属能力（AI 精译等）
     MEMBERSHIP_REQUIRED,
@@ -57,7 +60,9 @@ enum class AppError {
  */
 data class TranslationError(
     val code: AppError,
-    val detail: String? = null
+    val detail: String? = null,
+    /** 仅云端额度错误会带；界面可用于展示重置时间 */
+    val quota: CloudTranslationQuota? = null
 )
 
 /**

@@ -1,11 +1,15 @@
 package com.zhangxh.subtitletranslator.data.translator
 
 import com.zhangxh.subtitletranslator.data.remote.TranslatedSegmentDto
+import com.zhangxh.subtitletranslator.data.remote.TranslationQuotaDto
 import com.zhangxh.subtitletranslator.domain.error.AppError
 import com.zhangxh.subtitletranslator.domain.error.TranslationError
 import com.zhangxh.subtitletranslator.domain.error.TranslationException
+import com.zhangxh.subtitletranslator.domain.translation.CloudTranslationQuota
 import org.json.JSONObject
 import retrofit2.HttpException
+import java.time.Instant
+import java.time.OffsetDateTime
 
 /**
  * 云端翻译的公共解析逻辑
@@ -13,25 +17,73 @@ import retrofit2.HttpException
  * 标准翻译与会员 AI 翻译的错误体、分段响应结构一致，放在这里避免两份实现漂移。
  */
 
-/** 读取服务端统一错误体中的 error.code；读取失败返回空串 */
-internal fun HttpException.translationErrorCode(): String = runCatching {
+/** 服务端统一错误体里与额度相关的字段 */
+private data class CloudErrorBody(
+    val code: String = "",
+    val quota: TranslationQuotaDto? = null
+)
+
+/** 错误体只能读一次，这里一次解析出 code 与 quota */
+private fun HttpException.readTranslationError(): CloudErrorBody = runCatching {
     val body = response()?.errorBody()?.string().orEmpty()
-    JSONObject(body).optJSONObject("error")?.optString("code").orEmpty()
-}.getOrDefault("")
+    if (body.isBlank()) return@runCatching CloudErrorBody()
+
+    val error = JSONObject(body).optJSONObject("error")
+        ?: return@runCatching CloudErrorBody()
+    val quota = error.optJSONObject("details")?.optJSONObject("quota")
+        ?: error.optJSONObject("quota")
+    CloudErrorBody(
+        code = error.optString("code").orEmpty(),
+        quota = quota?.toQuotaDto()
+    )
+}.getOrDefault(CloudErrorBody())
+
+private fun JSONObject.optNullableInt(key: String): Int? =
+    if (has(key) && !isNull(key)) optInt(key) else null
+
+private fun JSONObject.toQuotaDto(): TranslationQuotaDto = TranslationQuotaDto(
+    limit = optNullableInt("limit"),
+    used = optNullableInt("used"),
+    remaining = optNullableInt("remaining"),
+    resetAt = optString("resetAt").takeIf { it.isNotBlank() },
+    unlimited = optBoolean("unlimited", false)
+)
+
+/** 服务端 resetAt 是带时区的 ISO-8601，例如 2026-11-20T00:00:00+08:00 */
+internal fun TranslationQuotaDto.toDomain(): CloudTranslationQuota = CloudTranslationQuota(
+    limit = limit,
+    used = used,
+    remaining = remaining,
+    resetAt = parseResetAt(resetAt),
+    unlimited = unlimited
+)
+
+private fun parseResetAt(value: String?): Instant? {
+    val raw = value?.takeIf { it.isNotBlank() } ?: return null
+    return runCatching { OffsetDateTime.parse(raw).toInstant() }
+        .recoverCatching { Instant.parse(raw) }
+        .getOrNull()
+}
 
 /**
  * 云端翻译 HTTP 错误 → 应用错误码
  *
  * 401/403 只在 Token 刷新也失败时出现，说明会话已失效；
  * 400/422 一般是语言对不在服务端配置内；其余（404 接口未开放、5xx 供应商失败）都算服务不可用。
+ * 免费账号额度用尽返回 429 + TRANSLATION_DAILY_QUOTA_EXCEEDED，必须排在通用 429 之前判断，
+ * 否则会被当成限流而丢掉额度信息。
  *
  * @param membershipAware 会员接口需要把 403 MEMBERSHIP_REQUIRED 与普通登录失效区分开
  */
 internal fun HttpException.toTranslationError(
     membershipAware: Boolean = false
 ): TranslationError {
-    val errorCode = translationErrorCode()
+    val body = readTranslationError()
+    val errorCode = body.code
     val appError = when {
+        // 额度用尽：界面需要展示「主应用受限」而不是普通限流
+        errorCode == "TRANSLATION_DAILY_QUOTA_EXCEEDED" ->
+            AppError.TRANSLATION_DAILY_QUOTA_EXCEEDED
         // 图片翻译专属：没识别到字幕要让用户换一帧，而不是提示语言对不支持
         errorCode == "NO_SUBTITLE_DETECTED" -> AppError.NO_SUBTITLE_DETECTED
         errorCode == "INVALID_IMAGE" || code() == 413 || code() == 415 ->
@@ -44,8 +96,9 @@ internal fun HttpException.toTranslationError(
         else -> AppError.TRANSLATION_SERVICE_UNAVAILABLE
     }
     return TranslationError(
-        appError,
-        errorCode.takeIf { it.isNotBlank() } ?: "HTTP ${code()}"
+        code = appError,
+        detail = errorCode.takeIf { it.isNotBlank() } ?: "HTTP ${code()}",
+        quota = body.quota?.toDomain()
     )
 }
 

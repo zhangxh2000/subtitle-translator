@@ -5,7 +5,6 @@ import android.content.Context
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.data.settings.SettingsStore
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
-import com.zhangxh.subtitletranslator.domain.translator.TranslationEngine
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordDifficultyFilter
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -40,15 +39,6 @@ class SettingsViewModelTest {
 
     private fun prefs() =
         application.getSharedPreferences(SettingsStore.PREFS_NAME, Context.MODE_PRIVATE)
-
-    @Test
-    fun `engine change updates derived state`() {
-        viewModel.setTranslationEngine(TranslationEngine.BAIDU)
-
-        val state = requireNotNull(viewModel.uiState.value)
-        assertEquals(TranslationEngine.BAIDU, store.translationEngine)
-        assertEquals(R.string.engine_hint_cloud, state.engineHintRes)
-    }
 
     @Test
     fun `difficulty preprocess and debug capture persist`() {

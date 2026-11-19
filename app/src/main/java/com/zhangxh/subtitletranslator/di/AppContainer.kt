@@ -30,6 +30,9 @@ import com.zhangxh.subtitletranslator.data.sentence.SentenceSyncManager
 import com.zhangxh.subtitletranslator.data.sentence.SharedPrefsSentenceSyncStateStore
 import com.zhangxh.subtitletranslator.data.sentence.SqliteSentenceRepository
 import com.zhangxh.subtitletranslator.data.sync.SyncCoordinator
+import com.zhangxh.subtitletranslator.data.translator.CloudQuotaCache
+import com.zhangxh.subtitletranslator.data.translator.CloudQuotaGuard
+import com.zhangxh.subtitletranslator.data.translator.CloudQuotaNotifier
 import com.zhangxh.subtitletranslator.data.vocabulary.SharedPrefsVocabularySyncStateStore
 import com.zhangxh.subtitletranslator.data.vocabulary.SqliteVocabularyRepository
 import com.zhangxh.subtitletranslator.data.vocabulary.VocabularySyncManager
@@ -87,6 +90,11 @@ class AppContainer(context: Context) {
 
     /** 云端文本翻译：第三方供应商由服务端代理，客户端只带登录态 */
     val translationApi: TranslationApi = authRetrofit.create(TranslationApi::class.java)
+
+    /** 云端额度：服务端计数，本地只缓存最近一次结果并保证提示每天最多一次 */
+    private val cloudQuotaCache = CloudQuotaCache(context)
+    val cloudQuotaNotifier = CloudQuotaNotifier()
+    val cloudQuotaGuard = CloudQuotaGuard(cloudQuotaCache, cloudQuotaNotifier)
 
     /** 会员 AI 精译：服务端校验会员权益，客户端不判断 plan */
     val aiTranslationApi: AiTranslationApi = authRetrofit.create(AiTranslationApi::class.java)
