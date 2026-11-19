@@ -9,6 +9,9 @@
 - 新增页面必须配套 ViewModel；新增用户设置必须走 `data/settings/SettingsStore`。
 - 数据层放在 `data/`（可写数据库、文件、SharedPreferences），领域接口/模型放在 `domain/`。
 
+## 设计模式
+- 修改代码或新增功能时，一定要考虑设计模式，该重构的就得重构，但是重构改动范围大时，需要经过我确认才能修改
+
 ## 多语言（强制）
 
 - 所有用户可见文案必须放在 `res/values/strings.xml`，不得在布局或 Kotlin 中硬编码。

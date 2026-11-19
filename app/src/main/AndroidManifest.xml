@@ -10,6 +10,9 @@
 
     <!-- 网络权限（用于下载语言包与生词同步） -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Google Play 订阅（会员购买与恢复） -->
+    <uses-permission android:name="com.android.vending.BILLING" />
     <!-- 读取网络状态：生词同步只在网络真正可用时发起，恢复后自动补发 -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
