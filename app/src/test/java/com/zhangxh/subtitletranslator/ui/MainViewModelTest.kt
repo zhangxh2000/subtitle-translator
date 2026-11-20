@@ -1,6 +1,5 @@
 package com.zhangxh.subtitletranslator.ui
 
-import android.Manifest
 import android.app.Activity
 import android.app.AppOpsManager
 import android.app.Application
@@ -69,39 +68,27 @@ class MainViewModelTest {
     private fun lastEvent(): MainEvent = events.last()
 
     @Test
-    fun `start click asks for notification permission first`() {
-        viewModel.onStartStopClicked()
-
-        val event = lastEvent()
-        assertTrue("应先申请通知权限，实际: $event", event is MainEvent.RequestPermissions)
-        assertTrue(
-            (event as MainEvent.RequestPermissions).permissions
-                .contains(Manifest.permission.POST_NOTIFICATIONS)
-        )
-    }
-
-    @Test
-    fun `granted permissions with overlay explicitly denied opens overlay settings`() {
-        setOverlayAppOp(AppOpsManager.MODE_ERRORED)
-
-        viewModel.onPermissionsResult(true)
-
-        assertTrue(lastEvent() is MainEvent.OpenOverlaySettings)
-    }
-
-    @Test
-    fun `granted permissions with overlay undecided relies on capture auto grant`() {
+    fun `start click asks for screen capture when overlay is undecided`() {
         // app-op 仍是默认态：Android 11+ 会在录屏会话期间自动授权
-        viewModel.onPermissionsResult(true)
+        viewModel.onStartStopClicked()
 
         assertTrue(lastEvent() is MainEvent.RequestMediaProjection)
     }
 
     @Test
-    fun `granted permissions with overlay present requests media projection`() {
+    fun `start click with overlay explicitly denied opens overlay settings`() {
+        setOverlayAppOp(AppOpsManager.MODE_ERRORED)
+
+        viewModel.onStartStopClicked()
+
+        assertTrue(lastEvent() is MainEvent.OpenOverlaySettings)
+    }
+
+    @Test
+    fun `start click with overlay present requests media projection`() {
         ShadowSettings.setCanDrawOverlays(true)
 
-        viewModel.onPermissionsResult(true)
+        viewModel.onStartStopClicked()
 
         assertTrue(lastEvent() is MainEvent.RequestMediaProjection)
     }
@@ -109,7 +96,7 @@ class MainViewModelTest {
     @Test
     fun `returning from overlay settings continues when permission was granted`() {
         setOverlayAppOp(AppOpsManager.MODE_ERRORED)
-        viewModel.onPermissionsResult(true) // 明确拒绝 -> 打开设置页
+        viewModel.onStartStopClicked() // 明确拒绝 -> 打开设置页
         ShadowSettings.setCanDrawOverlays(true)
 
         viewModel.onActivityResumed()
@@ -123,14 +110,14 @@ class MainViewModelTest {
         assertTrue(lastEvent() is MainEvent.OpenOverlaySettings)
 
         events.clear()
-        viewModel.onPermissionsResult(true)
+        viewModel.onStartStopClicked()
         assertTrue(lastEvent() is MainEvent.OpenOverlaySettings)
     }
 
     @Test
     @Config(sdk = [29])
     fun `android 10 still opens overlay settings when permission is undecided`() {
-        viewModel.onPermissionsResult(true)
+        viewModel.onStartStopClicked()
 
         assertTrue(lastEvent() is MainEvent.OpenOverlaySettings)
     }
@@ -159,6 +146,6 @@ class MainViewModelTest {
     fun `restart request begins authorization`() {
         viewModel.onRestartRequested()
 
-        assertTrue(lastEvent() is MainEvent.RequestPermissions)
+        assertTrue(lastEvent() is MainEvent.RequestMediaProjection)
     }
 }

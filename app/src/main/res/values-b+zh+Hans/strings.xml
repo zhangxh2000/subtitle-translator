@@ -32,7 +32,6 @@
     <string name="main_settings_short">设置</string>
     <string name="main_restart_hint">录屏权限已失效，请重新授权</string>
     <string name="main_overlay_permission_hint">请开启悬浮窗权限</string>
-    <string name="main_permissions_required">需要相关权限才能使用</string>
     <string name="main_projection_required">需要屏幕录制权限才能截图翻译</string>
     <string name="main_service_started">字幕拾词已启动</string>
     <string name="main_service_stopped">字幕翻译已停止</string>

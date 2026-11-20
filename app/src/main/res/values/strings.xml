@@ -37,7 +37,6 @@
     <string name="main_settings_short">Settings</string>
     <string name="main_restart_hint">Screen recording permission expired. Please authorize again.</string>
     <string name="main_overlay_permission_hint">Please allow display over other apps</string>
-    <string name="main_permissions_required">Permissions are required to use this feature</string>
     <string name="main_projection_required">Screen recording permission is required to translate subtitles</string>
     <string name="main_service_started">SubPick started</string>
     <string name="main_service_stopped">Subtitle translation stopped</string>

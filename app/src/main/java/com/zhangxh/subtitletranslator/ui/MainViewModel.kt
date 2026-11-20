@@ -1,12 +1,12 @@
 package com.zhangxh.subtitletranslator.ui
 
-import android.Manifest
 import android.app.Activity
 import android.app.AppOpsManager
 import android.app.Application
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
+import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
@@ -29,7 +29,6 @@ import kotlinx.coroutines.launch
  * 通过一次性事件把动作交给 Activity；结果再由 Activity 回传。
  */
 sealed class MainEvent {
-    data class RequestPermissions(val permissions: Array<String>) : MainEvent()
     data object OpenOverlaySettings : MainEvent()
     data object RequestMediaProjection : MainEvent()
     data class ShowMessage(val text: UiText) : MainEvent()
@@ -42,6 +41,10 @@ class MainViewModel @JvmOverloads constructor(
     private val membershipRepository: IMembershipRepository =
         (application as SubtitleTranslatorApplication).container.membershipRepository
 ) : AndroidViewModel(application) {
+
+    companion object {
+        private const val TAG = "MainViewModel"
+    }
 
     private val _serviceRunning = MutableLiveData(FloatingButtonService.isRunning())
     val serviceRunning: LiveData<Boolean> = _serviceRunning
@@ -76,7 +79,9 @@ class MainViewModel @JvmOverloads constructor(
     }
 
     fun onStartStopClicked() {
-        if (FloatingButtonService.isRunning()) {
+        val running = FloatingButtonService.isRunning()
+        Log.i(TAG, "点击悬浮翻译开关: running=$running")
+        if (running) {
             stopService()
         } else {
             beginAuthorization()
@@ -85,6 +90,7 @@ class MainViewModel @JvmOverloads constructor(
 
     /** 录屏权限失效后由服务打开主界面时调用 */
     fun onRestartRequested() {
+        Log.i(TAG, "录屏授权失效，自动重新发起授权")
         beginAuthorization()
     }
 
@@ -96,6 +102,7 @@ class MainViewModel @JvmOverloads constructor(
      * 否则会反复出现“录屏授权完成但没有悬浮窗”的情况。
      */
     fun onOverlayPermissionRequired() {
+        Log.w(TAG, "系统未在录屏期间自动授予悬浮窗权限，改为引导用户开启")
         overlayAutoGrantUnavailable = true
         awaitingOverlayPermission = false
         emit(MainEvent.OpenOverlaySettings)
@@ -111,15 +118,8 @@ class MainViewModel @JvmOverloads constructor(
         viewModelScope.launch { membershipRepository.refresh(force = false) }
     }
 
-    fun onPermissionsResult(granted: Boolean) {
-        if (granted) {
-            checkOverlayPermission()
-        } else {
-            emitMessage(R.string.main_permissions_required)
-        }
-    }
-
     fun onMediaProjectionResult(resultCode: Int, data: Intent?) {
+        Log.i(TAG, "录屏授权返回: resultCode=$resultCode, hasData=${data != null}")
         if (resultCode == Activity.RESULT_OK && data != null) {
             startService(resultCode, data)
         } else {
@@ -127,23 +127,23 @@ class MainViewModel @JvmOverloads constructor(
         }
     }
 
+    /**
+     * 启动前只处理悬浮窗权限。
+     *
+     * 通知权限不再申请：Android 13+ 前台服务无需 POST_NOTIFICATIONS 即可运行，
+     * 拒绝时只是前台通知不进通知栏（任务管理器仍可见），不应该因此打断启动流程。
+     * 用户需要通知栏「停止」入口时，可自行在系统设置中允许通知。
+     */
     private fun beginAuthorization() {
-        val permissions = buildList {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                add(Manifest.permission.POST_NOTIFICATIONS)
-            }
-        }
-        if (permissions.isNotEmpty()) {
-            emit(MainEvent.RequestPermissions(permissions.toTypedArray()))
-        } else {
-            checkOverlayPermission()
-        }
+        checkOverlayPermission()
     }
 
     private fun checkOverlayPermission() {
         if (hasOverlayAccess()) {
+            Log.i(TAG, "悬浮窗权限可用，申请录屏权限")
             emit(MainEvent.RequestMediaProjection)
         } else {
+            Log.i(TAG, "悬浮窗权限不可用，打开设置页")
             awaitingOverlayPermission = true
             emit(MainEvent.OpenOverlaySettings)
         }
@@ -174,6 +174,7 @@ class MainViewModel @JvmOverloads constructor(
     }
 
     private fun startService(resultCode: Int, data: Intent) {
+        Log.i(TAG, "启动悬浮翻译前台服务")
         val context = getApplication<Application>()
         val intent = Intent(context, FloatingButtonService::class.java).apply {
             action = FloatingButtonService.ACTION_START
@@ -185,6 +186,7 @@ class MainViewModel @JvmOverloads constructor(
     }
 
     private fun stopService() {
+        Log.i(TAG, "停止悬浮翻译前台服务")
         val context = getApplication<Application>()
         context.startService(
             Intent(context, FloatingButtonService::class.java).apply {

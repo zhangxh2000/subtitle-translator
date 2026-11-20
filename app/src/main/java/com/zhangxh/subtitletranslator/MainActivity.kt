@@ -54,12 +54,6 @@ class MainActivity : BaseActivity() {
     private val viewModel: MainViewModel by viewModels()
     private lateinit var navController: NavController
 
-    private val permissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        viewModel.onPermissionsResult(permissions.entries.all { it.value })
-    }
-
     private val mediaProjectionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -171,7 +165,6 @@ class MainActivity : BaseActivity() {
     private fun observeViewModel() {
         viewModel.events.observe(this) { event ->
             when (val action = event.getContentIfNotHandled() ?: return@observe) {
-                is MainEvent.RequestPermissions -> permissionLauncher.launch(action.permissions)
                 MainEvent.OpenOverlaySettings -> openOverlaySettings()
                 MainEvent.RequestMediaProjection -> requestMediaProjection()
                 is MainEvent.ShowMessage ->

@@ -191,7 +191,7 @@
 
 - 重新打开 App，点「停止字幕翻译」（服务运行中时主界面会显示运行状态）
 - 长按悬浮按钮 → 停止字幕翻译
-- 下拉通知栏 → 停止服务
+- 下拉通知栏 → 停止服务（需在系统设置中允许通知；Android 13+ 应用不主动申请该权限）
 
 **生词筛选强度**（设置页可调）
 
@@ -402,7 +402,7 @@ python3 scripts/import_ecdict.py --csv ecdict.csv --lemma lemma.en.txt
 - `FOREGROUND_SERVICE`：前台服务
 - `FOREGROUND_SERVICE_MEDIA_PROJECTION`：屏幕录制
 - `INTERNET`：云端翻译、收藏同步与首次语言包下载
-- `POST_NOTIFICATIONS`：通知（Android 13+）
+- `POST_NOTIFICATIONS`：前台服务通知（可选；Android 13+ 不主动申请，未开启不影响翻译运行，仅通知栏无「停止」入口）
 
 ## 后续扩展
 
