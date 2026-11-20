@@ -14,10 +14,10 @@ import com.zhangxh.subtitletranslator.BuildConfig
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
 import com.zhangxh.subtitletranslator.domain.auth.AuthState
+import com.zhangxh.subtitletranslator.domain.auth.AuthUser
 import com.zhangxh.subtitletranslator.domain.entitlement.Plan
 import com.zhangxh.subtitletranslator.ui.LanguageSettingsActivity
 import com.zhangxh.subtitletranslator.ui.SettingsActivity
-import com.zhangxh.subtitletranslator.ui.auth.RegisterActivity
 import com.zhangxh.subtitletranslator.ui.common.auth.LoginGate
 import com.zhangxh.subtitletranslator.ui.membership.MembershipActivity
 import java.text.DateFormat
@@ -27,7 +27,8 @@ import java.util.Date
 /**
  * 我的 Tab
  *
- * 游客显示登录/注册入口；登录后显示账号信息、设置和退出登录。
+ * 账号与会员合并在一张卡里：上半是账号行，下半是会员状态条。
+ * 游客点账号行登录；免费 / 游客点会员条进入会员页；会员显示有效期和管理入口。
  * 不做复杂个人主页，也不在服务端 PATCH /me 就绪前提供资料编辑。
  */
 class ProfileFragment : Fragment() {
@@ -36,18 +37,17 @@ class ProfileFragment : Fragment() {
     private lateinit var loginGate: LoginGate
 
     private lateinit var loading: View
-    private lateinit var membershipEntryCard: View
-    private lateinit var tvMembershipSubtitle: TextView
-    private lateinit var btnMembershipAction: TextView
-    private lateinit var memberCard: View
-    private lateinit var tvMemberExpiry: TextView
-    private lateinit var btnManageMembership: View
-    private lateinit var guestGroup: View
-    private lateinit var userGroup: View
+    private lateinit var accountMembershipCard: View
+    private lateinit var accountRow: View
+    private lateinit var ivGuestAvatar: View
     private lateinit var tvAvatar: TextView
     private lateinit var tvDisplayName: TextView
-    private lateinit var tvEmail: TextView
-    private lateinit var tvVerified: TextView
+    private lateinit var tvPlanChip: View
+    private lateinit var tvAccountSubtitle: TextView
+    private lateinit var ivAccountChevron: View
+    private lateinit var membershipUpgradeBand: View
+    private lateinit var membershipMemberBand: View
+    private lateinit var tvMemberExpiry: TextView
     private lateinit var btnLogout: View
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,29 +69,26 @@ class ProfileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         loading = view.findViewById(R.id.profileLoading)
-        membershipEntryCard = view.findViewById(R.id.membershipEntryCard)
-        tvMembershipSubtitle = view.findViewById(R.id.tvMembershipSubtitle)
-        btnMembershipAction = view.findViewById(R.id.btnMembershipAction)
-        memberCard = view.findViewById(R.id.memberCard)
-        tvMemberExpiry = view.findViewById(R.id.tvMemberExpiry)
-        btnManageMembership = view.findViewById(R.id.btnManageMembership)
-        guestGroup = view.findViewById(R.id.guestGroup)
-        userGroup = view.findViewById(R.id.userGroup)
+        accountMembershipCard = view.findViewById(R.id.accountMembershipCard)
+        accountRow = view.findViewById(R.id.accountRow)
+        ivGuestAvatar = view.findViewById(R.id.ivGuestAvatar)
         tvAvatar = view.findViewById(R.id.tvAvatar)
         tvDisplayName = view.findViewById(R.id.tvDisplayName)
-        tvEmail = view.findViewById(R.id.tvEmail)
-        tvVerified = view.findViewById(R.id.tvVerified)
+        tvPlanChip = view.findViewById(R.id.tvPlanChip)
+        tvAccountSubtitle = view.findViewById(R.id.tvAccountSubtitle)
+        ivAccountChevron = view.findViewById(R.id.ivAccountChevron)
+        membershipUpgradeBand = view.findViewById(R.id.membershipUpgradeBand)
+        membershipMemberBand = view.findViewById(R.id.membershipMemberBand)
+        tvMemberExpiry = view.findViewById(R.id.tvMemberExpiry)
         btnLogout = view.findViewById(R.id.btnLogout)
 
-        membershipEntryCard.setOnClickListener { openMembershipOrLogin() }
-        btnMembershipAction.setOnClickListener { openMembershipOrLogin() }
-        memberCard.setOnClickListener { openMembership() }
-        btnManageMembership.setOnClickListener { openMembership() }
-        view.findViewById<View>(R.id.btnGuestLogin).setOnClickListener {
-            loginGate.launchLoginDirectly()
+        view.findViewById<View>(R.id.btnMembershipAction).setOnClickListener {
+            openMembershipOrLogin()
         }
-        view.findViewById<View>(R.id.btnGuestRegister).setOnClickListener {
-            startActivity(Intent(requireContext(), RegisterActivity::class.java))
+        membershipUpgradeBand.setOnClickListener { openMembershipOrLogin() }
+        membershipMemberBand.setOnClickListener { openMembership() }
+        view.findViewById<View>(R.id.btnManageMembership).setOnClickListener {
+            openMembership()
         }
         view.findViewById<View>(R.id.btnPreferences).setOnClickListener {
             startActivity(Intent(requireContext(), SettingsActivity::class.java))
@@ -112,64 +109,77 @@ class ProfileFragment : Fragment() {
         when (val auth = state.authState) {
             AuthState.Loading -> {
                 loading.isVisible = true
-                membershipEntryCard.isVisible = false
-                memberCard.isVisible = false
-                guestGroup.isVisible = false
-                userGroup.isVisible = false
+                accountMembershipCard.isVisible = false
                 btnLogout.isVisible = false
             }
             AuthState.Guest -> {
                 loading.isVisible = false
-                renderFreeMembership(isGuest = true)
-                memberCard.isVisible = false
-                guestGroup.isVisible = true
-                userGroup.isVisible = false
+                accountMembershipCard.isVisible = true
+                renderGuestAccount()
+                renderFreeMembership()
                 btnLogout.isVisible = false
             }
             is AuthState.LoggedIn -> {
                 loading.isVisible = false
+                accountMembershipCard.isVisible = true
+                renderUserAccount(auth.user, state.plan)
                 if (state.plan == Plan.MEMBER) {
                     renderMemberMembership(state)
                 } else {
-                    renderFreeMembership(isGuest = false)
+                    renderFreeMembership()
                 }
-                memberCard.isVisible = state.plan == Plan.MEMBER
-                guestGroup.isVisible = false
-                userGroup.isVisible = true
                 btnLogout.isVisible = true
-                val user = auth.user
-                tvAvatar.text = user.initial
-                tvDisplayName.text = user.displayLabel
-                tvEmail.isVisible = !user.email.isNullOrBlank()
-                tvEmail.text = user.email.orEmpty()
-                tvVerified.isVisible = !user.email.isNullOrBlank()
-                tvVerified.setText(
-                    if (user.emailVerified) R.string.profile_email_verified
-                    else R.string.profile_email_unverified
-                )
-                tvVerified.setTextColor(
-                    requireContext().getColor(
-                        if (user.emailVerified) R.color.accent else R.color.text_secondary
-                    )
-                )
             }
         }
     }
 
-    private fun renderFreeMembership(isGuest: Boolean) {
-        membershipEntryCard.isVisible = true
-        tvMembershipSubtitle.setText(
-            if (isGuest) R.string.profile_membership_subtitle_guest
-            else R.string.profile_membership_subtitle_free
+    private fun renderGuestAccount() {
+        ivGuestAvatar.isVisible = true
+        tvAvatar.isVisible = false
+        tvDisplayName.setText(R.string.profile_login_title)
+        tvPlanChip.isVisible = false
+        tvAccountSubtitle.isVisible = true
+        tvAccountSubtitle.setText(R.string.profile_login_subtitle)
+        ivAccountChevron.isVisible = true
+        accountRow.isClickable = true
+        accountRow.isFocusable = true
+        accountRow.setOnClickListener { loginGate.launchLoginDirectly() }
+    }
+
+    private fun renderUserAccount(user: AuthUser, plan: Plan) {
+        ivGuestAvatar.isVisible = false
+        tvAvatar.isVisible = true
+        tvAvatar.text = user.initial
+        tvDisplayName.text = user.displayLabel
+        tvPlanChip.isVisible = plan == Plan.MEMBER
+        ivAccountChevron.isVisible = false
+        // 暂未提供资料编辑页，账号行不做成可点的“死箭头”
+        accountRow.setOnClickListener(null)
+        accountRow.isClickable = false
+        accountRow.isFocusable = false
+
+        val email = user.email?.takeIf { it.isNotBlank() }
+        val verifiedText = getString(
+            if (user.emailVerified) R.string.profile_email_verified
+            else R.string.profile_email_unverified
         )
-        btnMembershipAction.setText(
-            if (isGuest) R.string.profile_membership_action_guest
-            else R.string.profile_membership_action_free
-        )
+        val subtitle = when {
+            email == null -> null
+            user.displayLabel == email -> verifiedText
+            else -> getString(R.string.profile_account_email_status, email, verifiedText)
+        }
+        tvAccountSubtitle.isVisible = subtitle != null
+        tvAccountSubtitle.text = subtitle.orEmpty()
+    }
+
+    private fun renderFreeMembership() {
+        membershipUpgradeBand.isVisible = true
+        membershipMemberBand.isVisible = false
     }
 
     private fun renderMemberMembership(state: ProfileUiState) {
-        membershipEntryCard.isVisible = false
+        membershipUpgradeBand.isVisible = false
+        membershipMemberBand.isVisible = true
         tvMemberExpiry.text = state.membershipExpiresAt?.let {
             getString(R.string.profile_membership_subtitle_member, formatDate(it))
         } ?: getString(R.string.profile_membership_subtitle_member_no_expiry)

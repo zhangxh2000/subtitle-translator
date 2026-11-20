@@ -427,6 +427,9 @@
     <string name="auth_reset_success">Password reset. Sign in with your new password.</string>
 
     <!-- 我的 -->
+    <string name="profile_login_title">Tap to sign in / register</string>
+    <string name="profile_login_subtitle">Sign in to sync your vocabulary and translation history to the cloud</string>
+    <string name="profile_account_email_status">%1$s · %2$s</string>
     <string name="profile_guest_title">Guest</string>
     <string name="profile_guest_subtitle">Sign in to manage your account and cloud features.</string>
     <string name="profile_login_action">Sign in</string>
@@ -501,6 +504,9 @@
     <string name="profile_membership_subtitle_member">Active until %1$s</string>
     <string name="profile_membership_subtitle_member_no_expiry">Membership active</string>
     <string name="profile_membership_member_desc">Unlimited cloud translation + AI image translation</string>
+    <string name="profile_membership_upgrade_title">Upgrade to Pro</string>
+    <string name="profile_membership_member_title">Pro membership</string>
+    <string name="profile_membership_action_upgrade">Go Pro</string>
     <string name="profile_membership_action_free">View plans</string>
     <string name="profile_membership_action_guest">Sign in</string>
 

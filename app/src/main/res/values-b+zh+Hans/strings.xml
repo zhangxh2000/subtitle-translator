@@ -422,6 +422,9 @@
     <string name="auth_reset_success">密码已重置，请用新密码登录。</string>
 
     <!-- 我的 -->
+    <string name="profile_login_title">点击登录 / 注册</string>
+    <string name="profile_login_subtitle">登录后云端同步生词本与翻译记录</string>
+    <string name="profile_account_email_status">%1$s · %2$s</string>
     <string name="profile_guest_title">游客</string>
     <string name="profile_guest_subtitle">登录后可管理账号并使用云端功能。</string>
     <string name="profile_login_action">登录</string>
@@ -496,6 +499,9 @@
     <string name="profile_membership_subtitle_member">有效期至 %1$s</string>
     <string name="profile_membership_subtitle_member_no_expiry">会员已生效</string>
     <string name="profile_membership_member_desc">云端翻译不限次数 + AI 图片精译</string>
+    <string name="profile_membership_upgrade_title">升级 Pro 会员</string>
+    <string name="profile_membership_member_title">Pro 会员</string>
+    <string name="profile_membership_action_upgrade">立即开通</string>
     <string name="profile_membership_action_free">查看方案</string>
     <string name="profile_membership_action_guest">登录</string>
 

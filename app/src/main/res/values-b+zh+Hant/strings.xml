@@ -422,6 +422,9 @@
     <string name="auth_reset_success">密碼已重設，請使用新密碼登入。</string>
 
     <!-- 我的 -->
+    <string name="profile_login_title">點擊登入 / 註冊</string>
+    <string name="profile_login_subtitle">登入後雲端同步生詞本與翻譯記錄</string>
+    <string name="profile_account_email_status">%1$s · %2$s</string>
     <string name="profile_guest_title">訪客</string>
     <string name="profile_guest_subtitle">登入後可管理帳號並使用雲端功能。</string>
     <string name="profile_login_action">登入</string>
@@ -496,6 +499,9 @@
     <string name="profile_membership_subtitle_member">有效期至 %1$s</string>
     <string name="profile_membership_subtitle_member_no_expiry">會員已生效</string>
     <string name="profile_membership_member_desc">雲端翻譯不限次數 + AI 圖片精譯</string>
+    <string name="profile_membership_upgrade_title">升級 Pro 會員</string>
+    <string name="profile_membership_member_title">Pro 會員</string>
+    <string name="profile_membership_action_upgrade">立即開通</string>
     <string name="profile_membership_action_free">查看方案</string>
     <string name="profile_membership_action_guest">登入</string>
 
