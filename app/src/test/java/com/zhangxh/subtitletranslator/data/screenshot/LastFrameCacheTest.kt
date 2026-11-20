@@ -76,6 +76,22 @@ class LastFrameCacheTest {
     }
 
     @Test
+    fun `update and copy keeps the frame cached while returning an independent copy`() {
+        val cache = LastFrameCache(4, 3)
+        val frame = bitmap(4, 3, Color.MAGENTA)
+
+        val copy = cache.updateAndCopy(frame)
+
+        assertNotSame(frame, copy)
+        assertEquals(Color.MAGENTA, copy?.getPixel(0, 0))
+        copy?.recycle()
+        // 调用方回收副本后，缓存仍然持有原始帧
+        assertFalse(frame.isRecycled)
+        assertEquals(Color.MAGENTA, cache.copy()?.getPixel(0, 0))
+        cache.clear()
+    }
+
+    @Test
     fun `clear drops the cache`() {
         val cache = LastFrameCache(4, 3)
         cache.update(bitmap(4, 3, Color.RED))

@@ -23,6 +23,18 @@ internal class LastFrameCache(
         frame = bitmap
     }
 
+    /**
+     * 保存最新帧并立即返回一份副本
+     *
+     * 更新和复制在同一把锁内完成，避免截图线程刚存入就被释放流程清掉。
+     * 副本由调用方负责回收。
+     */
+    @Synchronized
+    fun updateAndCopy(bitmap: Bitmap): Bitmap? {
+        update(bitmap)
+        return copy()
+    }
+
     /** 按当前屏幕尺寸裁剪出缓存帧的副本；没有缓存时返回 null */
     @Synchronized
     fun copy(): Bitmap? {

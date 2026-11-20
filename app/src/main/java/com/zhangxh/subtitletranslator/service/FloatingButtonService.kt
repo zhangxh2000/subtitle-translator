@@ -159,6 +159,8 @@ class FloatingButtonService : Service() {
     private val mediaPlaybackController by lazy { MediaSessionPlaybackController(this) }
 
     private var mediaProjection: MediaProjection? = null
+    /** 与 MediaProjection 同生命周期；屏幕配置变化时通知它推迟重建输出 */
+    private var screenCaptureManager: ScreenCaptureManagerImpl? = null
     private var isProjectionStopped = false
 
     private val binder = LocalBinder()
@@ -300,6 +302,8 @@ class FloatingButtonService : Service() {
         overlayWindow?.relayout()
         navigationStatusWindow?.relayout()
         quotaExceededWindow?.relayout()
+        // 截图器会等屏幕稳定后再换绑，失败也有回滚；这里只负责通知
+        screenCaptureManager?.onDisplayConfigurationChanged()
     }
 
     /**
@@ -347,6 +351,7 @@ class FloatingButtonService : Service() {
                 metrics.heightPixels,
                 metrics.densityDpi
             )
+            screenCaptureManager = screenCapture
 
             val ocrEngine = MLKitOcrEngine()
             // 翻译通道按登录态自动选择：游客只用本地 ML Kit；登录用户优先云端，
@@ -737,6 +742,7 @@ class FloatingButtonService : Service() {
 
         translationCoordinator?.release()
         translationCoordinator = null
+        screenCaptureManager = null
 
         dictionaryProvider?.release()
         dictionaryProvider = null

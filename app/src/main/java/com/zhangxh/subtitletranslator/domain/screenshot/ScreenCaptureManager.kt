@@ -39,4 +39,11 @@ interface IScreenCaptureManager {
      * 是否已初始化
      */
     fun isInitialized(): Boolean
+
+    /**
+     * 屏幕配置变化通知（旋转、折叠、分屏等）
+     *
+     * 实现方可以延迟到屏幕稳定后再重建输出；默认不做处理。
+     */
+    fun onDisplayConfigurationChanged() {}
 }

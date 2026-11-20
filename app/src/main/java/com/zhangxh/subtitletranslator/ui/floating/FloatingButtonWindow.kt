@@ -34,9 +34,13 @@ class FloatingButtonWindow(
 
         /** 悬浮球尺寸，与 floating_button.xml 保持一致（快捷菜单定位需要） */
         const val SIZE_DP = 56
+
+        private const val NUDGE_PULSE_HOLD_MS = 40L
+        private const val NUDGE_SECOND_PULSE_DELAY_MS = 180L
     }
 
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    @Volatile
     private var view: View? = null
     private var layoutParams: WindowManager.LayoutParams? = null
 
@@ -124,16 +128,29 @@ class FloatingButtonWindow(
             .onFailure { Log.w(TAG, "旋转后更新悬浮球位置失败", it) }
     }
 
-    /** 截图前轻量刷新，促使静止画面产生新帧 */
+    /**
+     * 截图前轻量刷新，促使静止画面产生新帧
+     *
+     * VirtualDisplay 的 Surface 换绑/重建是异步合成的，只闪一次可能在
+     * 新 Surface 生效前就结束；隔一段时间再闪一次，覆盖这段空窗。
+     */
     fun nudge() {
         val button = view ?: return
         button.post {
+            pulse(button, 0L)
+            pulse(button, NUDGE_SECOND_PULSE_DELAY_MS)
+        }
+    }
+
+    private fun pulse(button: View, delayMs: Long) {
+        button.postDelayed({
+            if (view !== button) return@postDelayed
             button.animate().cancel()
             button.alpha = 0.95f
             button.postDelayed({
                 if (view === button) button.alpha = 1f
-            }, 40)
-        }
+            }, NUDGE_PULSE_HOLD_MS)
+        }, delayMs)
     }
 
     private fun setupTouchListener(button: View, params: WindowManager.LayoutParams) {
