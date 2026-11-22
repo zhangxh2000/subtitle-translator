@@ -117,15 +117,10 @@ class TranslationOverlayWindow(
         view.alpha = 1f
 
         val metrics = metricsProvider.usableOverlayMetrics()
-        val overlayWidth = minOf(
-            metrics.widthPx,
-            (OverlayWindowSpec.MAX_WIDTH_DP * metrics.density).toInt()
-        )
+        val overlayWidth = OverlayWindowSpec.widthFor(metrics.widthPx)
+        val overlayHeight = OverlayWindowSpec.heightFor(metrics.heightPx)
         params.width = overlayWidth
-        params.height = TranslationOverlayView.windowHeightFor(
-            view.measureNaturalHeight(overlayWidth),
-            metrics.heightPx
-        )
+        params.height = overlayHeight
         params.x = TranslationOverlayView.horizontalOffsetFor(
             overlayWidthPx = overlayWidth,
             availableWidthPx = metrics.widthPx,
@@ -133,6 +128,11 @@ class TranslationOverlayWindow(
             rightInsetPx = metrics.rightInsetPx
         )
         params.y = (OverlayWindowSpec.BOTTOM_MARGIN_DP * metrics.density).toInt()
+        Log.d(
+            TAG,
+            "重算翻译面板: width=$overlayWidth/${metrics.widthPx}, " +
+                "height=$overlayHeight/${metrics.heightPx}"
+        )
         runCatching { windowManager.updateViewLayout(view, params) }
             .onFailure { Log.w(TAG, "旋转后更新翻译面板失败", it) }
     }
@@ -161,29 +161,27 @@ class TranslationOverlayWindow(
         val availableWidth = metrics.widthPx
         val availableHeight = metrics.heightPx
         val density = metrics.density
-        val overlayWidth = minOf(
-            availableWidth,
-            (OverlayWindowSpec.MAX_WIDTH_DP * density).toInt()
-        )
+        val overlayWidth = OverlayWindowSpec.widthFor(availableWidth)
+        val overlayHeight = OverlayWindowSpec.heightFor(availableHeight)
         val centerOffset = TranslationOverlayView.horizontalOffsetFor(
             overlayWidthPx = overlayWidth,
             availableWidthPx = availableWidth,
             leftInsetPx = metrics.leftInsetPx,
             rightInsetPx = metrics.rightInsetPx
         )
-        val contentHeight = view.measureNaturalHeight(overlayWidth)
         val baseY = (OverlayWindowSpec.BOTTOM_MARGIN_DP * density).toInt()
         val slidePx = (OverlayWindowSpec.SLIDE_DP * density).toInt()
 
         Log.d(
             TAG,
             "显示翻译面板: panel=${panel.id}, width=$overlayWidth/$availableWidth, " +
+                "height=$overlayHeight/$availableHeight, " +
                 "insets=${metrics.leftInsetPx}/${metrics.rightInsetPx}, x=$centerOffset"
         )
 
         val params = WindowManager.LayoutParams(
             overlayWidth,
-            TranslationOverlayView.windowHeightFor(contentHeight, availableHeight),
+            overlayHeight,
             OverlayWindowSpec.WINDOW_TYPE,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,

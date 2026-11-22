@@ -35,15 +35,6 @@ class TranslationOverlayView @JvmOverloads constructor(
 ) : LinearLayout(context, attrs, defStyleAttr) {
 
     companion object {
-        /**
-         * 覆盖层高度上限占屏幕高度的比例
-         *
-         * 取值偏大：面板是查看释义用的，内容看不全要频繁滚动比多挡一点画面更难受。
-         * 留出的顶部空间只够露出状态栏即可，面板随时可以点悬浮球收起。
-         * （这里曾取 0.6，实测内容稍多就要一直滑，已调大。）
-         */
-        const val MAX_HEIGHT_RATIO = 0.85f
-
         /** AI 请求中图标的旋转周期 */
         private const val AI_LOADING_ANIM_MS = 900L
 
@@ -54,15 +45,6 @@ class TranslationOverlayView @JvmOverloads constructor(
          * 展示前统一剥掉；只剩标签的分段过滤为空后自然消失。
          */
         private val DOMAIN_TAG = Regex("^\\[[^\\]]{1,4}]\\s*")
-
-        /**
-         * 计算悬浮窗高度
-         *
-         * 内容不多时按内容撑开；内容过多（单词释义很长时很常见）时按屏幕高度封顶，
-         * 超出的部分靠面板内滚动查看 —— 否则窗口会超出屏幕，顶部内容被裁掉。
-         */
-        fun windowHeightFor(contentHeight: Int, screenHeight: Int): Int =
-            minOf(contentHeight, (screenHeight * MAX_HEIGHT_RATIO).toInt())
 
         /**
          * 窗口水平偏移量
@@ -123,98 +105,6 @@ class TranslationOverlayView @JvmOverloads constructor(
     }
 
     /**
-     * 按自然内容高度测量（不受窗口封顶影响）
-     *
-     * 布局里的 ScrollView 使用 0dp + weight=1，保证窗口封顶后底部收起入口
-     * 始终留在窗口内；但「内容不多时窗口该多高」仍要按内容本身计算。
-     * 这里临时把 ScrollView 还原成 wrap_content 测量一次，测完立即恢复，
-     * 之后 WindowManager 按本方法返回的高度布局时，weight 会重新分配空间。
-     */
-    fun measureNaturalHeight(widthPx: Int): Int {
-        findViewById<ScrollView>(R.id.contentScroll) ?: return 0
-
-        // ScrollView 装在带 weight 的 FrameLayout 里（底部叠了一层渐隐）。
-        // 自然测量时只需把外层框还原成 wrap_content + weight=0：
-        // 子 View 在 UNSPECIFIED 的高度约束下，match_parent 与 wrap_content
-        // 得到的测量规格相同，都会按内容自然高度测量，无需再改 ScrollView 自己。
-        val scrollFrame = findViewById<View>(R.id.wordsScrollFrame)
-        val frameLp = scrollFrame?.layoutParams as? LinearLayout.LayoutParams
-        val savedFrameHeight = frameLp?.height
-        val savedFrameWeight = frameLp?.weight
-        if (frameLp != null) {
-            frameLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
-            frameLp.weight = 0f
-            scrollFrame.layoutParams = frameLp
-        }
-
-        // 横屏双栏布局里，外层双栏行与右侧生词列也是 0dp/match_parent，自然测量时需同步临时还原为 wrap_content
-        val bodyRow = findViewById<View>(R.id.overlayBodyRow)
-        val bodyLp = bodyRow?.layoutParams as? LinearLayout.LayoutParams
-        val savedBodyHeight = bodyLp?.height
-        val savedBodyWeight = bodyLp?.weight
-        if (bodyLp != null) {
-            bodyLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
-            bodyLp.weight = 0f
-            bodyRow.layoutParams = bodyLp
-        }
-
-        val wordsCol = findViewById<View>(R.id.wordsColumn)
-        val wordsColLp = wordsCol?.layoutParams as? LinearLayout.LayoutParams
-        val savedWordsColHeight = wordsColLp?.height
-        if (wordsColLp != null) {
-            wordsColLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
-            wordsCol.layoutParams = wordsColLp
-        }
-
-        val heroCard = findViewById<View>(R.id.subtitleHeroCard)
-        val heroLp = heroCard?.layoutParams as? LinearLayout.LayoutParams
-        val savedHeroHeight = heroLp?.height
-        if (heroLp != null) {
-            heroLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
-            heroCard.layoutParams = heroLp
-        }
-
-        // 自然测量时面板不能是 match_parent，否则会按可用高度撑满
-        val panel = getChildAt(0)
-        val panelLp = panel?.layoutParams as? LinearLayout.LayoutParams
-        val savedPanelHeight = panelLp?.height
-        if (panelLp != null) {
-            panelLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
-            panel.layoutParams = panelLp
-        }
-
-        measure(
-            View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY),
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-        )
-        val naturalHeight = measuredHeight
-
-        if (panelLp != null) {
-            panelLp.height = savedPanelHeight ?: ViewGroup.LayoutParams.MATCH_PARENT
-            panel.layoutParams = panelLp
-        }
-        if (heroLp != null) {
-            heroLp.height = savedHeroHeight ?: ViewGroup.LayoutParams.WRAP_CONTENT
-            heroCard.layoutParams = heroLp
-        }
-        if (wordsColLp != null) {
-            wordsColLp.height = savedWordsColHeight ?: ViewGroup.LayoutParams.MATCH_PARENT
-            wordsCol.layoutParams = wordsColLp
-        }
-        if (bodyLp != null) {
-            bodyLp.height = savedBodyHeight ?: 0
-            bodyLp.weight = savedBodyWeight ?: 1f
-            bodyRow.layoutParams = bodyLp
-        }
-        if (frameLp != null) {
-            frameLp.height = savedFrameHeight ?: 0
-            frameLp.weight = savedFrameWeight ?: 1f
-            scrollFrame.layoutParams = frameLp
-        }
-        return naturalHeight
-    }
-
-    /**
      * 生词列表底部渐隐：只在确实还能继续往下滚时显示
      *
      * 渐隐叠在滚动区最底部 20dp 上：内容不足一屏时显示会压暗最后一条释义的下缘；
@@ -272,15 +162,21 @@ class TranslationOverlayView @JvmOverloads constructor(
                 wordsContainer.addView(createWordView(wordEntry, wordsContainer))
             }
         } else {
+            // 窗口高度固定后，空状态要撑满词表视口并垂直居中，
+            // 否则提示会贴在词表顶部，下方留出一大片空白更显突兀。
             val noWordsView = TextView(context).apply {
                 text = context.getString(R.string.overlay_no_difficult_words)
                 textSize = 14f
                 gravity = android.view.Gravity.CENTER
                 setTextColor(context.getColor(R.color.text_secondary))
-                val vertical = (24 * resources.displayMetrics.density).toInt()
-                setPadding(0, vertical, 0, vertical)
             }
-            wordsContainer.addView(noWordsView)
+            wordsContainer.addView(
+                noWordsView,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+            )
         }
     }
 
@@ -544,12 +440,16 @@ class TranslationOverlayView @JvmOverloads constructor(
             .apply {
                 findViewById<TextView>(R.id.tvWord)?.text = wordEntry.word
 
-                // 音标按词典惯例用斜杠包裹；词典数据偶尔自带 /…/ 或 [ ]，避免重复包裹
+                // 音标按词典惯例用斜杠包裹；词典数据偶尔自带 /…/ 或 [ ]，避免重复包裹。
+                // 音标独占一行后，空音标要隐藏，否则会在单词和释义之间留出一条空白。
                 val phonetic = wordEntry.phonetic.trim()
-                findViewById<TextView>(R.id.tvPhonetic)?.text = when {
-                    phonetic.isEmpty() -> ""
-                    phonetic.startsWith("/") || phonetic.startsWith("[") -> phonetic
-                    else -> "/$phonetic/"
+                findViewById<TextView>(R.id.tvPhonetic)?.apply {
+                    text = when {
+                        phonetic.isEmpty() -> ""
+                        phonetic.startsWith("/") || phonetic.startsWith("[") -> phonetic
+                        else -> "/$phonetic/"
+                    }
+                    visibility = if (phonetic.isEmpty()) View.GONE else View.VISIBLE
                 }
 
                 // 释义：紧凑内联排版（每个词性精选前 3 个核心词义，词性之间用 · 连接），

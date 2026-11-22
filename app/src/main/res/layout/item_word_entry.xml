@@ -48,20 +48,20 @@
             android:baselineAligned="false">
 
             <!--
-              文本区必须可压缩：竖屏窄屏上「长单词 + 音标 + 两个 40dp 按钮」会超宽，
-              文本区吃剩余宽度，单词优先显示，音标放不下时省略，按钮永远留在屏幕内。
+              单词与音标上下排：同一行时「长单词 + 音标」会互相抢宽度，
+              音标总被挤成省略号。分行后两者都拿满文本区宽度，
+              长单词和长音标都能完整显示；音标为空时在代码里隐藏，不占行高。
             -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:baselineAligned="false">
+                android:orientation="vertical"
+                android:gravity="center_vertical">
 
                 <TextView
                     android:id="@+id/tvWord"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:maxLines="1"
                     android:ellipsize="end"
@@ -69,10 +69,9 @@
 
                 <TextView
                     android:id="@+id/tvPhonetic"
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="1dp"
                     android:maxLines="1"
                     android:ellipsize="end"
                     android:textAppearance="@style/TextAppearance.SubtitleTranslator.Phonetic" />

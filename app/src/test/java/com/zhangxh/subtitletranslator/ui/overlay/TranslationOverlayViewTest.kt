@@ -22,14 +22,12 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
-import kotlin.math.abs
 
 /**
  * 翻译覆盖层测试
  *
- * 起因：单词释义内容多时，面板高度超过屏幕，窗口又顶到屏幕外，顶部内容被裁掉看不全。
- * 现在改为窗口高度按屏幕封顶 + 面板内滚动，这里把两个关键点固定下来：
- * 内容能滚动、以及关闭按钮不能跟着滚走。
+ * 窗口尺寸改为固定比例后，这里把关键点固定下来：
+ * 尺寸不随内容跳动、内容超出时能滚动、以及关闭按钮不能跟着滚走。
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
@@ -68,60 +66,66 @@ class TranslationOverlayViewTest {
     )
 
     // ---------------------------------------------------------------------
-    // 窗口高度
+    // 窗口尺寸
     // ---------------------------------------------------------------------
 
-    /** 内容不多时按内容撑开，面板保持紧凑 */
+    /** 窗口尺寸固定为可用区域的比例，不随翻译结果内容多少变化 */
     @Test
-    fun `window height follows content when it fits`() {
-        assertEquals(500, TranslationOverlayView.windowHeightFor(contentHeight = 500, screenHeight = 2000))
-    }
-
-    /** 内容过多时按屏幕高度封顶，超出的部分靠滚动 */
-    @Test
-    fun `window height is capped when content is too tall`() {
-        val screenHeight = 2000
-        val capped = TranslationOverlayView.windowHeightFor(contentHeight = 5000, screenHeight = screenHeight)
-
-        assertEquals((screenHeight * TranslationOverlayView.MAX_HEIGHT_RATIO).toInt(), capped)
-        assertTrue("封顶高度必须小于内容高度，否则不会滚动", capped < 5000)
+    fun `window size is a fixed ratio of the usable area`() {
+        assertEquals(
+            (1000 * OverlayWindowSpec.WIDTH_RATIO).toInt(),
+            OverlayWindowSpec.widthFor(1000)
+        )
+        assertEquals(
+            (2000 * OverlayWindowSpec.HEIGHT_RATIO).toInt(),
+            OverlayWindowSpec.heightFor(2000)
+        )
     }
 
     /**
-     * 封顶比例要两头兼顾
+     * 比例要两头兼顾
      *
-     * 太小会让内容稍多就得频繁滚动（0.6 时实测就是这样），
-     * 太大则会完全占满屏幕、看不到画面。
+     * 高度太小会让没有难词时又缩成一条（本次要修的问题）；
+     * 太大则会完全挡住画面。宽度尽量铺开，长单词和音标才放得下。
      */
     @Test
-    fun `cap balances readable area and leaving room above`() {
-        val ratio = TranslationOverlayView.MAX_HEIGHT_RATIO
+    fun `window ratios keep the panel readable without covering the whole screen`() {
+        val widthRatio = OverlayWindowSpec.WIDTH_RATIO
+        val heightRatio = OverlayWindowSpec.HEIGHT_RATIO
 
-        assertTrue("上限 $ratio 偏小，内容稍多就要一直滚动", ratio >= 0.8f)
-        assertTrue("上限 $ratio 偏大，会完全挡住画面", ratio <= 0.95f)
+        assertTrue("宽度比例 $widthRatio 太小，长单词和音标放不下", widthRatio >= 0.9f)
+        assertTrue("高度比例 $heightRatio 太小，没有难词时又会缩成一条", heightRatio >= 0.55f)
+        assertTrue("高度比例 $heightRatio 太大，会完全挡住画面", heightRatio <= 0.8f)
+    }
+
+    /** 异常尺寸下也不能返回 0 或超过可用区域 */
+    @Test
+    fun `window size stays inside the usable area`() {
+        assertEquals(1, OverlayWindowSpec.widthFor(1))
+        assertEquals(1, OverlayWindowSpec.heightFor(1))
+        assertTrue(OverlayWindowSpec.widthFor(1000) <= 1000)
+        assertTrue(OverlayWindowSpec.heightFor(1000) <= 1000)
     }
 
     /**
-     * 内容超过封顶高度后，面板内确实可以滚动看到剩余内容
+     * 固定高度下内容超过窗口时，面板内确实可以滚动看到剩余内容
      *
-     * 这是本次修复的核心：以前窗口高度不封顶，超出屏幕的部分直接被裁掉。
+     * 以前窗口高度跟随内容；现在固定比例，词条很多时超出部分必须靠滚动查看，
+     * 底部收起条也不能被挤出窗口。
      */
     @Test
-    fun `capped panel scrolls to reveal the rest of the content`() {
+    fun `fixed height panel scrolls to reveal the rest of the content`() {
         val overlay = overlay()
         overlay.setTranslationResult(longResult(wordCount = 30))
 
-        val natural = overlay.measureNaturalHeight(1080)
-        // 用一块小屏幕，保证内容一定超过封顶高度
-        val capped = TranslationOverlayView.windowHeightFor(natural, screenHeight = 800)
-        assertTrue("内容高度 $natural 应超过封顶高度 $capped", natural > capped)
-
-        // 按封顶后的尺寸重新测量并布局，滚动区内容应比可视区高
+        // 用一块小屏幕，保证内容一定超过固定高度
+        val windowWidth = 1080
+        val windowHeight = OverlayWindowSpec.heightFor(800)
         overlay.measure(
-            View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
-            View.MeasureSpec.makeMeasureSpec(capped, View.MeasureSpec.EXACTLY)
+            View.MeasureSpec.makeMeasureSpec(windowWidth, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(windowHeight, View.MeasureSpec.EXACTLY)
         )
-        overlay.layout(0, 0, 1080, capped)
+        overlay.layout(0, 0, windowWidth, windowHeight)
 
         val scroll = overlay.findViewById<ScrollView>(R.id.contentScroll)
         val content = scroll.getChildAt(0)
@@ -153,9 +157,9 @@ class TranslationOverlayViewTest {
             (collapse.parent as View).bottom
         }
         assertTrue(
-            "底部操作栏被挤出面板：footer=$collapseTopInPanel..$collapseBottomInPanel, panel=$capped, " +
+            "底部操作栏被挤出面板：footer=$collapseTopInPanel..$collapseBottomInPanel, panel=$windowHeight, " +
                 "overlay=${overlay.measuredHeight}, panelRoot=${panelRoot.measuredHeight}",
-            collapseBottomInPanel <= capped
+            collapseBottomInPanel <= windowHeight
         )
         assertTrue(
             "底部操作栏应与滚动区不重叠：scrollBottom=$scrollBottomInPanel, footerTop=$collapseTopInPanel",
@@ -424,13 +428,14 @@ class TranslationOverlayViewTest {
     }
 
     /**
-     * 难度标识要和单词对齐
+     * 难度标识要和单词行对齐
      *
-     * 喇叭按钮的 40dp 触摸框把「单词行」撑高了（单词在行内垂直居中），
-     * 标识要是还顶格放，就会比单词高一截 —— 这是加朗读按钮时踩过的坑。
+     * 喇叭按钮的 40dp 触摸框定义了「单词行」的高度，标识用 10dp 上边距 + 20dp 高度
+     * 正好落在这一行的中心；单词与音标上下排后文本块略高于 40dp，偏差仍在 1dp 内。
+     * （Robolectric 的字体度量是桩，文字行高不可信，所以这里钉住布局参数本身。）
      */
     @Test
-    fun `difficulty badge is vertically aligned with the word`() {
+    fun `difficulty badge uses the word row center offset`() {
         val overlay = overlay()
         overlay.setTranslationResult(longResult(wordCount = 1))
         overlay.measure(
@@ -442,27 +447,24 @@ class TranslationOverlayViewTest {
         val row = rows(overlay).getChildAt(0)
         val badge = requireNotNull(row.findViewById<TextView>(R.id.tvDifficulty))
         val word = requireNotNull(row.findViewById<TextView>(R.id.tvWord))
-
-        // 单词在「单词行」里是垂直居中的，所以标识要对齐的是这一行的中心；
-        // 中间隔了文本容器、单词行两层父容器，逐层累加算出该行在整行坐标系里的位置。
-        // （不用 offsetDescendantRectToMyCoords：Robolectric 下它只返回退化矩形）
-        val textBlock = word.parent as View
-        val wordLine = textBlock.parent as View
-        val wordBlock = wordLine.parent as View
-        val badgeCenter = badge.top + badge.height / 2
-        val wordLineCenter = wordBlock.top + wordLine.top + wordLine.height / 2
+        val badgeLp = badge.layoutParams as ViewGroup.MarginLayoutParams
+        val density = overlay.resources.displayMetrics.density
 
         // 单词要在 40dp 的单词行里真正垂直居中，标识才对得上：
         // 水平 LinearLayout 默认按基线排列，加了按钮后文字会贴到行顶部。
-        // （Robolectric 的字体度量是桩，测不出文字真实位置，只能把开关钉住）
+        val textBlock = word.parent as View
+        val wordLine = textBlock.parent as LinearLayout
         assertFalse(
             "单词行必须关闭 baseline 对齐，否则单词不会垂直居中",
-            (wordLine as LinearLayout).isBaselineAligned
+            wordLine.isBaselineAligned
         )
 
-        assertTrue(
-            "难度标识中心($badgeCenter)与单词中心($wordLineCenter)相差过大",
-            abs(badgeCenter - wordLineCenter) <= 2
+        // 40dp 行高的一半 = 20dp：10dp 上边距 + 20dp 标识高度正好居中
+        assertEquals("标识高度应为 20dp", (20 * density).toInt(), badge.height)
+        assertEquals(
+            "标识上边距应为 10dp，才能与 40dp 单词行的中心对齐",
+            (10 * density).toInt(),
+            badgeLp.topMargin
         )
     }
 
