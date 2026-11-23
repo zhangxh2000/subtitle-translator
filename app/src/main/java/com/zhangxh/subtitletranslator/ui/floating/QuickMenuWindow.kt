@@ -53,7 +53,7 @@ class QuickMenuWindow(
 
     fun show() {
         if (menuView != null) {
-            dismiss()
+            dismiss("再次长按悬浮球")
             return
         }
 
@@ -61,15 +61,15 @@ class QuickMenuWindow(
         val menu = LayoutInflater.from(themedContext).inflate(R.layout.floating_menu, null)
 
         menu.findViewById<View>(R.id.menuLearning)?.setOnClickListener {
-            dismiss()
+            dismiss("选择学习")
             callbacks.onLearning()
         }
         menu.findViewById<View>(R.id.menuSettings)?.setOnClickListener {
-            dismiss()
+            dismiss("选择设置")
             callbacks.onSettings()
         }
         menu.findViewById<View>(R.id.menuStop)?.setOnClickListener {
-            dismiss()
+            dismiss("选择停止")
             callbacks.onStop()
         }
         // 无障碍诊断只在服务开启时出现；用于导出当前播放器控件树
@@ -77,7 +77,7 @@ class QuickMenuWindow(
             if (AccessibilityAccess.isEnabled(context)) {
                 entry.visibility = View.VISIBLE
                 entry.setOnClickListener {
-                    dismiss()
+                    dismiss("选择无障碍诊断")
                     callbacks.onA11yDump()
                 }
             } else {
@@ -89,7 +89,7 @@ class QuickMenuWindow(
             if (settingsStore.debugCaptureEnabled) {
                 entry.visibility = View.VISIBLE
                 entry.setOnClickListener {
-                    dismiss()
+                    dismiss("选择调试截图")
                     callbacks.onDebugCapture()
                 }
             } else {
@@ -99,7 +99,7 @@ class QuickMenuWindow(
         // 点击菜单以外的区域关闭菜单（配合 FLAG_WATCH_OUTSIDE_TOUCH）
         menu.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_OUTSIDE) {
-                dismiss()
+                dismiss("点击菜单外部")
                 true
             } else {
                 false
@@ -135,10 +135,12 @@ class QuickMenuWindow(
         }
     }
 
-    fun dismiss() {
+    /** 关闭菜单并记录触发原因，便于排查「菜单莫名消失」一类问题 */
+    fun dismiss(reason: String = "未指定") {
         val menu = menuView ?: return
         menuView = null
         layoutParams = null
+        Log.d(TAG, "关闭快捷菜单: $reason")
         try {
             windowManager.removeView(menu)
         } catch (e: IllegalArgumentException) {
@@ -156,7 +158,7 @@ class QuickMenuWindow(
     }
 
     fun release() {
-        dismiss()
+        dismiss("释放窗口")
     }
 
     /** 菜单横向位置：与悬浮球左对齐，贴边时向内收，避免超出屏幕 */

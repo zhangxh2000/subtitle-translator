@@ -7,6 +7,7 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.WindowManager
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.ui.overlay.OverlayMetricsProvider
@@ -55,7 +56,13 @@ class FloatingButtonWindow(
     private var longPressTriggered = false
     private var longPressRunnable: Runnable? = null
 
-    private val clickThreshold = 10
+    /**
+     * 与系统一致的触摸容差
+     *
+     * 原实现写死 10px，高密度屏上只有约 3dp，手指轻轻一抖就会被判成拖动；
+     * 长按菜单弹出后再轻微滑动，还会触发 onDragStarted 把菜单收掉。
+     */
+    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
     private val longPressTimeout = 500L
     private val pressScale = 0.88f
     private val pressAnimDuration = 100L
@@ -169,22 +176,27 @@ class FloatingButtonWindow(
                 }
 
                 MotionEvent.ACTION_MOVE -> {
-                    val dx = event.rawX - downX
-                    val dy = event.rawY - downY
-                    if (!isDragging &&
-                        (kotlin.math.abs(dx) > clickThreshold || kotlin.math.abs(dy) > clickThreshold)
-                    ) {
-                        isDragging = true
-                        cancelLongPress(button)
-                        onDragStarted()
-                        setPressed(button, false)
-                    }
-                    if (isDragging) {
-                        params.x = (event.rawX - touchOffsetX).toInt()
-                        params.y = (event.rawY - touchOffsetY).toInt()
-                        lastX = params.x
-                        lastY = params.y
-                        windowManager.updateViewLayout(button, params)
+                    // 长按已经弹出菜单：本次手势到此为止。
+                    // 否则手指轻轻一滑就会满足拖动阈值，触发 onDragStarted 把刚弹出的菜单收掉。
+                    if (!longPressTriggered) {
+                        val dx = event.rawX - downX
+                        val dy = event.rawY - downY
+                        if (!isDragging &&
+                            (kotlin.math.abs(dx) > touchSlop || kotlin.math.abs(dy) > touchSlop)
+                        ) {
+                            isDragging = true
+                            cancelLongPress(button)
+                            onDragStarted()
+                            setPressed(button, false)
+                            Log.d(TAG, "开始拖动: dx=${dx.toInt()}, dy=${dy.toInt()}")
+                        }
+                        if (isDragging) {
+                            params.x = (event.rawX - touchOffsetX).toInt()
+                            params.y = (event.rawY - touchOffsetY).toInt()
+                            lastX = params.x
+                            lastY = params.y
+                            windowManager.updateViewLayout(button, params)
+                        }
                     }
                     true
                 }
@@ -212,6 +224,7 @@ class FloatingButtonWindow(
             if (!isDragging) {
                 longPressTriggered = true
                 setPressed(button, false)
+                Log.d(TAG, "长按触发")
                 onLongPress()
             }
         }

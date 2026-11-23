@@ -522,7 +522,7 @@ class FloatingButtonService : Service() {
             metricsProvider = metricsProvider,
             onClick = ::onFloatingButtonClick,
             onLongPress = ::onFloatingButtonLongPress,
-            onDragStarted = { quickMenuWindow?.dismiss() }
+            onDragStarted = { quickMenuWindow?.dismiss("拖动悬浮球") }
         )
         floatingButtonWindow = window
         window.show()
@@ -531,7 +531,7 @@ class FloatingButtonService : Service() {
     private fun onFloatingButtonClick() {
         // 菜单打开时点击只关闭菜单，避免误触发翻译
         if (quickMenuWindow?.isShowing == true) {
-            quickMenuWindow?.dismiss()
+            quickMenuWindow?.dismiss("点击悬浮球")
             return
         }
         if (isProjectionStopped) {
@@ -719,7 +719,7 @@ class FloatingButtonService : Service() {
 
     /** 移除覆盖层窗口并释放随 MediaProjection 一起创建的处理组件 */
     private fun releaseTranslationComponents() {
-        quickMenuWindow?.dismiss()
+        quickMenuWindow?.dismiss("释放翻译组件")
         navigationStatusWindow?.hide()
         quotaExceededWindow?.dismiss()
         overlayWindow?.hide(animated = false)
