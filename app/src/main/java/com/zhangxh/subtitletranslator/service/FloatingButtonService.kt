@@ -74,6 +74,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -97,6 +98,11 @@ class FloatingButtonService : Service() {
         /** 服务是否在运行（主界面据此显示「启动」还是「停止」） */
         @Volatile
         private var running = false
+
+        /**
+         * 解锁后悬浮窗临时授权可能延迟恢复，长按菜单等待一次后再重试
+         */
+        private const val OVERLAY_PERMISSION_RETRY_MS = 400L
 
         /**
          * 运行状态变化的监听者
@@ -554,7 +560,49 @@ class FloatingButtonService : Service() {
             Log.d(TAG, "翻译/导航进行中，不弹出快捷菜单")
             return
         }
-        quickMenuWindow?.show()
+
+        if (Settings.canDrawOverlays(this)) {
+            showQuickMenuOrRecover()
+            return
+        }
+
+        // 锁屏会结束 MediaProjection，系统随之收回随录屏会话临时授予的悬浮窗权限。
+        // 此时 addView 新窗口会抛 BadTokenException(permission denied for window type 2038)，
+        // 快捷菜单根本加不进去，只能引导用户重新授权。
+        Log.w(TAG, "长按：悬浮窗权限不可用 isProjectionStopped=$isProjectionStopped")
+        if (isProjectionStopped) {
+            guideReauthorization("录屏会话已结束")
+            return
+        }
+
+        // 录屏会话仍在：临时授权可能在解锁后短暂不可用，稍等重试一次
+        serviceScope.launch {
+            delay(OVERLAY_PERMISSION_RETRY_MS)
+            if (Settings.canDrawOverlays(this@FloatingButtonService)) {
+                Log.d(TAG, "长按：悬浮窗权限已恢复，显示快捷菜单")
+                showQuickMenuOrRecover()
+            } else {
+                guideReauthorization("重试后仍无悬浮窗权限")
+            }
+        }
+    }
+
+    /** 显示快捷菜单；addView 失败时不再静默，转为引导重新授权 */
+    private fun showQuickMenuOrRecover() {
+        if (quickMenuWindow?.show() == true) return
+        Log.e(
+            TAG,
+            "快捷菜单显示失败: canDrawOverlays=${Settings.canDrawOverlays(this)}, " +
+                "isProjectionStopped=$isProjectionStopped"
+        )
+        guideReauthorization("快捷菜单 addView 失败")
+    }
+
+    /** 悬浮窗/录屏授权已失效：提示用户并回到主界面重新走授权流程 */
+    private fun guideReauthorization(reason: String) {
+        Log.w(TAG, "引导重新授权录屏: $reason")
+        Toast.makeText(this, R.string.floating_menu_reauth_required, Toast.LENGTH_LONG).show()
+        restartAndRequestPermission()
     }
 
     /** 截图前轻量刷新一次悬浮球，促使静止画面产生新帧 */

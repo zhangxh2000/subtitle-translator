@@ -36,6 +36,7 @@
     <string name="main_vocabulary_short">Vocabulary</string>
     <string name="main_settings_short">Settings</string>
     <string name="main_restart_hint">Screen recording permission expired. Please authorize again.</string>
+    <string name="floating_menu_reauth_required">Screen recording has stopped. Please authorize again to use the floating menu.</string>
     <string name="main_overlay_permission_hint">Please allow display over other apps</string>
     <string name="main_projection_required">Screen recording permission is required to translate subtitles</string>
     <string name="main_service_started">SubPick started</string>

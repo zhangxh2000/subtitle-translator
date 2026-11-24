@@ -31,6 +31,7 @@
     <string name="main_vocabulary_short">生詞庫</string>
     <string name="main_settings_short">設定</string>
     <string name="main_restart_hint">螢幕錄製權限已失效，請重新授權</string>
+    <string name="floating_menu_reauth_required">螢幕錄製已停止，請重新授權後再使用懸浮選單</string>
     <string name="main_overlay_permission_hint">請開啟懸浮視窗權限</string>
     <string name="main_projection_required">需要螢幕錄製權限才能截圖翻譯</string>
     <string name="main_service_started">字幕拾詞已啟動</string>

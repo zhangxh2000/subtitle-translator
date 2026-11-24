@@ -2,6 +2,7 @@ package com.zhangxh.subtitletranslator.ui.floating
 
 import android.content.Context
 import android.graphics.PixelFormat
+import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -51,10 +52,23 @@ class QuickMenuWindow(
 
     val isShowing: Boolean get() = menuView != null
 
-    fun show() {
+    /**
+     * 显示快捷菜单
+     *
+     * @return true 表示菜单已显示或已关闭；false 表示窗口添加失败，
+     * 调用方需要给出提示并引导重新授权（典型场景：锁屏后录屏会话结束，
+     * 系统收回临时悬浮窗权限，addView 会抛 permission denied for window type 2038）。
+     */
+    fun show(): Boolean {
         if (menuView != null) {
             dismiss("再次长按悬浮球")
-            return
+            return true
+        }
+        // 录屏期间系统会临时授予悬浮窗权限，锁屏结束录屏后会收回；
+        // 先做一次显式检查，避免把权限问题伪装成普通 addView 异常。
+        if (!Settings.canDrawOverlays(context)) {
+            Log.w(TAG, "无法显示快捷菜单：悬浮窗权限不可用")
+            return false
         }
 
         val themedContext = ContextThemeWrapper(context, R.style.Theme_SubtitleTranslator)
@@ -125,13 +139,15 @@ class QuickMenuWindow(
             y = menuY(menu.measuredHeight)
         }
 
-        try {
+        return try {
             windowManager.addView(menu, params)
             menuView = menu
             layoutParams = params
             Log.d(TAG, "快捷菜单已显示: x=${params.x}, y=${params.y}")
+            true
         } catch (e: Exception) {
             Log.e(TAG, "显示快捷菜单失败", e)
+            false
         }
     }
 
