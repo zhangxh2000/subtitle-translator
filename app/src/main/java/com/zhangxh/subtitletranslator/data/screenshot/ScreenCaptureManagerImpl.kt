@@ -9,16 +9,23 @@ import android.hardware.display.VirtualDisplay
 import android.media.Image
 import android.media.ImageReader
 import android.media.projection.MediaProjection
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.util.DisplayMetrics
 import android.util.Log
+import android.view.Display
 import android.view.WindowManager
 import com.zhangxh.subtitletranslator.domain.screenshot.IScreenCaptureManager
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -37,7 +44,11 @@ import kotlinx.coroutines.withContext
  * 3. 换 Surface 时先创建新 reader、attach、确认收到首帧后才提交尺寸并关闭
  *    旧 reader；失败或取消则回滚旧输出。直接关闭正在使用的 reader 会让
  *    VirtualDisplay 输出永久失效。
- * 4. 不返回缓存帧。拿不到帧就是失败，由调用方决定是提示用户还是跳过该步。
+ * 4. 尺寸变化（旋转 / 分屏）在系统回调里预先换绑：API 34+ 用
+ *    onCapturedContentResize，低版本用 DisplayManager.DisplayListener。
+ *    预换绑与截图都在 operationMutex 内执行，换绑时不可能有截图协程持有
+ *    旧 reader 的 Image，因此可以立即关闭旧 reader，不需要等首帧。
+ * 5. 不返回缓存帧。拿不到帧就是失败，由调用方决定是提示用户还是跳过该步。
  */
 class ScreenCaptureManagerImpl : IScreenCaptureManager {
 
@@ -56,6 +67,9 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
 
         /** 重建 VirtualDisplay 后等待首帧的时间 */
         private const val RECREATE_FIRST_FRAME_TIMEOUT_MS = 1500L
+
+        /** 尺寸变化预换绑的防抖时间，合并旋转/分屏产生的连续回调 */
+        private const val PRE_REBIND_DEBOUNCE_MS = 150L
 
         private const val POLL_INTERVAL_MS = 20L
     }
@@ -92,6 +106,13 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
     private var contentHeight: Int = 0
 
     private var isReleased = true
+
+    /** 低版本（API < 34）尺寸变化兜底监听 */
+    private var displayManager: DisplayManager? = null
+
+    /** 预换绑协程作用域；与 initialize/release 生命周期一致 */
+    private var preRebindScope: CoroutineScope? = null
+    private var preRebindJob: Job? = null
 
     private var onProjectionStoppedListener: (() -> Unit)? = null
     private var onDisplayResizedListener: (() -> Unit)? = null
@@ -137,6 +158,25 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
                 TAG,
                 "系统上报捕获内容尺寸: ${width}x${height}, 当前输出=${attachedWidth}x${attachedHeight}"
             )
+            schedulePreRebind(width, height, "内容上报")
+        }
+    }
+
+    /**
+     * API < 34 没有 onCapturedContentResize，用显示变化监听兜底
+     *
+     * API 34+ 以捕获内容尺寸为准，避免单应用采集时两个来源打架。
+     */
+    private val displayListener = object : DisplayManager.DisplayListener {
+        override fun onDisplayAdded(displayId: Int) = Unit
+
+        override fun onDisplayRemoved(displayId: Int) = Unit
+
+        override fun onDisplayChanged(displayId: Int) {
+            if (displayId != Display.DEFAULT_DISPLAY) return
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
+            val metrics = realDisplayMetrics() ?: return
+            schedulePreRebind(metrics.widthPixels, metrics.heightPixels, "屏幕变化")
         }
     }
 
@@ -163,6 +203,7 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
             this.virtualDisplay = null
             this.imageReader = null
             this.isReleased = false
+            this.preRebindScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         }
 
         try {
@@ -175,8 +216,25 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
             synchronized(stateLock) {
                 this.mediaProjection = null
                 this.isReleased = true
+                preRebindScope?.cancel()
+                preRebindScope = null
             }
             throw e
+        }
+
+        val manager = context.getSystemService(DisplayManager::class.java)
+        if (manager != null) {
+            try {
+                manager.registerDisplayListener(
+                    displayListener,
+                    Handler(Looper.getMainLooper())
+                )
+                synchronized(stateLock) {
+                    this.displayManager = manager
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "注册显示变化监听失败，低版本旋转只能靠截图时检测", e)
+            }
         }
 
         val target = CaptureTarget(width, height, density, "初始化")
@@ -411,6 +469,125 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
     }
 
     /**
+     * 调度一次预换绑
+     *
+     * 旋转/分屏可能连续上报多次尺寸，这里做短防抖合并，避免反复创建 reader。
+     * 真正的换绑在 [preRebindOutput] 里、持有 operationMutex 时执行。
+     */
+    private fun schedulePreRebind(width: Int, height: Int, reason: String) {
+        if (width <= 0 || height <= 0) return
+        val scope = synchronized(stateLock) {
+            if (isReleased) return
+            if (width == screenWidth && height == screenHeight) return
+            preRebindScope ?: return
+        }
+        Log.d(
+            TAG,
+            "调度预换绑: ${width}x$height, 原因=$reason, 防抖=${PRE_REBIND_DEBOUNCE_MS}ms"
+        )
+        val job = scope.launch {
+            delay(PRE_REBIND_DEBOUNCE_MS)
+            operationMutex.withLock {
+                preRebindOutput(width, height, reason)
+            }
+        }
+        synchronized(stateLock) {
+            preRebindJob?.cancel()
+            preRebindJob = job
+        }
+    }
+
+    /**
+     * 尺寸变化时预先换绑输出（在系统回调里触发，不在截图路径上）
+     *
+     * 调用方已持有 operationMutex：截图协程按需取帧、取到即转 Bitmap 并关闭，
+     * 整个截图过程都在同一把锁内，所以这里关闭旧 reader 时不可能有未释放的
+     * Image，可以像官方示例一样直接换绑、不用等首帧。
+     *
+     * 新输出早期的过渡合成帧会被之后的正常帧覆盖；这里补一次轻量刷新，
+     * 促使新 Surface 立即出帧，用户下一次截图时队列里已经是最新画面。
+     */
+    private fun preRebindOutput(width: Int, height: Int, reason: String) {
+        val display: VirtualDisplay
+        val oldReader: ImageReader?
+        val oldWidth: Int
+        val oldHeight: Int
+        val density: Int
+        synchronized(stateLock) {
+            if (isReleased) return
+            if (width == screenWidth && height == screenHeight) {
+                Log.d(TAG, "预换绑跳过: 尺寸未变 ${width}x$height")
+                return
+            }
+            display = virtualDisplay ?: run {
+                Log.w(TAG, "预换绑跳过: VirtualDisplay 不存在")
+                return
+            }
+            oldReader = imageReader
+            oldWidth = screenWidth
+            oldHeight = screenHeight
+            density = screenDensity
+        }
+        if (density <= 0) {
+            Log.w(TAG, "预换绑跳过: density 非法 $density")
+            return
+        }
+
+        val newReader = try {
+            ImageReader.newInstance(
+                width,
+                height,
+                PixelFormat.RGBA_8888,
+                MAX_IMAGES
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "预换绑创建 ImageReader 失败: ${width}x$height", e)
+            return
+        }
+
+        val startedAt = SystemClock.elapsedRealtime()
+        Log.d(
+            TAG,
+            "开始预换绑: ${oldWidth}x$oldHeight -> ${width}x$height, " +
+                "原因=$reason, oldReader=${oldReader?.hashCode()}, " +
+                "newReader=${newReader.hashCode()}"
+        )
+        try {
+            display.resize(width, height, density)
+            display.setSurface(newReader.surface)
+        } catch (e: Exception) {
+            Log.e(TAG, "预换绑失败，恢复旧输出", e)
+            restoreOutput(display, oldReader, oldWidth, oldHeight, density)
+            closeQuietly(newReader)
+            return
+        }
+
+        val committed = synchronized(stateLock) {
+            if (isReleased) {
+                false
+            } else {
+                imageReader = newReader
+                screenWidth = width
+                screenHeight = height
+                true
+            }
+        }
+        if (!committed) {
+            Log.d(TAG, "预换绑提交前会话已释放，丢弃新输出")
+            closeQuietly(newReader)
+            return
+        }
+
+        closeQuietly(oldReader)
+        Log.d(
+            TAG,
+            "预换绑成功: ${width}x$height, 耗时=${SystemClock.elapsedRealtime() - startedAt}ms, " +
+                "reader=${newReader.hashCode()}"
+        )
+        onDisplayResizedListener?.invoke()
+    }
+
+    /**
      * 重建整个 VirtualDisplay
      *
      * 换新 Surface 也收不到帧时，说明显示管线本身已经失效；释放旧 display，
@@ -603,32 +780,38 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
      * 最后退回已提交的尺寸。
      */
     private fun resolveTarget(): CaptureTarget {
-        val ctx: Context?
         val fallbackWidth: Int
         val fallbackHeight: Int
         val fallbackDensity: Int
         val reportedWidth: Int
         val reportedHeight: Int
         synchronized(stateLock) {
-            ctx = context
             fallbackWidth = screenWidth
             fallbackHeight = screenHeight
             fallbackDensity = screenDensity
             reportedWidth = contentWidth
             reportedHeight = contentHeight
         }
-        val windowManager = ctx?.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
-        val metrics = DisplayMetrics()
-        windowManager?.defaultDisplay?.getRealMetrics(metrics)
-        val density = if (metrics.densityDpi > 0) metrics.densityDpi else fallbackDensity
+        val metrics = realDisplayMetrics()
+        val density = metrics?.densityDpi?.takeIf { it > 0 } ?: fallbackDensity
         return when {
             reportedWidth > 0 && reportedHeight > 0 ->
                 CaptureTarget(reportedWidth, reportedHeight, density, "内容上报")
-            metrics.widthPixels > 0 && metrics.heightPixels > 0 ->
+            metrics != null ->
                 CaptureTarget(metrics.widthPixels, metrics.heightPixels, density, "真实屏幕")
             else ->
                 CaptureTarget(fallbackWidth, fallbackHeight, density, "已提交尺寸")
         }
+    }
+
+    /** 默认显示屏的真实尺寸；服务在后台时也以系统显示为准 */
+    private fun realDisplayMetrics(): DisplayMetrics? {
+        val ctx = synchronized(stateLock) { context } ?: return null
+        val windowManager = ctx.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
+            ?: return null
+        val metrics = DisplayMetrics()
+        windowManager.defaultDisplay.getRealMetrics(metrics)
+        return metrics.takeIf { it.widthPixels > 0 && it.heightPixels > 0 }
     }
 
     /**
@@ -694,6 +877,9 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
         val reader: ImageReader?
         val display: VirtualDisplay?
         val projection: MediaProjection?
+        val manager: DisplayManager?
+        val job: Job?
+        val scope: CoroutineScope?
         synchronized(stateLock) {
             if (isReleased && imageReader == null && virtualDisplay == null && mediaProjection == null) {
                 Log.d(TAG, "截图资源已释放，无需重复释放")
@@ -703,15 +889,28 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
             reader = imageReader
             display = virtualDisplay
             projection = mediaProjection
+            manager = displayManager
+            job = preRebindJob
+            scope = preRebindScope
             imageReader = null
             virtualDisplay = null
             mediaProjection = null
+            displayManager = null
+            preRebindJob = null
+            preRebindScope = null
             context = null
             contentWidth = 0
             contentHeight = 0
         }
+        job?.cancel()
+        scope?.cancel()
         releaseQuietly(display)
         closeQuietly(reader)
+        try {
+            manager?.unregisterDisplayListener(displayListener)
+        } catch (e: Exception) {
+            Log.w(TAG, "注销显示变化监听失败", e)
+        }
         try {
             projection?.unregisterCallback(projectionCallback)
         } catch (e: Exception) {
