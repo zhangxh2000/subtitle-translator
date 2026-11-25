@@ -1,5 +1,6 @@
 package com.zhangxh.subtitletranslator.domain.subtitle
 
+import android.util.Log
 import com.zhangxh.subtitletranslator.domain.error.AppError
 import com.zhangxh.subtitletranslator.domain.media.IMediaPlaybackController
 import kotlinx.coroutines.delay
@@ -35,6 +36,13 @@ class SubtitleNavigator(
     private val wait: suspend (Long) -> Unit = { delay(it) }
 ) {
 
+    private companion object {
+        private const val TAG = "SubtitleNavigator"
+
+        /** 连续多少步拿不到屏幕帧后中止扫描，避免截图管线失效时空转 */
+        private const val MAX_CONSECUTIVE_CAPTURE_FAILURES = 2
+    }
+
     suspend fun findAdjacent(
         currentText: String,
         direction: SubtitleDirection
@@ -44,8 +52,9 @@ class SubtitleNavigator(
         var position = snapshot.positionMs
         val duration = snapshot.durationMs
         var seekVerified = false
+        var consecutiveCaptureFailures = 0
 
-        repeat(maxSteps) {
+        repeat(maxSteps) { step ->
             val next = position + direction.stepSign * stepMs
             if (next < 0) return SubtitleNavigationResult.NotFound
             if (duration != null && next > duration) return SubtitleNavigationResult.NotFound
@@ -79,13 +88,34 @@ class SubtitleNavigator(
             val recognition = recognize()
 
             if (!recognition.isSuccess) {
-                val isGap = recognition.error?.code == AppError.NO_SUBTITLE_TEXT
-                if (!isGap) return SubtitleNavigationResult.RecognitionFailed
-                // 两句字幕之间的空白：继续向同一方向找
-            } else if (recognition.text.isNotBlank() &&
-                !matcher.isSame(recognition.text, currentText)
-            ) {
-                return SubtitleNavigationResult.Found(position, recognition.text)
+                when (recognition.error?.code) {
+                    AppError.NO_SUBTITLE_TEXT -> {
+                        // 两句字幕之间的空白：继续向同一方向找
+                    }
+
+                    AppError.CAPTURE_FAILED -> {
+                        // 截图模块已经做过完整恢复，仍没拿到帧说明这一步画面不可用。
+                        // 跳过这一步继续扫描；连续失败则中止，避免管线失效时空转。
+                        consecutiveCaptureFailures++
+                        Log.w(
+                            TAG,
+                            "第 ${step + 1} 步没有拿到屏幕帧，跳过" +
+                                "（连续 $consecutiveCaptureFailures 次）"
+                        )
+                        if (consecutiveCaptureFailures >= MAX_CONSECUTIVE_CAPTURE_FAILURES) {
+                            return SubtitleNavigationResult.RecognitionFailed
+                        }
+                    }
+
+                    else -> return SubtitleNavigationResult.RecognitionFailed
+                }
+            } else {
+                consecutiveCaptureFailures = 0
+                if (recognition.text.isNotBlank() &&
+                    !matcher.isSame(recognition.text, currentText)
+                ) {
+                    return SubtitleNavigationResult.Found(position, recognition.text)
+                }
             }
         }
         return SubtitleNavigationResult.NotFound

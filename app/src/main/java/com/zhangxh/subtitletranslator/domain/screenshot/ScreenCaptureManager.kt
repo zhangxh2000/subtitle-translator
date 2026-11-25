@@ -26,7 +26,11 @@ interface IScreenCaptureManager {
 
     /**
      * 捕获当前屏幕
-     * @return 屏幕截图
+     *
+     * 实现方负责在内部完成等待与恢复；拿不到帧时返回 null，
+     * 调用方按 [com.zhangxh.subtitletranslator.domain.error.AppError.CAPTURE_FAILED] 处理。
+     *
+     * @return 屏幕截图；失败返回 null
      */
     suspend fun captureScreen(): Bitmap?
 
@@ -39,11 +43,4 @@ interface IScreenCaptureManager {
      * 是否已初始化
      */
     fun isInitialized(): Boolean
-
-    /**
-     * 屏幕配置变化通知（旋转、折叠、分屏等）
-     *
-     * 实现方可以延迟到屏幕稳定后再重建输出；默认不做处理。
-     */
-    fun onDisplayConfigurationChanged() {}
 }

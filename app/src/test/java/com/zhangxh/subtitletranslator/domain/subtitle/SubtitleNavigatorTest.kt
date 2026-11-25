@@ -7,7 +7,12 @@ import com.zhangxh.subtitletranslator.domain.media.PlaybackSnapshot
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class SubtitleNavigatorTest {
 
     /** 用播放位置映射字幕文本；null 表示字幕间隙 */
@@ -165,5 +170,44 @@ class SubtitleNavigatorTest {
         val result = navigator.findAdjacent("Line A", SubtitleDirection.NEXT)
 
         assertEquals(SubtitleNavigationResult.RecognitionFailed, result)
+    }
+
+    @Test
+    fun `single capture failure is skipped instead of aborting the scan`() = runBlocking {
+        val media = FakeMedia(position = 1_000, subtitleAt = ::timeline)
+        var calls = 0
+        val navigator = SubtitleNavigator(
+            media = media,
+            recognize = {
+                calls++
+                if (calls == 1) {
+                    SubtitleRecognition(error = TranslationError(AppError.CAPTURE_FAILED))
+                } else {
+                    media.recognize()
+                }
+            },
+            wait = {}
+        )
+
+        val result = navigator.findAdjacent("Line A", SubtitleDirection.NEXT)
+
+        assertEquals(SubtitleNavigationResult.Found(3_000, "Line B"), result)
+    }
+
+    @Test
+    fun `consecutive capture failures abort the scan`() = runBlocking {
+        val media = FakeMedia(position = 1_000, subtitleAt = ::timeline)
+        val navigator = SubtitleNavigator(
+            media = media,
+            recognize = {
+                SubtitleRecognition(error = TranslationError(AppError.CAPTURE_FAILED))
+            },
+            wait = {}
+        )
+
+        val result = navigator.findAdjacent("Line A", SubtitleDirection.NEXT)
+
+        assertEquals(SubtitleNavigationResult.RecognitionFailed, result)
+        assertEquals(listOf(2_000L, 3_000L), media.seeks)
     }
 }
