@@ -603,8 +603,8 @@ class FloatingButtonService : Service() {
 
     /** 截图前轻量刷新一次悬浮球，促使静止画面产生新帧 */
     private fun nudgeScreenForCapture() {
-        // 扫描的每一步都刚播放过，已有新画面，不需要再闪悬浮球
-        if (navigationController?.isScanning == true) return
+        // 截图等待的是请求之后新合成的帧；暂停/静止画面没有新合成，
+        // 必须靠这次轻量刷新触发出帧，否则只能等到超时。
         floatingButtonWindow?.nudge()
     }
 
