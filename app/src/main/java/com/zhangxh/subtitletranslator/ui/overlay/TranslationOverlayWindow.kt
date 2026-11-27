@@ -11,7 +11,6 @@ import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
 import androidx.appcompat.view.ContextThemeWrapper
 import com.zhangxh.subtitletranslator.R
-import com.zhangxh.subtitletranslator.domain.TranslationResult
 import com.zhangxh.subtitletranslator.domain.vocabulary.VocabularyKey
 import com.zhangxh.subtitletranslator.domain.wordextractor.WordEntry
 
@@ -48,29 +47,27 @@ class TranslationOverlayWindow(
     private var overlayView: TranslationOverlayView? = null
     private var dismissingOverlay: View? = null
     private var overlayAnimator: ValueAnimator? = null
-    private var renderedPanelId: Long? = null
-    private var renderedResult: TranslationResult? = null
 
-    /** 当前面板的完整状态：旋转后要按新方向的布局重建视图时用它回填 */
+    /** 当前面板；旋转后按新方向重建视图时用它回填 */
     private var renderedPanel: OverlayPanel? = null
 
-    /** 创建当前视图时的屏幕方向；与当前方向不一致时必须重新解析布局 */
+    /** 当前视图解析布局时的屏幕方向 */
     private var inflatedOrientation: Int? = null
 
     fun render(panel: OverlayPanel): Boolean {
         val view = overlayView
         if (view == null) return show(panel)
 
-        renderedPanel = panel
-        if (renderedPanelId != panel.id) {
-            Log.d(TAG, "面板切换: ${renderedPanelId} -> ${panel.id}")
+        val previous = renderedPanel
+        if (previous == null || previous.id != panel.id) {
+            Log.d(TAG, "面板切换: ${previous?.id} -> ${panel.id}")
             removeOverlayImmediately()
             return show(panel)
         }
 
-        if (renderedResult != panel.result) {
+        renderedPanel = panel
+        if (previous.result != panel.result) {
             view.setTranslationResult(panel.result, aiTranslated = panel.aiState == AiPanelState.Applied)
-            renderedResult = panel.result
         } else {
             view.setAiTranslated(panel.aiState == AiPanelState.Applied)
         }
@@ -90,8 +87,6 @@ class TranslationOverlayWindow(
 
         val view = overlayView ?: return
         overlayView = null
-        renderedPanelId = null
-        renderedResult = null
         renderedPanel = null
         inflatedOrientation = null
 
@@ -119,28 +114,20 @@ class TranslationOverlayWindow(
         dismissingOverlay = null
     }
 
-    /**
-     * 屏幕旋转 / 尺寸变化后重算窗口
-     *
-     * 窗口是手动 addView 的，不会像 Activity 那样重建；但布局是 inflate 时按
-     * 当时的屏幕方向解析的（layout 与 layout-land），只改窗口大小不会换布局。
-     * 所以方向变化时要把当前面板按新方向的布局整个重建一次。
-     */
+    /** 方向变化时布局要重新解析（layout / layout-land），只改窗口尺寸不会换布局 */
     fun relayout(newConfig: Configuration? = null) {
         val view = overlayView ?: return
 
         val orientation = newConfig?.orientation ?: context.resources.configuration.orientation
-        if (shouldRecreateForOrientation(orientation)) {
-            val panel = renderedPanel
-            if (panel != null) {
-                Log.d(
-                    TAG,
-                    "屏幕方向变化(${orientationName(inflatedOrientation)} -> " +
-                        "${orientationName(orientation)})，重建翻译面板: panel=${panel.id}"
-                )
-                show(panel, config = newConfig, animate = false)
-                return
-            }
+        val panel = renderedPanel
+        if (panel != null && inflatedOrientation != null && inflatedOrientation != orientation) {
+            Log.d(
+                TAG,
+                "屏幕方向变化，重建翻译面板: ${orientationName(inflatedOrientation)} -> " +
+                    "${orientationName(orientation)}, panel=${panel.id}"
+            )
+            show(panel, config = newConfig, animate = false)
+            return
         }
 
         val params = view.layoutParams as? WindowManager.LayoutParams ?: return
@@ -169,12 +156,6 @@ class TranslationOverlayWindow(
             .onFailure { Log.w(TAG, "旋转后更新翻译面板失败", it) }
     }
 
-    /**
-     * 创建并显示面板
-     *
-     * @param config 旋转后重建时传入新配置，确保 layout/layout-land 按新方向解析
-     * @param animate 旋转重建不播放入场动画，避免面板在用户眼前再滑入一次
-     */
     private fun show(
         panel: OverlayPanel,
         config: Configuration? = null,
@@ -244,8 +225,6 @@ class TranslationOverlayWindow(
         return try {
             windowManager.addView(view, params)
             overlayView = view
-            renderedPanelId = panel.id
-            renderedResult = panel.result
             renderedPanel = panel
             inflatedOrientation = orientation
             if (animate) animateIn(view, params, baseY, slidePx)
@@ -253,8 +232,6 @@ class TranslationOverlayWindow(
         } catch (e: Exception) {
             Log.e(TAG, "添加翻译覆盖层失败", e)
             overlayView = null
-            renderedPanelId = null
-            renderedResult = null
             renderedPanel = null
             inflatedOrientation = null
             callbacks.onShowFailed()
@@ -308,16 +285,8 @@ class TranslationOverlayWindow(
             removeViewSafely(view)
             overlayView = null
         }
-        renderedPanelId = null
-        renderedResult = null
         renderedPanel = null
         inflatedOrientation = null
-    }
-
-    /** 当前视图解析布局时的方向与最新方向不一致：必须按新布局重建 */
-    private fun shouldRecreateForOrientation(orientation: Int): Boolean {
-        val inflated = inflatedOrientation ?: return false
-        return inflated != orientation
     }
 
     private fun orientationName(orientation: Int?): String = when (orientation) {
