@@ -45,7 +45,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  * 2. 截图 = 等“请求之后新到达”的帧：截图时挂起等待下一次出帧，并拒绝年龄超过
  *    [MAX_FRAME_AGE_MS] 的残留帧。静止画面靠截图前的轻量刷新（悬浮球闪一下）
  *    触发出帧，等待中途还会补一次刷新。
- * 3. 换 Surface 时先创建新 reader 并挂好监听，再 resize / setSurface，失败则
+ * 3. 换 Surface 时先创建新 reader 并挂好监听，再 setSurface / resize，失败则
  *    回滚旧输出。新 reader 从挂上开始就有人消费，不需要再等首帧来确认。
  * 4. 尺寸变化（旋转 / 分屏）在系统回调里预先换绑：API 34+ 用
  *    onCapturedContentResize，低版本用 DisplayManager.DisplayListener。
@@ -437,7 +437,8 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
      * 换绑输出 Surface
      *
      * 新 reader 先挂好常驻监听再 attach，换绑后由监听持续消费，积压帧不会
-     * 留给下一次截图。setSurface 失败时回滚旧输出并关闭新 reader。
+     * 留给下一次截图。先 setSurface 再 resize，避免 resize 作用在尺寸不匹配
+     * 的旧 Surface 上；任一步失败则回滚旧输出并关闭新 reader。
      */
     private fun rebindOutput(target: CaptureTarget, reason: String): Boolean {
         val display: VirtualDisplay
@@ -487,8 +488,8 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
                 "oldReader=${oldReader?.hashCode()}, newReader=${newReader.hashCode()}"
         )
         try {
-            display.resize(target.width, target.height, target.density)
             display.setSurface(newReader.surface)
+            display.resize(target.width, target.height, target.density)
         } catch (e: Exception) {
             Log.e(TAG, "换绑输出 Surface 失败，恢复旧输出", e)
             restoreOutput(display, oldReader, oldWidth, oldHeight, oldDensity)
@@ -545,8 +546,8 @@ class ScreenCaptureManagerImpl : IScreenCaptureManager {
             return
         }
         try {
-            display.resize(width, height, density)
             display.setSurface(oldReader.surface)
+            display.resize(width, height, density)
         } catch (e: Exception) {
             Log.e(TAG, "恢复旧输出失败: ${width}x${height}", e)
             return
