@@ -303,7 +303,8 @@ class FloatingButtonService : Service() {
         super.onConfigurationChanged(newConfig)
         floatingButtonWindow?.relayout()
         quickMenuWindow?.relayout()
-        overlayWindow?.relayout()
+        // 翻译面板的布局按 inflate 时的方向解析；传入新配置让它在方向变化时重建
+        overlayWindow?.relayout(newConfig)
         navigationStatusWindow?.relayout()
         quotaExceededWindow?.relayout()
         // 截图器在下一次截图时惰性检测尺寸并换绑，这里不再主动通知
