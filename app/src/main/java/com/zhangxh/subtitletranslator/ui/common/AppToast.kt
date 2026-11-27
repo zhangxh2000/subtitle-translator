@@ -1,6 +1,8 @@
 package com.zhangxh.subtitletranslator.ui.common
 
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.graphics.PixelFormat
 import android.os.Handler
 import android.os.Looper
@@ -13,15 +15,14 @@ import android.view.WindowManager
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.StringRes
-import androidx.core.app.NotificationManagerCompat
 import com.zhangxh.subtitletranslator.R
 
 /**
  * 应用内轻提示
  *
- * Android 13+ 未授予通知权限（本应用刻意不申请），或用户关闭了应用通知后，
- * system_server 会以“Suppressing toast ... by user request”为由丢弃系统 Toast。
- * 系统 Toast 可用时保持原生观感，被抑制时用悬浮窗自绘一条，避免提示随通知权限一起消失。
+ * 系统只在通知关闭且应用不在前台时丢弃 Toast（NotificationManagerService.checkCanEnqueueToast），
+ * 悬浮球场景的提示都由后台 Service 发出，正好命中这条限制。
+ * 因此按调用方主动分流：Activity 上下文走系统 Toast，其余场景用悬浮窗自绘提示。
  */
 object AppToast {
 
@@ -45,17 +46,26 @@ object AppToast {
             mainHandler.post { show(context, text, long) }
             return
         }
-        val appContext = context.applicationContext
-        if (NotificationManagerCompat.from(appContext).areNotificationsEnabled()) {
+        val activity = context.findActivity()
+        if (activity != null) {
             Toast.makeText(
-                appContext,
+                activity,
                 text,
                 if (long) Toast.LENGTH_LONG else Toast.LENGTH_SHORT
             ).show()
             return
         }
-        Log.i(TAG, "通知不可用，系统会丢弃 Toast，改用悬浮窗提示")
-        showOverlay(appContext, text, long)
+        showOverlay(context.applicationContext, text, long)
+    }
+
+    /** 沿 ContextWrapper 链找宿主 Activity；Service / Application 上下文返回 null */
+    private fun Context.findActivity(): Activity? {
+        var current: Context = this
+        while (current is ContextWrapper) {
+            if (current is Activity) return current
+            current = current.baseContext
+        }
+        return null
     }
 
     private fun showOverlay(context: Context, text: CharSequence, long: Boolean) {
