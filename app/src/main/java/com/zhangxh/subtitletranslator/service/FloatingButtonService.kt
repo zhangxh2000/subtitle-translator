@@ -13,7 +13,6 @@ import android.os.IBinder
 import android.provider.Settings
 import android.util.Log
 import android.view.WindowManager
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity.RESULT_OK
 import androidx.core.content.IntentCompat
 import androidx.lifecycle.Observer
@@ -56,6 +55,7 @@ import com.zhangxh.subtitletranslator.domain.wordextractor.EnglishDifficultyAsse
 import com.zhangxh.subtitletranslator.domain.wordextractor.NoOpWordExtractor
 import com.zhangxh.subtitletranslator.ui.DebugCaptureActivity
 import com.zhangxh.subtitletranslator.ui.SettingsActivity
+import com.zhangxh.subtitletranslator.ui.common.AppToast
 import com.zhangxh.subtitletranslator.ui.common.Event
 import com.zhangxh.subtitletranslator.ui.common.messageRes
 import com.zhangxh.subtitletranslator.ui.floating.FloatingButtonWindow
@@ -375,11 +375,7 @@ class FloatingButtonService : Service() {
             // 生词朗读：系统 TTS，引擎到用户第一次点喇叭时才真正创建
             pronouncer = AndroidTtsPronouncer(this) { error ->
                 Log.e(TAG, "朗读失败: $error")
-                Toast.makeText(
-                    this@FloatingButtonService,
-                    getString(error.messageRes()),
-                    Toast.LENGTH_SHORT
-                ).show()
+                AppToast.show(this@FloatingButtonService, getString(error.messageRes()))
             }
 
             val sourceLang = settingsStore.sourceLang
@@ -500,11 +496,11 @@ class FloatingButtonService : Service() {
 
     private fun handleOverlayEffect(effect: OverlayEffect) {
         when (effect) {
-            is OverlayEffect.Toast -> Toast.makeText(
+            is OverlayEffect.Toast -> AppToast.show(
                 this,
                 effect.text.resolve(this),
-                if (effect.long) Toast.LENGTH_LONG else Toast.LENGTH_SHORT
-            ).show()
+                long = effect.long
+            )
 
             is OverlayEffect.DismissPanel -> {
                 // 面板一关就停朗读：TTS 走音乐流，边读边恢复播放会被误判成视频正在播
@@ -545,7 +541,7 @@ class FloatingButtonService : Service() {
         val overlayPresenter = presenter
         if (overlayPresenter == null) {
             Log.e(TAG, "翻译面板未初始化，无法执行翻译")
-            Toast.makeText(this, R.string.service_not_ready, Toast.LENGTH_SHORT).show()
+            AppToast.show(this, R.string.service_not_ready)
             return
         }
         overlayPresenter.toggleTranslation()
@@ -598,7 +594,7 @@ class FloatingButtonService : Service() {
     /** 悬浮窗/录屏授权已失效：提示用户并回到主界面重新走授权流程 */
     private fun guideReauthorization(reason: String) {
         Log.w(TAG, "引导重新授权录屏: $reason")
-        Toast.makeText(this, R.string.floating_menu_reauth_required, Toast.LENGTH_LONG).show()
+        AppToast.show(this, R.string.floating_menu_reauth_required, long = true)
         restartAndRequestPermission()
     }
 
@@ -611,11 +607,10 @@ class FloatingButtonService : Service() {
 
     private fun showA11yDumpResult() {
         val started = A11yDiagnosticService.requestDump()
-        Toast.makeText(
+        AppToast.show(
             this,
-            if (started) R.string.a11y_dump_started else R.string.a11y_dump_unavailable,
-            Toast.LENGTH_SHORT
-        ).show()
+            if (started) R.string.a11y_dump_started else R.string.a11y_dump_unavailable
+        )
     }
 
     /**
@@ -634,11 +629,11 @@ class FloatingButtonService : Service() {
                     Log.d(TAG, "已显示悬浮额度提示")
                 } else {
                     Log.w(TAG, "悬浮额度提示不可用，回退到主界面弹窗")
-                    Toast.makeText(
+                    AppToast.show(
                         this@FloatingButtonService,
                         R.string.error_translation_daily_quota_exceeded,
-                        Toast.LENGTH_LONG
-                    ).show()
+                        long = true
+                    )
                     openCloudQuotaDialog(event.resetAt)
                 }
             }
@@ -690,7 +685,7 @@ class FloatingButtonService : Service() {
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText(getString(R.string.clipboard_label_translation), text)
         clipboard.setPrimaryClip(clip)
-        Toast.makeText(this, R.string.toast_copied, Toast.LENGTH_SHORT).show()
+        AppToast.show(this, R.string.toast_copied)
     }
 
     /**

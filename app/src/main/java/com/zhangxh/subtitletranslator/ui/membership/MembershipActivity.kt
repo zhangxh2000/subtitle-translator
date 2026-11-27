@@ -10,7 +10,6 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.view.isVisible
@@ -26,6 +25,7 @@ import com.zhangxh.subtitletranslator.SubtitleTranslatorApplication
 import com.zhangxh.subtitletranslator.domain.membership.SubscriptionOffer
 import com.zhangxh.subtitletranslator.ui.BaseActivity
 import com.zhangxh.subtitletranslator.ui.auth.LoginActivity
+import com.zhangxh.subtitletranslator.ui.common.AppToast
 import com.zhangxh.subtitletranslator.ui.common.periodLabelRes
 import com.zhangxh.subtitletranslator.ui.common.planTitleRes
 import kotlinx.coroutines.launch
@@ -249,7 +249,7 @@ class MembershipActivity : BaseActivity() {
             MembershipEvent.OpenSubscriptionManagement -> openSubscriptionManagement()
             MembershipEvent.PurchaseSucceeded -> showPurchaseSuccessDialog()
             is MembershipEvent.ShowMessage ->
-                Toast.makeText(this, event.text.resolve(this), Toast.LENGTH_SHORT).show()
+                AppToast.show(this, event.text.resolve(this))
         }
     }
 
@@ -271,7 +271,7 @@ class MembershipActivity : BaseActivity() {
             startActivity(Intent(Intent.ACTION_VIEW, uri))
         } catch (e: ActivityNotFoundException) {
             Log.w(TAG, "无法打开 Google Play 订阅管理页", e)
-            Toast.makeText(this, R.string.membership_open_store_failed, Toast.LENGTH_SHORT).show()
+            AppToast.show(this, R.string.membership_open_store_failed)
         }
     }
 

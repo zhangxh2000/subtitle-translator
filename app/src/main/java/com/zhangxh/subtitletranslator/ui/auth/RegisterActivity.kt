@@ -16,6 +16,7 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.ui.BaseActivity
+import com.zhangxh.subtitletranslator.ui.common.AppToast
 
 /**
  * 注册页
@@ -89,11 +90,7 @@ class RegisterActivity : BaseActivity() {
         viewModel.uiState.observe(this) { state -> render(state) }
         viewModel.events.observe(this) { event ->
             if (event.getContentIfNotHandled() == RegisterEvent.Success) {
-                android.widget.Toast.makeText(
-                    this,
-                    R.string.auth_register_success,
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
+                AppToast.show(this, R.string.auth_register_success)
                 setResult(Activity.RESULT_OK)
                 finish()
             }

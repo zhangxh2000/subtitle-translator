@@ -11,7 +11,6 @@ import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -25,6 +24,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.zhangxh.subtitletranslator.ui.BaseActivity
 import com.zhangxh.subtitletranslator.ui.MainEvent
 import com.zhangxh.subtitletranslator.ui.MainViewModel
+import com.zhangxh.subtitletranslator.ui.common.AppToast
 import com.zhangxh.subtitletranslator.ui.membership.MembershipActivity
 import java.text.DateFormat
 import java.util.Date
@@ -98,7 +98,7 @@ class MainActivity : BaseActivity() {
         }
         if (intent.getBooleanExtra(EXTRA_RESTART_SERVICE, false)) {
             navigateTo(R.id.homeFragment)
-            Toast.makeText(this, R.string.main_restart_hint, Toast.LENGTH_LONG).show()
+            AppToast.show(this, R.string.main_restart_hint, long = true)
             viewModel.onRestartRequested()
             return
         }
@@ -168,7 +168,7 @@ class MainActivity : BaseActivity() {
                 MainEvent.OpenOverlaySettings -> openOverlaySettings()
                 MainEvent.RequestMediaProjection -> requestMediaProjection()
                 is MainEvent.ShowMessage ->
-                    Toast.makeText(this, action.text.resolve(this), Toast.LENGTH_SHORT).show()
+                    AppToast.show(this, action.text.resolve(this))
             }
         }
     }
@@ -193,7 +193,7 @@ class MainActivity : BaseActivity() {
     }
 
     private fun openOverlaySettings() {
-        Toast.makeText(this, R.string.main_overlay_permission_hint, Toast.LENGTH_LONG).show()
+        AppToast.show(this, R.string.main_overlay_permission_hint, long = true)
         startActivity(
             Intent(
                 Settings.ACTION_MANAGE_OVERLAY_PERMISSION,

@@ -6,10 +6,10 @@ import android.util.Log
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.core.content.FileProvider
 import com.zhangxh.subtitletranslator.R
+import com.zhangxh.subtitletranslator.ui.common.AppToast
 
 /**
  * 单张调试截图的大图查看
@@ -51,7 +51,7 @@ class ImagePreviewActivity : BaseActivity() {
         }
         viewModel.messages.observe(this) { event ->
             event.getContentIfNotHandled()?.let { message ->
-                Toast.makeText(this, message.resolve(this), Toast.LENGTH_SHORT).show()
+                AppToast.show(this, message.resolve(this))
             }
         }
 
@@ -61,7 +61,7 @@ class ImagePreviewActivity : BaseActivity() {
     private fun shareImage() {
         val file = viewModel.sessionFile(sessionId, fileName)
         if (!file.exists()) {
-            Toast.makeText(this, R.string.preview_image_missing, Toast.LENGTH_SHORT).show()
+            AppToast.show(this, R.string.preview_image_missing)
             return
         }
 
@@ -75,11 +75,7 @@ class ImagePreviewActivity : BaseActivity() {
             startActivity(Intent.createChooser(intent, getString(R.string.preview_share_chooser)))
         } catch (e: Exception) {
             Log.e(TAG, "分享截图失败", e)
-            Toast.makeText(
-                this,
-                getString(R.string.preview_share_failed, e.message),
-                Toast.LENGTH_SHORT
-            ).show()
+            AppToast.show(this, getString(R.string.preview_share_failed, e.message))
         }
     }
 }

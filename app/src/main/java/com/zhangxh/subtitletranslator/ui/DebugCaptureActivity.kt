@@ -7,13 +7,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.annotation.StringRes
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.domain.ocr.OcrPreprocessMode
+import com.zhangxh.subtitletranslator.ui.common.AppToast
 import com.zhangxh.subtitletranslator.ui.common.labelRes
 import com.zhangxh.subtitletranslator.ui.common.toUiText
 import com.zhangxh.subtitletranslator.util.CaptureRecord
@@ -62,7 +62,7 @@ class DebugCaptureActivity : BaseActivity() {
         }
         viewModel.messages.observe(this) { event ->
             event.getContentIfNotHandled()?.let { message ->
-                Toast.makeText(this, message.resolve(this), Toast.LENGTH_SHORT).show()
+                AppToast.show(this, message.resolve(this))
             }
         }
     }

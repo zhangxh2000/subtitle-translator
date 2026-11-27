@@ -4,7 +4,6 @@ import android.app.Activity
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.core.view.isVisible
 import com.google.android.material.appbar.MaterialToolbar
@@ -15,6 +14,7 @@ import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.domain.vocabulary.LearningStatus
 import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWord
 import com.zhangxh.subtitletranslator.ui.BaseActivity
+import com.zhangxh.subtitletranslator.ui.common.AppToast
 import com.zhangxh.subtitletranslator.ui.common.labelRes
 
 /**
@@ -70,13 +70,13 @@ class WordDetailActivity : BaseActivity() {
                 setResult(Activity.RESULT_OK)
                 finish()
             } else if (!state.loading && state.word == null) {
-                Toast.makeText(this, R.string.word_detail_not_found, Toast.LENGTH_SHORT).show()
+                AppToast.show(this, R.string.word_detail_not_found)
                 finish()
             }
         }
         viewModel.messages.observe(this) { event ->
             event.getContentIfNotHandled()?.let { message ->
-                Toast.makeText(this, message.resolve(this), Toast.LENGTH_SHORT).show()
+                AppToast.show(this, message.resolve(this))
             }
         }
     }

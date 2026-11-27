@@ -1,12 +1,12 @@
 package com.zhangxh.subtitletranslator.ui
 
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.viewModels
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.domain.translator.Language
+import com.zhangxh.subtitletranslator.ui.common.AppToast
 import com.zhangxh.subtitletranslator.ui.common.displayNameRes
 
 /**
@@ -40,7 +40,7 @@ class LanguageSettingsActivity : BaseActivity() {
         viewModel.uiState.observe(this) { state -> render(state) }
         viewModel.messages.observe(this) { event ->
             event.getContentIfNotHandled()?.let { message ->
-                Toast.makeText(this, message.resolve(this), Toast.LENGTH_SHORT).show()
+                AppToast.show(this, message.resolve(this))
             }
         }
 

@@ -7,7 +7,6 @@ import android.view.View
 import android.widget.ImageButton
 import android.widget.ScrollView
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.core.view.doOnLayout
 import androidx.core.view.isVisible
@@ -17,6 +16,7 @@ import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.domain.vocabulary.SavedWord
 import com.zhangxh.subtitletranslator.ui.BaseActivity
+import com.zhangxh.subtitletranslator.ui.common.AppToast
 
 /**
  * 单词卡片复习
@@ -87,7 +87,7 @@ class WordReviewActivity : BaseActivity() {
         viewModel.uiState.observe(this) { state -> render(state) }
         viewModel.messages.observe(this) { event ->
             event.getContentIfNotHandled()?.let { message ->
-                Toast.makeText(this, message.resolve(this), Toast.LENGTH_SHORT).show()
+                AppToast.show(this, message.resolve(this))
             }
         }
     }

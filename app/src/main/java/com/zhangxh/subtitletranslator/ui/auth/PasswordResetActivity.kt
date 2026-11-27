@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.core.widget.doAfterTextChanged
 import com.google.android.material.appbar.MaterialToolbar
@@ -14,6 +13,7 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.zhangxh.subtitletranslator.R
 import com.zhangxh.subtitletranslator.ui.BaseActivity
+import com.zhangxh.subtitletranslator.ui.common.AppToast
 
 /**
  * 密码重置页
@@ -67,18 +67,10 @@ class PasswordResetActivity : BaseActivity() {
         viewModel.uiState.observe(this) { state -> render(state) }
         viewModel.events.observe(this) { event ->
             when (event.getContentIfNotHandled()) {
-                PasswordResetEvent.EmailSent -> Toast.makeText(
-                    this,
-                    R.string.auth_reset_email_sent,
-                    Toast.LENGTH_LONG
-                ).show()
+                PasswordResetEvent.EmailSent -> AppToast.show(this, R.string.auth_reset_email_sent, long = true)
 
                 PasswordResetEvent.Success -> {
-                    Toast.makeText(
-                        this,
-                        R.string.auth_reset_success,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppToast.show(this, R.string.auth_reset_success)
                     finish()
                 }
 

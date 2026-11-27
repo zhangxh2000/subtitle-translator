@@ -8,7 +8,6 @@ import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.PopupMenu
 import android.widget.TextView
-import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
@@ -27,6 +26,7 @@ import com.zhangxh.subtitletranslator.ui.VocabularyFilter
 import com.zhangxh.subtitletranslator.ui.VocabularySort
 import com.zhangxh.subtitletranslator.ui.VocabularyUiState
 import com.zhangxh.subtitletranslator.ui.VocabularyViewModel
+import com.zhangxh.subtitletranslator.ui.common.AppToast
 import com.zhangxh.subtitletranslator.ui.common.auth.LoginGate
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -118,8 +118,7 @@ class VocabularyFragment : Fragment() {
         viewModel.uiState.observe(viewLifecycleOwner) { state -> render(state) }
         viewModel.messages.observe(viewLifecycleOwner) { event ->
             event.getContentIfNotHandled()?.let { message ->
-                Toast.makeText(requireContext(), message.resolve(requireContext()), Toast.LENGTH_SHORT)
-                    .show()
+                AppToast.show(requireContext(), message.resolve(requireContext()))
             }
         }
     }
