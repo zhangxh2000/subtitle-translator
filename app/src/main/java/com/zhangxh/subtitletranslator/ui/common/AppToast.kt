@@ -7,6 +7,7 @@ import android.animation.ObjectAnimator
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.Handler
@@ -37,7 +38,7 @@ import com.zhangxh.subtitletranslator.R
  * 因此按调用方主动分流：Activity 上下文走系统 Toast，其余场景用悬浮窗自绘提示。
  *
  * 自绘提示按 SystemUI 的 text_toast 复刻：布局、配色、应用图标、进出场动画都与系统 Toast 一致；
- * 配色依赖深色 DeviceDefault 主题解析，与 SystemUI 渲染 Toast 的主题相同。
+ * 配色跟随系统深浅色，分别用深色/浅色 DeviceDefault 主题解析。
  */
 object AppToast {
 
@@ -88,7 +89,16 @@ object AppToast {
     private fun showOverlay(context: Context, text: CharSequence, long: Boolean) {
         removeOverlay()
         val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        val themedContext = ContextThemeWrapper(context, android.R.style.Theme_DeviceDefault)
+        val night = (context.resources.configuration.uiMode and
+            Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        val themedContext = ContextThemeWrapper(
+            context,
+            if (night) {
+                android.R.style.Theme_DeviceDefault
+            } else {
+                android.R.style.Theme_DeviceDefault_Light
+            }
+        )
         val view = LayoutInflater.from(themedContext).inflate(R.layout.overlay_toast, null)
         val textView = view.findViewById<TextView>(R.id.toastText)
         val iconView = view.findViewById<ImageView>(R.id.toastIcon)
